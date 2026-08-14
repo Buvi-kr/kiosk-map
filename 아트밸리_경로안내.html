@@ -333,254 +333,63 @@
   <script>
     (function () {
       const FULL_VB = { x: 0, y: 0, w: 3337, h: 2101 };
-      const ZOOM_PADDING = 240;
-
-      // 100% 인쇄 노란 점(Vector Dot) 실측 앵커 좌표
       const ANCHORS = {
-        astro: [189, 296],         // 천문과학관
-        sanmaru: [316, 519],       // 산마루공연장
-        monoUpper: [661, 649],     // 모노레일 하차장(상행)
-        monoDown: [1075, 803],     // 모노레일 승차장(하행)
-        lake: [1575, 520],         // 천주호 전망데크
-        skyGarden: [2102, 514],    // 하늘정원
-        lakeStage: [2366, 429],    // 호수공연장
-        cafe: [2599, 703],         // 전망카페
-        sculpture: [2057, 937],    // 조각공원
-        forest: [2499, 1034],      // 힐링숲 산책로
-        gate: [2114, 1488],        // 검표소
-        monoLower: [2326, 1535],   // 모노레일 승·하차장
-        ticket: [2440, 1711],      // 관리사무소 / 매표소
-        artMuseum: [2840, 1740],   // 김광우 미술관
-        info: [3171, 1493]         // 포천관광정보센터
+        astro: [189, 296], sanmaru: [316, 519], monoUpper: [661, 649], monoDown: [1075, 803], lake: [1575, 520],
+        skyGarden: [2102, 514], lakeStage: [2366, 429], cafe: [2599, 703], sculpture: [2057, 937], forest: [2499, 1034],
+        gate: [2114, 1488], monoLower: [2326, 1535], ticket: [2440, 1711], artMuseum: [2840, 1740], info: [3171, 1493]
       };
 
-      // 시작점 프리셋
       const START_PRESETS = {
         ticket: { label: '매표소', pos: ANCHORS.ticket },
         astro: { label: '천문과학관', pos: ANCHORS.astro },
         info: { label: '관광정보센터', pos: ANCHORS.info }
       };
 
-      // 목적지별 공식 기준 도착 앵커 좌표 (시작점처럼 정확한 고정 좌표)
       const DEST_PRESETS = {
-        astro: {
-          mono: ANCHORS.monoDown,       // [1075, 803] 모노레일 하행 승차장
-          lake: [1247, 663],            // 천주호 전망데크 진입광장
-          cafe: ANCHORS.cafe,           // [2599, 703] 전망카페
-          forest: [2089, 1472]          // [2089, 1472] 힐링숲 산책로 종착지
-        },
-        ticket: {
-          mono: ANCHORS.monoLower,      // [2326, 1535] 모노레일 승강장
-          lake: ANCHORS.lake,           // [1575, 520] 천주호
-          cafe: ANCHORS.cafe,           // [2599, 703] 전망카페
-          forest: ANCHORS.forest        // [2499, 1034] 힐링숲 입구
-        },
-        info: {
-          mono: ANCHORS.monoLower,      // [2326, 1535] 모노레일 승강장
-          lake: ANCHORS.lake,           // [1575, 520] 천주호
-          cafe: ANCHORS.cafe,           // [2599, 703] 전망카페
-          forest: ANCHORS.forest        // [2499, 1034] 힐링숲 입구
-        }
+        astro: { mono: ANCHORS.monoDown, lake: [1247, 663], cafe: ANCHORS.cafe, forest: [2089, 1472] },
+        ticket: { mono: ANCHORS.monoLower, lake: ANCHORS.lake, cafe: ANCHORS.cafe, forest: ANCHORS.forest },
+        info: { mono: ANCHORS.monoLower, lake: ANCHORS.lake, cafe: ANCHORS.cafe, forest: ANCHORS.forest }
       };
 
       const ROUTE_LABELS = {
         mono: '모노레일 타는 곳', lake: '천주호', cafe: '전망카페', forest: '힐링숲 산책로'
       };
 
-      // 동시 표출 복수 경로 데이터 (모든 코스명을 "코스 1", "코스 2"로 정돈)
       let ALL_ROUTES = {
-      "astro": {
-            "mono": [
-                  {
-                        "id": "mono_0",
-                        "name": "코스 1",
-                        "color": "red",
-                        "points": [
-                              [ 189, 296 ], [ 318, 408 ], [ 401, 426 ], [ 474, 460 ], [ 464, 541 ],
-                              [ 454, 611 ], [ 501, 658 ], [ 592, 679 ], [ 712, 739 ], [ 837, 794 ],
-                              [ 936, 757 ], [ 1038, 731 ], [ 1116, 770 ], [ 1075, 803 ]
-                        ]
-                  },
-                  {
-                        "id": "mono_1",
-                        "name": "코스 2",
-                        "color": "blue",
-                        "points": [
-                              [ 189, 296 ], [ 305, 400 ], [ 412, 452 ], [ 506, 486 ], [ 459, 556 ],
-                              [ 456, 621 ], [ 594, 601 ], [ 733, 606 ], [ 866, 627 ], [ 1001, 616 ],
-                              [ 1074, 569 ], [ 1113, 619 ], [ 1168, 658 ], [ 1085, 705 ], [ 1032, 721 ],
-                              [ 1121, 767 ], [ 1075, 803 ]
-                        ]
-                  }
-            ],
-            "lake": [
-                  {
-                        "id": "lake_0",
-                        "name": "코스 1",
-                        "color": "red",
-                        "points": [
-                              [ 189, 296 ], [ 371, 395 ], [ 481, 477 ], [ 465, 544 ], [ 441, 605 ],
-                              [ 511, 663 ], [ 584, 684 ], [ 660, 693 ], [ 733, 721 ], [ 809, 757 ],
-                              [ 873, 781 ], [ 967, 748 ], [ 1077, 727 ], [ 1180, 690 ], [ 1247, 663 ]
-                        ]
-                  },
-                  {
-                        "id": "lake_1",
-                        "name": "코스 2",
-                        "color": "blue",
-                        "points": [
-                              [ 189, 296 ], [ 271, 405 ], [ 386, 431 ], [ 443, 455 ], [ 490, 512 ],
-                              [ 446, 585 ], [ 467, 611 ], [ 537, 616 ], [ 615, 590 ], [ 720, 601 ],
-                              [ 808, 621 ], [ 920, 637 ], [ 978, 619 ], [ 1064, 572 ], [ 1103, 601 ],
-                              [ 1168, 650 ], [ 1247, 663 ]
-                        ]
-                  }
-            ],
-            "cafe": [
-                  {
-                        "id": "cafe_0",
-                        "name": "코스 1",
-                        "color": "red",
-                        "points": [
-                              [ 189, 296 ], [ 339, 410 ], [ 474, 468 ], [ 459, 548 ], [ 448, 611 ],
-                              [ 532, 653 ], [ 639, 692 ], [ 730, 747 ], [ 866, 804 ], [ 941, 825 ],
-                              [ 1053, 854 ], [ 1184, 848 ], [ 1337, 846 ], [ 1502, 833 ], [ 1710, 799 ],
-                              [ 1882, 809 ], [ 2060, 801 ], [ 2226, 788 ], [ 2331, 726 ], [ 2427, 694 ],
-                              [ 2544, 671 ], [ 2599, 703 ]
-                        ]
-                  },
-                  {
-                        "id": "cafe_1",
-                        "name": "코스 2",
-                        "color": "blue",
-                        "points": [
-                              [ 189, 296 ], [ 326, 408 ], [ 433, 457 ], [ 485, 496 ], [ 454, 562 ],
-                              [ 469, 637 ], [ 558, 603 ], [ 699, 603 ], [ 793, 624 ], [ 910, 635 ],
-                              [ 991, 611 ], [ 1053, 567 ], [ 1103, 616 ], [ 1191, 661 ], [ 1139, 721 ],
-                              [ 1079, 749 ], [ 1137, 775 ], [ 1204, 807 ], [ 1293, 809 ], [ 1491, 807 ],
-                              [ 1674, 807 ], [ 1854, 807 ], [ 2041, 804 ], [ 2211, 794 ], [ 2357, 721 ],
-                              [ 2498, 658 ], [ 2599, 703 ]
-                        ]
-                  }
-            ],
-            "forest": [
-                  {
-                        "id": "forest_0",
-                        "name": "코스 1",
-                        "color": "red",
-                        "forestStartIndex": 23,
-                        "points": [
-                              [ 189, 296 ], [ 362, 402 ], [ 474, 491 ], [ 446, 569 ], [ 469, 650 ],
-                              [ 566, 676 ], [ 670, 710 ], [ 772, 760 ], [ 892, 801 ], [ 1032, 846 ],
-                              [ 1173, 854 ], [ 1343, 851 ], [ 1559, 809 ], [ 1768, 807 ], [ 1960, 809 ],
-                              [ 2070, 796 ], [ 2206, 760 ], [ 2323, 734 ], [ 2430, 705 ], [ 2466, 692 ],
-                              [ 2445, 731 ], [ 2378, 762 ], [ 2380, 825 ], [ 2498, 807 ], [ 2565, 760 ],
-                              [ 2595, 873 ], [ 2534, 978 ], [ 2497, 1027 ], [ 2466, 1114 ], [ 2435, 1219 ],
-                              [ 2361, 1306 ], [ 2237, 1361 ], [ 2163, 1417 ], [ 2089, 1472 ]
-                        ]
-                  }
-            ]
-      },
-      "ticket": {
-            "mono": [
-                  {
-                        "id": "mono_0",
-                        "name": "코스 1",
-                        "color": "red",
-                        "points": [
-                              [ 2440, 1711 ], [ 2326, 1535 ]
-                        ]
-                  }
-            ],
-            "lake": [
-                  {
-                        "id": "lake_0",
-                        "name": "코스 1",
-                        "color": "red",
-                        "points": [
-                              [ 2440, 1711 ], [ 2114, 1488 ], [ 1850, 1280 ], [ 1520, 1050 ],
-                              [ 1240, 890 ], [ 1075, 803 ], [ 1330, 680 ], [ 1575, 520 ]
-                        ]
-                  },
-                  {
-                        "id": "lake_1",
-                        "name": "코스 2",
-                        "color": "blue",
-                        "points": [
-                              [ 2440, 1711 ], [ 2326, 1535 ], [ 1550, 1150 ], [ 661, 649 ],
-                              [ 900, 740 ], [ 1075, 803 ], [ 1575, 520 ]
-                        ]
-                  }
-            ],
-            "cafe": [
-                  {
-                        "id": "cafe_0",
-                        "name": "코스 1",
-                        "color": "red",
-                        "points": [
-                              [ 2440, 1711 ], [ 2114, 1488 ], [ 2499, 1034 ], [ 2599, 703 ]
-                        ]
-                  }
-            ],
-            "forest": [
-                  {
-                        "id": "forest_0",
-                        "name": "코스 1",
-                        "color": "red",
-                        "forestStartIndex": 1,
-                        "points": [
-                              [ 2440, 1711 ], [ 2114, 1488 ], [ 2499, 1034 ]
-                        ]
-                  }
-            ]
-      },
-      "info": {
-            "mono": [
-                  {
-                        "id": "mono_0",
-                        "name": "코스 1",
-                        "color": "red",
-                        "points": [
-                              [ 3171, 1493 ], [ 2750, 1530 ], [ 2326, 1535 ]
-                        ]
-                  }
-            ],
-            "lake": [
-                  {
-                        "id": "lake_0",
-                        "name": "코스 1",
-                        "color": "red",
-                        "points": [
-                              [ 3171, 1493 ], [ 2114, 1488 ], [ 1850, 1280 ], [ 1520, 1050 ],
-                              [ 1075, 803 ], [ 1575, 520 ]
-                        ]
-                  }
-            ],
-            "cafe": [
-                  {
-                        "id": "cafe_0",
-                        "name": "코스 1",
-                        "color": "red",
-                        "points": [
-                              [ 3171, 1493 ], [ 2499, 1034 ], [ 2599, 703 ]
-                        ]
-                  }
-            ],
-            "forest": [
-                  {
-                        "id": "forest_0",
-                        "name": "코스 1",
-                        "color": "red",
-                        "forestStartIndex": 1,
-                        "points": [
-                              [ 3171, 1493 ], [ 2499, 1034 ]
-                        ]
-                  }
-            ]
-      }
-};
+        astro: {
+          mono: [
+            { id: "mono_0", name: "코스 1", color: "red", points: [[189,296],[318,408],[401,426],[474,460],[464,541],[454,611],[501,658],[592,679],[712,739],[837,794],[936,757],[1038,731],[1116,770],[1075,803]] },
+            { id: "mono_1", name: "코스 2", color: "blue", points: [[189,296],[305,400],[412,452],[506,486],[459,556],[456,621],[594,601],[733,606],[866,627],[1001,616],[1074,569],[1113,619],[1168,658],[1085,705],[1032,721],[1121,767],[1075,803]] }
+          ],
+          lake: [
+            { id: "lake_0", name: "코스 1", color: "red", points: [[189,296],[371,395],[481,477],[465,544],[441,605],[511,663],[584,684],[660,693],[733,721],[809,757],[873,781],[967,748],[1077,727],[1180,690],[1247,663]] },
+            { id: "lake_1", name: "코스 2", color: "blue", points: [[189,296],[271,405],[386,431],[443,455],[490,512],[446,585],[467,611],[537,616],[615,590],[720,601],[808,621],[920,637],[978,619],[1064,572],[1103,601],[1168,650],[1247,663]] }
+          ],
+          cafe: [
+            { id: "cafe_0", name: "코스 1", color: "red", points: [[189,296],[339,410],[474,468],[459,548],[448,611],[532,653],[639,692],[730,747],[866,804],[941,825],[1053,854],[1184,848],[1337,846],[1502,833],[1710,799],[1882,809],[2060,801],[2226,788],[2331,726],[2427,694],[2544,671],[2599,703]] },
+            { id: "cafe_1", name: "코스 2", color: "blue", points: [[189,296],[326,408],[433,457],[485,496],[454,562],[469,637],[558,603],[699,603],[793,624],[910,635],[991,611],[1053,567],[1103,616],[1191,661],[1139,721],[1079,749],[1137,775],[1204,807],[1293,809],[1491,807],[1674,807],[1854,807],[2041,804],[2211,794],[2357,721],[2498,658],[2599,703]] }
+          ],
+          forest: [
+            { id: "forest_0", name: "코스 1", color: "red", forestStartIndex: 23, points: [[189,296],[362,402],[474,491],[446,569],[469,650],[566,676],[670,710],[772,760],[892,801],[1032,846],[1173,854],[1343,851],[1559,809],[1768,807],[1960,809],[2070,796],[2206,760],[2323,734],[2430,705],[2466,692],[2445,731],[2378,762],[2380,825],[2498,807],[2565,760],[2595,873],[2534,978],[2497,1027],[2466,1114],[2435,1219],[2361,1306],[2237,1361],[2163,1417],[2089,1472]] }
+          ]
+        },
+        ticket: {
+          mono: [{ id: "mono_0", name: "코스 1", color: "red", points: [[2440,1711],[2326,1535]] }],
+          lake: [
+            { id: "lake_0", name: "코스 1", color: "red", points: [[2440,1711],[2114,1488],[1850,1280],[1520,1050],[1240,890],[1075,803],[1330,680],[1575,520]] },
+            { id: "lake_1", name: "코스 2", color: "blue", points: [[2440,1711],[2326,1535],[1550,1150],[661,649],[900,740],[1075,803],[1575,520]] }
+          ],
+          cafe: [{ id: "cafe_0", name: "코스 1", color: "red", points: [[2440,1711],[2114,1488],[2499,1034],[2599,703]] }],
+          forest: [{ id: "forest_0", name: "코스 1", color: "red", forestStartIndex: 1, points: [[2440,1711],[2114,1488],[2499,1034]] }]
+        },
+        info: {
+          mono: [{ id: "mono_0", name: "코스 1", color: "red", points: [[3171,1493],[2750,1530],[2326,1535]] }],
+          lake: [{ id: "lake_0", name: "코스 1", color: "red", points: [[3171,1493],[2114,1488],[1850,1280],[1520,1050],[1075,803],[1575,520]] }],
+          cafe: [{ id: "cafe_0", name: "코스 1", color: "red", points: [[3171,1493],[2499,1034],[2599,703]] }],
+          forest: [{ id: "forest_0", name: "코스 1", color: "red", forestStartIndex: 1, points: [[3171,1493],[2499,1034]] }]
+        }
+      };
 
-      // 시작 위치 자동 감지 (파일명 또는 URL 파라미터)
       const pathname = decodeURIComponent(window.location.pathname);
       let defaultStart = 'astro';
       if (pathname.includes('매표소')) defaultStart = 'ticket';
@@ -593,14 +402,9 @@
 
       function getStart() { return START_PRESETS[currentStartKey].pos; }
       function getDestPos(destKey) {
-        if (DEST_PRESETS[currentStartKey] && DEST_PRESETS[currentStartKey][destKey]) {
-          return DEST_PRESETS[currentStartKey][destKey];
-        }
+        if (DEST_PRESETS[currentStartKey] && DEST_PRESETS[currentStartKey][destKey]) return DEST_PRESETS[currentStartKey][destKey];
         const routes = getDestRoutes(destKey);
-        if (routes && routes[0] && routes[0].points && routes[0].points.length > 0) {
-          return routes[0].points[routes[0].points.length - 1];
-        }
-        return ANCHORS[destKey] || [1500, 1000];
+        return (routes[0]?.points?.length > 0) ? routes[0].points[routes[0].points.length - 1] : (ANCHORS[destKey] || [1500, 1000]);
       }
       function getDestRoutes(destKey) { return ALL_ROUTES[currentStartKey][destKey] || []; }
 
@@ -619,12 +423,12 @@
       const legendGreenText = document.getElementById('legendGreenText');
       const modeToggleBtn = document.getElementById('modeToggle');
       const editToolbar = document.getElementById('editToolbar');
-      
       const previewReset = document.getElementById('previewReset');
       const exportBox = document.getElementById('exportBox');
       const exportArea = document.getElementById('exportArea');
       const toastMsg = document.getElementById('toastMsg');
       const zoomBadge = document.getElementById('zoomBadge');
+      const mapZone = document.getElementById('mapZone');
       const destBtns = [...document.querySelectorAll('.dest-btn')];
       const startBtns = [...document.querySelectorAll('.start-btn')];
 
@@ -633,7 +437,13 @@
       let zoomAnim = null, animTimer = null;
       let currentVB = { ...FULL_VB };
 
-      // ── 토스트 알림 ──
+      function createSvg(tag, attrs = {}, innerHTML = '') {
+        const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+        if (innerHTML) el.innerHTML = innerHTML;
+        return el;
+      }
+
       let toastTimer = null;
       function showToast(text) {
         clearTimeout(toastTimer);
@@ -642,7 +452,6 @@
         toastTimer = setTimeout(() => { toastMsg.classList.remove('show'); }, 2600);
       }
 
-      // ── 애니메이션 & 정량적 줌 ──
       function animateViewBox(target, duration = 500) {
         if (zoomAnim) cancelAnimationFrame(zoomAnim);
         const start = { ...currentVB };
@@ -664,149 +473,84 @@
 
       function zoomToAllRoutes(destKey) {
         const routes = getDestRoutes(destKey);
-        if (!routes || routes.length === 0) { zoomToFull(); return; }
-        
+        if (!routes.length) { zoomToFull(); return; }
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        routes.forEach(rt => {
-          rt.points.forEach(([x, y]) => {
-            if (x < minX) minX = x; if (y < minY) minY = y;
-            if (x > maxX) maxX = x; if (y > maxY) maxY = y;
-          });
-        });
-
+        routes.forEach(rt => rt.points.forEach(([x, y]) => { if (x < minX) minX = x; if (y < minY) minY = y; if (x > maxX) maxX = x; if (y > maxY) maxY = y; }));
         const targetPos = getDestPos(destKey);
-        if (targetPos) {
-          if (targetPos[0] < minX) minX = targetPos[0];
-          if (targetPos[1] < minY) minY = targetPos[1];
-          if (targetPos[0] > maxX) maxX = targetPos[0];
-          if (targetPos[1] > maxY) maxY = targetPos[1];
-        }
-        
+        if (targetPos) { if (targetPos[0] < minX) minX = targetPos[0]; if (targetPos[1] < minY) minY = targetPos[1]; if (targetPos[0] > maxX) maxX = targetPos[0]; if (targetPos[1] > maxY) maxY = targetPos[1]; }
         if (minX === Infinity) { zoomToFull(); return; }
-
         const PADDING = 340;
-        let vx = minX - PADDING, vy = minY - PADDING;
-        let vw = (maxX - minX) + PADDING * 2, vh = (maxY - minY) + PADDING * 2;
-        
+        let vx = minX - PADDING, vy = minY - PADDING, vw = (maxX - minX) + PADDING * 2, vh = (maxY - minY) + PADDING * 2;
         const minDimW = 1650, minDimH = 1050;
         if (vw < minDimW) { const d = minDimW - vw; vx -= d / 2; vw = minDimW; }
         if (vh < minDimH) { const d = minDimH - vh; vy -= d / 2; vh = minDimH; }
-
-        const mapZone = document.getElementById('mapZone');
         const aspect = (mapZone.clientWidth && mapZone.clientHeight) ? (mapZone.clientWidth / mapZone.clientHeight) : (3337 / 2101);
         const vbAspect = vw / vh;
         if (vbAspect > aspect) vh = vw / aspect; else vw = vh * aspect;
-
-        if (vw > 3337) vw = 3337;
-        if (vh > 2101) vh = 2101;
-        if (vx < 0) vx = 0;
-        if (vy < 0) vy = 0;
-        if (vx + vw > 3337) vx = 3337 - vw;
-        if (vy + vh > 2101) vy = 2101 - vh;
-
+        if (vw > 3337) vw = 3337; if (vh > 2101) vh = 2101;
+        if (vx < 0) vx = 0; if (vy < 0) vy = 0;
+        if (vx + vw > 3337) vx = 3337 - vw; if (vy + vh > 2101) vy = 2101 - vh;
         animateViewBox({ x: vx, y: vy, w: vw, h: vh }, 600);
         zoomBadge.classList.add('show');
       }
 
-      function zoomToFull() {
-        animateViewBox({ ...FULL_VB }, 450);
-        zoomBadge.classList.remove('show');
-      }
+      function zoomToFull() { animateViewBox({ ...FULL_VB }, 450); zoomBadge.classList.remove('show'); }
 
       function manualZoom(factor) {
-        const cx = currentVB.x + currentVB.w / 2;
-        const cy = currentVB.y + currentVB.h / 2;
-        let newW = currentVB.w * factor;
-        let newH = currentVB.h * factor;
+        const cx = currentVB.x + currentVB.w / 2, cy = currentVB.y + currentVB.h / 2;
+        let newW = currentVB.w * factor, newH = currentVB.h * factor;
         if (newW < 750) { newW = 750; newH = 750 * (2101 / 3337); }
         if (newW > 3337) { zoomToFull(); return; }
-        let newX = cx - newW / 2;
-        let newY = cy - newH / 2;
-        if (newX < 0) newX = 0;
-        if (newY < 0) newY = 0;
-        if (newX + newW > 3337) newX = 3337 - newW;
-        if (newY + newH > 2101) newY = 2101 - newH;
+        let newX = cx - newW / 2, newY = cy - newH / 2;
+        if (newX < 0) newX = 0; if (newY < 0) newY = 0;
+        if (newX + newW > 3337) newX = 3337 - newW; if (newY + newH > 2101) newY = 2101 - newH;
         animateViewBox({ x: newX, y: newY, w: newW, h: newH }, 220);
         zoomBadge.classList.add('show');
       }
 
-      /* ── 지도 드래그 팬(Pan) & 휠/버튼 정량 줌 컨트롤러 ── */
-      let isPanning = false;
-      let panStartX = 0, panStartY = 0;
-      let panStartVB_X = 0, panStartVB_Y = 0;
-      let hasDragged = false;
-
-      const mapZone = document.getElementById('mapZone');
+      let isPanning = false, hasDragged = false;
+      let panStartX = 0, panStartY = 0, panStartVB_X = 0, panStartVB_Y = 0;
 
       mapZone.addEventListener('pointerdown', (e) => {
-        // 줌 버튼 클릭 시 무시
         if (e.target.closest('.map-zoom-controls')) return;
-        isPanning = true;
-        hasDragged = false;
-        panStartX = e.clientX;
-        panStartY = e.clientY;
-        panStartVB_X = currentVB.x;
-        panStartVB_Y = currentVB.y;
+        isPanning = true; hasDragged = false;
+        panStartX = e.clientX; panStartY = e.clientY;
+        panStartVB_X = currentVB.x; panStartVB_Y = currentVB.y;
       });
 
       window.addEventListener('pointermove', (e) => {
         if (!isPanning) return;
         const dist = Math.hypot(e.clientX - panStartX, e.clientY - panStartY);
-        if (dist > 4) {
-          hasDragged = true;
-          mapZone.classList.add('panning');
-        }
+        if (dist > 4) { hasDragged = true; mapZone.classList.add('panning'); }
         if (hasDragged) {
           const scaleX = currentVB.w / mapZone.clientWidth;
           const scaleY = currentVB.h / mapZone.clientHeight;
           let nx = panStartVB_X - (e.clientX - panStartX) * scaleX;
           let ny = panStartVB_Y - (e.clientY - panStartY) * scaleY;
-          if (nx < 0) nx = 0;
-          if (ny < 0) ny = 0;
+          if (nx < 0) nx = 0; if (ny < 0) ny = 0;
           if (nx + currentVB.w > 3337) nx = 3337 - currentVB.w;
           if (ny + currentVB.h > 2101) ny = 2101 - currentVB.h;
-          currentVB.x = nx;
-          currentVB.y = ny;
+          currentVB.x = nx; currentVB.y = ny;
           svg.setAttribute('viewBox', `${nx} ${ny} ${currentVB.w} ${currentVB.h}`);
           zoomBadge.classList.add('show');
         }
       });
 
-      window.addEventListener('pointerup', (e) => {
-        if (!isPanning) return;
-        isPanning = false;
-        mapZone.classList.remove('panning');
-      });
+      window.addEventListener('pointerup', () => { isPanning = false; mapZone.classList.remove('panning'); });
+      window.addEventListener('pointercancel', () => { isPanning = false; mapZone.classList.remove('panning'); });
 
-      window.addEventListener('pointercancel', () => {
-        isPanning = false;
-        mapZone.classList.remove('panning');
-      });
-
-      document.getElementById('zoomInBtn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        manualZoom(0.55); // 기존 대비 2배 빠른 강력 줌인 (약 1.82배 확대)
-      });
-      document.getElementById('zoomOutBtn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        manualZoom(1.82); // 기존 대비 2배 빠른 시원한 줌아웃 (약 1.82배 축소)
-      });
-      document.getElementById('zoomResetBtn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        zoomToFull();
-      });
+      document.getElementById('zoomInBtn').addEventListener('click', (e) => { e.stopPropagation(); manualZoom(0.55); });
+      document.getElementById('zoomOutBtn').addEventListener('click', (e) => { e.stopPropagation(); manualZoom(1.82); });
+      document.getElementById('zoomResetBtn').addEventListener('click', (e) => { e.stopPropagation(); zoomToFull(); });
 
       mapZone.addEventListener('wheel', (e) => {
         e.preventDefault();
-        if (e.deltaY < 0) manualZoom(0.7);
-        else manualZoom(1.43);
+        if (e.deltaY < 0) manualZoom(0.7); else manualZoom(1.43);
       }, { passive: false });
 
-      // ── 렌더링 ──
       function updateStartPin() {
         const [x, y] = getStart();
-        const pin = document.getElementById('startPin');
-        pin.setAttribute('transform', `translate(${x},${y})`);
+        document.getElementById('startPin').setAttribute('transform', `translate(${x},${y})`);
         startBtns.forEach(b => b.classList.toggle('active', b.dataset.start === currentStartKey));
       }
 
@@ -821,265 +565,120 @@
         return d.trim();
       }
 
-      /* ── 핵심: 모든 복수 경로 렌더링 + 힐링숲 듀얼 분기 초록색 지원 + 도착지 정밀 앵커 스냅 ── */
       function renderAllPathsForDest(destKey) {
         routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; arrowsLayer.innerHTML = ''; destPinsLayer.innerHTML = '';
         const routes = getDestRoutes(destKey);
         if (!routes || routes.length === 0) return;
-
-        // 도착지 앵커 위치 (시작점처럼 정확한 고정 좌표)
         const targetPos = getDestPos(destKey);
         let subPathIndex = 0;
-
-        routes.forEach((rt, routeIdx) => {
-          if (!rt.points || rt.points.length < 2) return;
-
-          // 경로 복사 및 끝점을 공식 도착 앵커로 정밀 스냅 (사람이 찍은 미세 오차 자동 보정)
-          const pts = rt.points.map(p => p.slice());
-          if (targetPos) {
-            pts[pts.length - 1] = targetPos.slice();
-          }
-
-          const baseColor = rt.color || (routeIdx % 2 === 0 ? 'red' : 'blue');
+        routes.forEach((route) => {
+          let pts = route.points.map(p => p.slice());
+          if (pts.length === 0) return;
+          pts[0] = getStart().slice();
+          if (targetPos && pts.length > 1) pts[pts.length - 1] = targetPos.slice();
+          const fIdx = (typeof route.forestStartIndex === 'number') ? route.forestStartIndex : (destKey === 'forest' && pts.length >= 24 ? 23 : -1);
           let segments = [];
-
-          // 힐링 숲 산책로(forest)일 경우: 숲길 진입점부터 자동으로 초록색(green)으로 분할 렌더링
-          if (destKey === 'forest') {
-            const splitIdx = (typeof rt.forestStartIndex === 'number') ? rt.forestStartIndex : (pts.length >= 24 ? 23 : Math.max(1, Math.floor(pts.length / 2)));
-            if (splitIdx > 0 && splitIdx < pts.length) {
-              const seg1 = pts.slice(0, splitIdx + 1); // 진입로 (코스1: Red, 코스2: Blue)
-              const seg2 = pts.slice(splitIdx);        // 힐링 숲길 (Green)
-              segments.push({ color: baseColor, points: seg1, name: `${rt.name} (진입로)` });
-              segments.push({ color: 'green', points: seg2, name: `${rt.name} (숲길 산책로)` });
-            } else {
-              segments.push({ color: 'green', points: pts, name: rt.name });
-            }
+          if (destKey === 'forest' && fIdx > 0 && fIdx < pts.length) {
+            segments.push({ color: route.color || 'red', points: pts.slice(0, fIdx + 1) });
+            segments.push({ color: 'green', points: pts.slice(fIdx) });
           } else {
-            segments.push({ color: baseColor, points: pts, name: rt.name });
+            segments.push({ color: destKey === 'forest' ? 'green' : (route.color || 'red'), points: pts });
           }
-
-          segments.forEach(seg => {
+          segments.forEach((seg) => {
             if (seg.points.length < 2) return;
             const d = smoothPath(seg.points);
             const pathId = `active-route-${subPathIndex}`;
-            const overlayId = `active-overlay-${subPathIndex}`;
             const colorClass = seg.color === 'blue' ? 'path-blue' : (seg.color === 'green' ? 'path-green' : 'path-red');
             const arrowClass = seg.color === 'blue' ? 'arrow-blue' : (seg.color === 'green' ? 'arrow-green' : 'arrow-red');
-
-            // 1. 메인 발광 라인
-            const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            pathEl.setAttribute('id', pathId);
-            pathEl.setAttribute('class', `route-path ${colorClass}`);
-            pathEl.setAttribute('d', d);
-            routesLayer.appendChild(pathEl);
-
-            // 2. 내부 화이트 흐르는 오버레이
-            const overlayEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            overlayEl.setAttribute('id', overlayId);
-            overlayEl.setAttribute('class', 'route-overlay');
-            overlayEl.setAttribute('d', d);
-            overlayLayer.appendChild(overlayEl);
-
-            // 3. 각 경로별 동시 주행 화살표 (부드러운 페이드인/아웃으로 시작점 공백 및 순간이동 깜빡임 제거)
-            const arrowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            arrowGroup.setAttribute('id', `flow-arrow-${subPathIndex}`);
-            arrowGroup.setAttribute('class', `flow-arrow ${arrowClass}`);
-            arrowGroup.innerHTML = `<path d="M -26,-15 L 24,0 L -26,15 L -12,0 Z"></path>`;
-            
+            routesLayer.appendChild(createSvg('path', { id: pathId, class: `route-path ${colorClass}`, d: d }));
+            overlayLayer.appendChild(createSvg('path', { id: `active-overlay-${subPathIndex}`, class: 'route-overlay', d: d }));
             const durSeconds = 2.6 + subPathIndex * 0.25;
-            const motionEl = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
-            motionEl.setAttribute('dur', `${durSeconds}s`);
-            motionEl.setAttribute('repeatCount', 'indefinite');
-            motionEl.setAttribute('rotate', 'auto');
-            
-            const mp = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
-            mp.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#${pathId}`);
-            motionEl.appendChild(mp);
-            arrowGroup.appendChild(motionEl);
-
-            // 시작점/도착점 스무스 페이드 (공백/깜빡임 원천 차단)
-            const fadeAnim = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-            fadeAnim.setAttribute('attributeName', 'opacity');
-            fadeAnim.setAttribute('values', '0; 0.2; 1; 1; 1; 0.3; 0');
-            fadeAnim.setAttribute('keyTimes', '0; 0.06; 0.16; 0.5; 0.84; 0.94; 1');
-            fadeAnim.setAttribute('dur', `${durSeconds}s`);
-            fadeAnim.setAttribute('repeatCount', 'indefinite');
-            arrowGroup.appendChild(fadeAnim);
-
+            const arrowGroup = createSvg('g', { id: `flow-arrow-${subPathIndex}`, class: `flow-arrow ${arrowClass}` }, `
+              <path d="M -26,-15 L 24,0 L -26,15 L -12,0 Z"></path>
+              <animateMotion dur="${durSeconds}s" repeatCount="indefinite" rotate="auto"><mpath href="#${pathId}"></mpath></animateMotion>
+              <animate attributeName="opacity" values="0; 0.2; 1; 1; 1; 0.3; 0" keyTimes="0; 0.06; 0.16; 0.5; 0.84; 0.94; 1" dur="${durSeconds}s" repeatCount="indefinite"></animate>
+            `);
             arrowsLayer.appendChild(arrowGroup);
-
             subPathIndex++;
           });
         });
-
-        // 4. 목적지 도착 핀 및 숲길 진입 핀 렌더링
         if (targetPos) {
           const isGreenDest = (destKey === 'forest');
-          
-          // 힐링 숲 산책로의 경우: 숲길 진입점 핀 추가 생성
           if (isGreenDest) {
             const firstRoute = routes[0];
             const fIdx = (typeof firstRoute?.forestStartIndex === 'number') ? firstRoute.forestStartIndex : (firstRoute?.points?.length >= 24 ? 23 : -1);
             if (fIdx > 0 && fIdx < firstRoute.points.length) {
               const entryPos = firstRoute.points[fIdx];
-              const entryPin = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-              entryPin.setAttribute('id', 'forest-entry-pin');
-              entryPin.setAttribute('class', 'pin pin-dest dest-green');
-              entryPin.setAttribute('transform', `translate(${entryPos[0]},${entryPos[1]})`);
-              entryPin.innerHTML = `
-                <circle class="dest-glow-outer" r="32"></circle>
-                <circle class="dest-glow" r="26"></circle>
-                <circle class="dest-core" r="22"></circle>
-                <circle class="dest-center" r="8"></circle>
-                <text class="pin-label shadow" x="0" y="-38" text-anchor="middle">🌲 숲길 진입</text>
-                <text class="pin-label" x="0" y="-38" text-anchor="middle">🌲 숲길 진입</text>
-              `;
-              destPinsLayer.appendChild(entryPin);
+              destPinsLayer.appendChild(createSvg('g', { id: 'forest-entry-pin', class: 'pin pin-dest dest-green', transform: `translate(${entryPos[0]},${entryPos[1]})` }, `
+                <circle class="dest-glow-outer" r="32"></circle><circle class="dest-glow" r="26"></circle><circle class="dest-core" r="22"></circle><circle class="dest-center" r="8"></circle>
+                <text class="pin-label shadow" x="0" y="-38" text-anchor="middle">🌲 숲길 진입</text><text class="pin-label" x="0" y="-38" text-anchor="middle">🌲 숲길 진입</text>
+              `));
             }
           }
-
-          // 최종 도착 핀 (힐링 숲은 '🚩 도착', 일반 목적지는 '🚩 [목적지명]')
           const finalPinLabel = isGreenDest ? '🚩 도착' : `🚩 ${ROUTE_LABELS[destKey] || '도착'}`;
-          const destPin = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-          destPin.setAttribute('id', 'active-dest-pin');
-          destPin.setAttribute('class', `pin pin-dest ${isGreenDest ? 'dest-green' : ''}`);
-          destPin.setAttribute('transform', `translate(${targetPos[0]},${targetPos[1]})`);
-          destPin.innerHTML = `
-            <circle class="dest-glow-outer" r="36"></circle>
-            <circle class="dest-glow" r="32"></circle>
-            <circle class="dest-core" r="28"></circle>
-            <circle class="dest-center" r="10"></circle>
-            <text class="pin-label shadow" x="0" y="-45" text-anchor="middle">${finalPinLabel}</text>
-            <text class="pin-label" x="0" y="-45" text-anchor="middle">${finalPinLabel}</text>
-          `;
-          destPinsLayer.appendChild(destPin);
+          destPinsLayer.appendChild(createSvg('g', { id: 'active-dest-pin', class: `pin pin-dest ${isGreenDest ? 'dest-green' : ''}`, transform: `translate(${targetPos[0]},${targetPos[1]})` }, `
+            <circle class="dest-glow-outer" r="36"></circle><circle class="dest-glow" r="32"></circle><circle class="dest-core" r="28"></circle><circle class="dest-center" r="10"></circle>
+            <text class="pin-label shadow" x="0" y="-45" text-anchor="middle">${finalPinLabel}</text><text class="pin-label" x="0" y="-45" text-anchor="middle">${finalPinLabel}</text>
+          `));
         }
       }
 
       function resetPreview() {
         clearTimeout(animTimer);
         routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; arrowsLayer.innerHTML = ''; destPinsLayer.innerHTML = '';
-        destBtns.forEach(b => b.classList.remove('active')); 
-        activeDestKey = null;
-        routeLegend.classList.remove('show');
-        legendGreen.style.display = 'none';
-        zoomToFull();
+        destBtns.forEach(b => b.classList.remove('active')); activeDestKey = null;
+        routeLegend.classList.remove('show'); legendGreen.style.display = 'none'; zoomToFull();
+      }
+
+      function drawRoutePath(pathEl, overlayEl, arrowEl, maxDur = 1800, minDur = 700, onDone = null) {
+        if (!pathEl) { if (onDone) onDone(); return; }
+        const L = pathEl.getTotalLength();
+        pathEl.style.strokeDasharray = L; pathEl.style.strokeDashoffset = L;
+        pathEl.classList.add('visible'); pathEl.getBoundingClientRect();
+        const dur = Math.min(maxDur, Math.max(minDur, L * 1.0));
+        pathEl.style.transition = `stroke-dashoffset ${dur}ms cubic-bezier(.3,.6,.2,1)`;
+        requestAnimationFrame(() => { pathEl.style.strokeDashoffset = 0; });
+        setTimeout(() => {
+          pathEl.style.strokeDasharray = 'none'; pathEl.style.strokeDashoffset = '0';
+          if (overlayEl) overlayEl.classList.add('flowing');
+          if (arrowEl) arrowEl.style.visibility = 'visible';
+          if (onDone) onDone();
+        }, dur);
       }
 
       function playDestination(destKey) {
         if (editMode) return;
         clearTimeout(animTimer);
         const routes = getDestRoutes(destKey);
-        if (!routes || routes.length === 0) {
-          setHint(`경로가 없습니다. 관리자 제작 모드에서 등록해 주세요.`); return;
-        }
-
-        activeDestKey = destKey;
-        renderAllPathsForDest(destKey);
-        zoomToAllRoutes(destKey);
-
-        // UI 범례 및 안내 힌트 갱신 (모든 코스를 "코스 1", "코스 2"로 정돈)
+        if (!routes || routes.length === 0) { setHint(`경로가 없습니다.`); return; }
+        activeDestKey = destKey; renderAllPathsForDest(destKey); zoomToAllRoutes(destKey);
         if (destKey === 'forest') {
-          routeLegend.classList.add('show');
-          legendRedText.textContent = '코스 1 (진입로)';
-          if (routes.length >= 2) {
-            legendBlue.style.display = 'flex';
-            legendBlueText.textContent = '코스 2 (진입로)';
-          } else {
-            legendBlue.style.display = 'none';
-          }
-          legendGreen.style.display = 'flex';
-          legendGreenText.textContent = '🌲 힐링 숲길 구간';
-          setHint(`<b>${ROUTE_LABELS[destKey]}</b> 경로를 안내합니다.<br>먼저 <b>빨간 진입로</b>를 지난 후 <b>초록색 숲길</b>로 이어집니다! 🌲`);
+          routeLegend.classList.add('show'); legendRedText.textContent = '코스 1 (진입로)';
+          legendBlue.style.display = routes.length >= 2 ? 'flex' : 'none';
+          if (routes.length >= 2) legendBlueText.textContent = '코스 2 (진입로)';
+          legendGreen.style.display = 'flex'; legendGreenText.textContent = '🌲 힐링 숲길 구간';
+          setHint(`<b>${ROUTE_LABELS[destKey]}</b> 안내합니다.`);
         } else if (routes.length >= 2) {
-          routeLegend.classList.add('show');
-          legendRedText.textContent = routes[0]?.name || '코스 1';
-          legendBlue.style.display = 'flex';
-          legendBlueText.textContent = routes[1]?.name || '코스 2';
-          legendGreen.style.display = 'none';
-          setHint(`<b>${ROUTE_LABELS[destKey]}</b> 가는 2가지 코스를 동시에 안내합니다.<br>원하시는 경로(🔴 <b>코스 1</b> / 🔵 <b>코스 2</b>)를 확인하세요!`);
+          routeLegend.classList.add('show'); legendRedText.textContent = routes[0]?.name || '코스 1';
+          legendBlue.style.display = 'flex'; legendBlueText.textContent = routes[1]?.name || '코스 2';
+          legendGreen.style.display = 'none'; setHint(`<b>${ROUTE_LABELS[destKey]}</b> 복수 코스를 안내합니다.`);
         } else {
-          routeLegend.classList.add('show');
-          legendRedText.textContent = routes[0]?.name || '코스 1';
-          legendBlue.style.display = 'none';
-          legendGreen.style.display = 'none';
-          setHint(`<b>${ROUTE_LABELS[destKey]} (코스 1)</b> 경로를 안내합니다.`);
+          routeLegend.classList.add('show'); legendRedText.textContent = routes[0]?.name || '코스 1';
+          legendBlue.style.display = 'none'; legendGreen.style.display = 'none'; setHint(`<b>${ROUTE_LABELS[destKey]}</b> 안내합니다.`);
         }
-
-        // 경로선 드로잉 발동 (숲길은 진입로 완료 후 순차 체이닝 드로잉)
-        const isForest = (destKey === 'forest');
-
-        if (isForest) {
-          // 숲길 순차 릴레이 드로잉: 1구간(진입로) -> 2구간(초록 숲길)
+        if (destKey === 'forest') {
           animTimer = setTimeout(() => {
-            const path0 = document.getElementById('active-route-0');
-            const overlay0 = document.getElementById('active-overlay-0');
-            const arrow0 = document.getElementById('flow-arrow-0');
-            const path1 = document.getElementById('active-route-1');
-            const overlay1 = document.getElementById('active-overlay-1');
-            const arrow1 = document.getElementById('flow-arrow-1');
-
-            if (!path0) return;
-
-            // 1단계: 진입로 드로잉
-            const L0 = path0.getTotalLength();
-            path0.style.strokeDasharray = L0; path0.style.strokeDashoffset = L0;
-            path0.classList.add('visible'); path0.getBoundingClientRect();
-            const dur0 = Math.min(1800, Math.max(700, L0 * 1.0));
-            path0.style.transition = `stroke-dashoffset ${dur0}ms cubic-bezier(.3,.6,.2,1)`;
-            requestAnimationFrame(() => { path0.style.strokeDashoffset = 0; });
-
-            setTimeout(() => {
-              path0.style.strokeDasharray = 'none';
-              path0.style.strokeDashoffset = '0';
-              if (overlay0) overlay0.classList.add('flowing');
-              if (arrow0) arrow0.style.visibility = 'visible';
+            const p0 = document.getElementById('active-route-0'), o0 = document.getElementById('active-overlay-0'), a0 = document.getElementById('flow-arrow-0');
+            const p1 = document.getElementById('active-route-1'), o1 = document.getElementById('active-overlay-1'), a1 = document.getElementById('flow-arrow-1');
+            drawRoutePath(p0, o0, a0, 1800, 700, () => {
               document.getElementById('forest-entry-pin')?.classList.add('show');
-
-              // 2단계: 숲길 진입점에 도달했을 때 초록 숲길 이어서 드로잉!
-              if (path1) {
-                const L1 = path1.getTotalLength();
-                path1.style.strokeDasharray = L1; path1.style.strokeDashoffset = L1;
-                path1.classList.add('visible'); path1.getBoundingClientRect();
-                const dur1 = Math.min(1600, Math.max(600, L1 * 1.0));
-                path1.style.transition = `stroke-dashoffset ${dur1}ms cubic-bezier(.3,.6,.2,1)`;
-                requestAnimationFrame(() => { path1.style.strokeDashoffset = 0; });
-
-                setTimeout(() => {
-                  path1.style.strokeDasharray = 'none';
-                  path1.style.strokeDashoffset = '0';
-                  if (overlay1) overlay1.classList.add('flowing');
-                  if (arrow1) arrow1.style.visibility = 'visible';
-                  document.getElementById('active-dest-pin')?.classList.add('show');
-                }, dur1);
-              } else {
-                document.getElementById('active-dest-pin')?.classList.add('show');
-              }
-            }, dur0);
+              drawRoutePath(p1, o1, a1, 1600, 600, () => { document.getElementById('active-dest-pin')?.classList.add('show'); });
+            });
           }, 450);
         } else {
-          // 일반 목적지: 모든 복수 경로 동시 전개
           animTimer = setTimeout(() => {
-            const pathElements = routesLayer.querySelectorAll('.route-path');
-            pathElements.forEach((path, idx) => {
-              const overlay = document.getElementById(`active-overlay-${idx}`);
-              const arrow = document.getElementById(`flow-arrow-${idx}`);
-              if (!path) return;
-
-              const L = path.getTotalLength();
-              path.style.strokeDasharray = L; path.style.strokeDashoffset = L;
-              path.classList.add('visible'); path.getBoundingClientRect();
-              const dur = Math.min(2200, Math.max(700, L * 1.2));
-              path.style.transition = `stroke-dashoffset ${dur}ms cubic-bezier(.3,.6,.2,1)`;
-              requestAnimationFrame(() => { path.style.strokeDashoffset = 0; });
-
-              setTimeout(() => {
-                path.style.strokeDasharray = 'none';
-                path.style.strokeDashoffset = '0';
-                if (overlay) overlay.classList.add('flowing');
-                if (arrow) arrow.style.visibility = 'visible';
-                document.getElementById('active-dest-pin')?.classList.add('show');
-              }, dur);
+            routesLayer.querySelectorAll('.route-path').forEach((path, idx) => {
+              drawRoutePath(path, document.getElementById(`active-overlay-${idx}`), document.getElementById(`flow-arrow-${idx}`), 2200, 700, () => { document.getElementById('active-dest-pin')?.classList.add('show'); });
             });
           }, 450);
         }
@@ -1088,68 +687,39 @@
       destBtns.forEach(btn => btn.addEventListener('click', () => {
         const k = btn.dataset.route;
         if (editMode) enterEditRoute(k, 0);
-        else {
-          resetPreview();
-          destBtns.forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          playDestination(k);
-        }
+        else { resetPreview(); destBtns.forEach(b => b.classList.remove('active')); btn.classList.add('active'); playDestination(k); }
       }));
 
-      document.getElementById('stopBtn').addEventListener('click', () => {
-        resetPreview();
-        setHint('보고 싶은 곳을 눌러보세요.<br>경로를 선택하면 <b>동시 다중 경로</b>가 선명하게 안내됩니다!');
-      });
+      document.getElementById('stopBtn').addEventListener('click', () => { resetPreview(); setHint('보고 싶은 곳을 눌러보세요.'); });
 
-      /* ── 시작점 전환 ── */
-      function switchStart(key) {
-        resetPreview(); currentStartKey = key;
-        updateStartPin();
-      }
-
-      startBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const key = btn.dataset.start;
-          if (editMode) {
-            currentStartKey = key;
-            updateStartPin(); enterEditRoute(editingDestKey, editingPathIndex);
-          } else switchStart(key);
-        });
-      });
+      function switchStart(key) { resetPreview(); currentStartKey = key; updateStartPin(); }
+      startBtns.forEach(btn => btn.addEventListener('click', () => {
+        const key = btn.dataset.start;
+        if (editMode) { currentStartKey = key; updateStartPin(); enterEditRoute(editingDestKey, editingPathIndex); }
+        else switchStart(key);
+      }));
 
       function setHint(h) { hintText.innerHTML = h; }
-
-      /* ══════ 관리자 제작 모드 ══════ */
-      function toSvg(evt) {
-        const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
-        const p = pt.matrixTransform(svg.getScreenCTM().inverse());
-        return [Math.round(p.x), Math.round(p.y)];
-      }
 
       function enterEditRoute(destKey, pathIndex) {
         if (!destKey) return;
         editingDestKey = destKey; editingPathIndex = pathIndex;
         destBtns.forEach(b => b.classList.toggle('editing', b.dataset.route === destKey));
-        
         renderAllPathsForDest(destKey);
         const routeObj = getDestRoutes(destKey)[pathIndex];
-        setHint(`<b>${ROUTE_LABELS[destKey]} (${routeObj?.name || '코스'})</b> 수정 모드 — 지도 클릭으로 경유점을 찍으세요.`);
-        redrawEditGuide();
-        renderEditPathButtons();
+        setHint(`<b>${ROUTE_LABELS[destKey]} (${routeObj?.name || '코스'})</b> 수정 모드`);
+        redrawEditGuide(); renderEditPathButtons();
       }
 
       function renderEditPathButtons() {
         if (!editingDestKey) return;
         const routes = getDestRoutes(editingDestKey);
-        const container = document.getElementById('editToolbar');
-        container.querySelectorAll('.path-tab').forEach(el => el.remove());
-        
+        document.querySelectorAll('.path-tab').forEach(el => el.remove());
         routes.forEach((rt, idx) => {
           const b = document.createElement('button');
           b.className = 'path-tab' + (idx === editingPathIndex ? ' active' : '');
-          b.textContent = `${rt.name} 수정`;
-          b.onclick = () => enterEditRoute(editingDestKey, idx);
-          container.insertBefore(b, document.getElementById('addPathBtn'));
+          b.textContent = `${rt.name} 수정`; b.onclick = () => enterEditRoute(editingDestKey, idx);
+          editToolbar.insertBefore(b, document.getElementById('addPathBtn'));
         });
       }
 
@@ -1157,133 +727,79 @@
         editDotsLayer.innerHTML = '';
         if (!editingDestKey) return;
         const currentRoute = getDestRoutes(editingDestKey)[editingPathIndex];
-        const pts = currentRoute?.points;
-        if (!pts) return;
-        
+        const pts = currentRoute?.points; if (!pts) return;
         const fIdx = (typeof currentRoute.forestStartIndex === 'number') ? currentRoute.forestStartIndex : (editingDestKey === 'forest' && pts.length >= 24 ? 23 : -1);
-
         if (pts.length > 1) {
           if (fIdx > 0 && fIdx < pts.length) {
-            const seg1 = pts.slice(0, fIdx + 1);
-            const seg2 = pts.slice(fIdx);
-            const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-            line1.setAttribute('class', 'guide-line');
-            line1.setAttribute('points', seg1.map(p => p.join(',')).join(' '));
-            editDotsLayer.appendChild(line1);
-
-            const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-            line2.setAttribute('class', 'guide-line forest-guide');
-            line2.setAttribute('points', seg2.map(p => p.join(',')).join(' '));
-            editDotsLayer.appendChild(line2);
+            editDotsLayer.appendChild(createSvg('polyline', { class: 'guide-line', points: pts.slice(0, fIdx + 1).map(p => p.join(',')).join(' ') }));
+            editDotsLayer.appendChild(createSvg('polyline', { class: 'guide-line forest-guide', points: pts.slice(fIdx).map(p => p.join(',')).join(' ') }));
           } else {
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-            line.setAttribute('class', `guide-line ${editingDestKey === 'forest' ? 'forest-guide' : ''}`);
-            line.setAttribute('points', pts.map(p => p.join(',')).join(' '));
-            editDotsLayer.appendChild(line);
+            editDotsLayer.appendChild(createSvg('polyline', { class: `guide-line ${editingDestKey === 'forest' ? 'forest-guide' : ''}`, points: pts.map(p => p.join(',')).join(' ') }));
           }
         }
-
         pts.forEach((p, i) => {
           const isForestDot = (fIdx >= 0 && i >= fIdx);
-          const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-          g.setAttribute('transform', `translate(${p[0]},${p[1]})`);
-          g.innerHTML = `<circle class="edit-dot ${isForestDot ? 'forest-entry' : ''}" r="18"></circle><text class="edit-dot-num" y="1">${i}</text>`;
-          editDotsLayer.appendChild(g);
+          editDotsLayer.appendChild(createSvg('g', { transform: `translate(${p[0]},${p[1]})` }, `
+            <circle class="edit-dot ${isForestDot ? 'forest-entry' : ''}" r="18"></circle><text class="edit-dot-num" y="1">${i}</text>
+          `));
         });
       }
 
       svg.addEventListener('click', (evt) => {
         if (!editMode || hasDragged) return;
-        const [x, y] = toSvg(evt);
-        if (editingDestKey) {
-          const pts = getDestRoutes(editingDestKey)[editingPathIndex].points;
-          pts.push([x, y]);
-          redrawEditGuide();
-          renderAllPathsForDest(editingDestKey);
-        }
+        const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+        const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+        if (editingDestKey) { getDestRoutes(editingDestKey)[editingPathIndex].points.push([Math.round(p.x), Math.round(p.y)]); redrawEditGuide(); renderAllPathsForDest(editingDestKey); }
       });
 
       document.getElementById('setForestStartBtn').addEventListener('click', () => {
         if (!editingDestKey) return;
         const currentRoute = getDestRoutes(editingDestKey)[editingPathIndex];
         const pts = currentRoute.points;
-        if (pts.length < 2) {
-          showToast('⚠️ 점을 2개 이상 찍은 후 지정해 주세요.');
-          return;
-        }
-        currentRoute.forestStartIndex = pts.length - 1;
-        redrawEditGuide();
-        renderAllPathsForDest(editingDestKey);
-        showToast(`🌲 [${currentRoute.name}] 현재 점(${pts.length - 1}번)부터 숲길 구간으로 지정되었습니다!`);
+        if (pts.length < 2) { showToast('⚠️ 점을 2개 이상 찍은 후 지정해 주세요.'); return; }
+        currentRoute.forestStartIndex = pts.length - 1; redrawEditGuide(); renderAllPathsForDest(editingDestKey);
+        showToast('🌲 숲길 시작점 지정 완료!');
       });
 
       document.getElementById('undoPoint').addEventListener('click', () => {
         if (!editingDestKey) return;
         const currentRoute = getDestRoutes(editingDestKey)[editingPathIndex];
-        const pts = currentRoute.points;
-        if (pts.length > 1) {
-          pts.pop();
-          if (currentRoute.forestStartIndex >= pts.length) {
-            delete currentRoute.forestStartIndex;
-          }
-        }
+        if (currentRoute.points.length > 1) { currentRoute.points.pop(); if (currentRoute.forestStartIndex >= currentRoute.points.length) delete currentRoute.forestStartIndex; }
         redrawEditGuide(); renderAllPathsForDest(editingDestKey);
       });
 
       document.getElementById('clearRoute').addEventListener('click', () => {
         if (!editingDestKey) return;
         const currentRoute = getDestRoutes(editingDestKey)[editingPathIndex];
-        currentRoute.points = [getStart().slice()];
-        delete currentRoute.forestStartIndex;
+        currentRoute.points = [getStart().slice()]; delete currentRoute.forestStartIndex;
         redrawEditGuide(); renderAllPathsForDest(editingDestKey);
       });
 
       document.getElementById('addPathBtn').addEventListener('click', () => {
         if (!editingDestKey) return;
         const routes = getDestRoutes(editingDestKey);
-        const newColor = routes.length % 2 === 0 ? 'red' : 'blue';
-        const courseName = `코스 ${routes.length + 1}`;
-        routes.push({ id: `${editingDestKey}_${routes.length}`, name: courseName, color: newColor, points: [getStart().slice()] });
+        routes.push({ id: `${editingDestKey}_${routes.length}`, name: `코스 ${routes.length + 1}`, color: routes.length % 2 === 0 ? 'red' : 'blue', points: [getStart().slice()] });
         enterEditRoute(editingDestKey, routes.length - 1);
       });
 
-      // ── 내보내기 & 복사 & JSON 다운로드 ──
-      function getExportJsonString() {
-        const out = { startPresets: START_PRESETS, destPresets: DEST_PRESETS, currentStart: currentStartKey, ALL_ROUTES };
-        return JSON.stringify(out, null, 2);
-      }
+      function getExportJsonString() { return JSON.stringify({ startPresets: START_PRESETS, destPresets: DEST_PRESETS, currentStart: currentStartKey, ALL_ROUTES }, null, 2); }
 
       document.getElementById('exportJson').addEventListener('click', () => {
         exportBox.classList.toggle('show');
-        if (exportBox.classList.contains('show')) {
-          const jsonStr = getExportJsonString();
-          exportArea.value = jsonStr;
-          exportArea.select();
-        }
+        if (exportBox.classList.contains('show')) { exportArea.value = getExportJsonString(); exportArea.select(); }
       });
 
       document.getElementById('copyJsonBtn').addEventListener('click', () => {
-        const jsonStr = getExportJsonString();
-        navigator.clipboard.writeText(jsonStr).then(() => {
-          showToast('📋 전체 경로 데이터가 클립보드에 복사되었습니다!');
-        }).catch(() => {
-          exportArea.select();
-          document.execCommand('copy');
-          showToast('📋 전체 경로 데이터가 복사되었습니다!');
-        });
+        navigator.clipboard.writeText(getExportJsonString()).then(() => showToast('📋 클립보드 복사 완료!'));
       });
 
       document.getElementById('downloadJsonBtn').addEventListener('click', () => {
-        const jsonStr = getExportJsonString();
-        const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
+        a.href = URL.createObjectURL(new Blob([getExportJsonString()], { type: 'application/json' }));
         a.download = '포천아트밸리_경로데이터.json';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
         showToast('💾 "포천아트밸리_경로데이터.json" 다운로드 완료!');
       });
 
