@@ -1,0 +1,5 @@
+*.pdf
+*.png
+scratch/
+__pycache__/
+*.py
