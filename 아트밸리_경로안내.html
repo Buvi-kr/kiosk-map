@@ -849,9 +849,34 @@
           });
         });
 
-        // 4. 목적지 도착 핀 (시작점처럼 정확한 고정 앵커 위치에 완벽하게 꽂힘)
+        // 4. 목적지 도착 핀 및 숲길 진입 핀 렌더링
         if (targetPos) {
           const isGreenDest = (destKey === 'forest');
+          
+          // 힐링 숲 산책로의 경우: 숲길 진입점 핀 추가 생성
+          if (isGreenDest) {
+            const firstRoute = routes[0];
+            const fIdx = (typeof firstRoute?.forestStartIndex === 'number') ? firstRoute.forestStartIndex : (firstRoute?.points?.length >= 24 ? 23 : -1);
+            if (fIdx > 0 && fIdx < firstRoute.points.length) {
+              const entryPos = firstRoute.points[fIdx];
+              const entryPin = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+              entryPin.setAttribute('id', 'forest-entry-pin');
+              entryPin.setAttribute('class', 'pin pin-dest dest-green');
+              entryPin.setAttribute('transform', `translate(${entryPos[0]},${entryPos[1]})`);
+              entryPin.innerHTML = `
+                <circle class="dest-glow-outer" r="32"></circle>
+                <circle class="dest-glow" r="26"></circle>
+                <circle class="dest-core" r="22"></circle>
+                <circle class="dest-center" r="8"></circle>
+                <text class="pin-label shadow" x="0" y="-38" text-anchor="middle">🌲 숲길 진입</text>
+                <text class="pin-label" x="0" y="-38" text-anchor="middle">🌲 숲길 진입</text>
+              `;
+              destPinsLayer.appendChild(entryPin);
+            }
+          }
+
+          // 최종 도착 핀 (힐링 숲은 '🚩 도착', 일반 목적지는 '🚩 [목적지명]')
+          const finalPinLabel = isGreenDest ? '🚩 도착' : `🚩 ${ROUTE_LABELS[destKey] || '도착'}`;
           const destPin = document.createElementNS('http://www.w3.org/2000/svg', 'g');
           destPin.setAttribute('id', 'active-dest-pin');
           destPin.setAttribute('class', `pin pin-dest ${isGreenDest ? 'dest-green' : ''}`);
@@ -861,8 +886,8 @@
             <circle class="dest-glow" r="32"></circle>
             <circle class="dest-core" r="28"></circle>
             <circle class="dest-center" r="10"></circle>
-            <text class="pin-label shadow" x="0" y="-45" text-anchor="middle">🚩 ${ROUTE_LABELS[destKey] || '도착'}</text>
-            <text class="pin-label" x="0" y="-45" text-anchor="middle">🚩 ${ROUTE_LABELS[destKey] || '도착'}</text>
+            <text class="pin-label shadow" x="0" y="-45" text-anchor="middle">${finalPinLabel}</text>
+            <text class="pin-label" x="0" y="-45" text-anchor="middle">${finalPinLabel}</text>
           `;
           destPinsLayer.appendChild(destPin);
         }
@@ -946,6 +971,7 @@
               path0.style.strokeDashoffset = '0';
               if (overlay0) overlay0.classList.add('flowing');
               if (arrow0) arrow0.style.visibility = 'visible';
+              document.getElementById('forest-entry-pin')?.classList.add('show');
 
               // 2단계: 숲길 진입점에 도달했을 때 초록 숲길 이어서 드로잉!
               if (path1) {
