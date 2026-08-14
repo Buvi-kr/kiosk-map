@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>아트밸리 키오스크 경로안내 v2 (안내표시형)</title>
+  <style>
+    :root {
+      --accent: #ff3b30;
+      --accent-path2: #0044cc;
+      --panel-bg: #12161c;
+      --panel-bg2: #1b212b;
+      --ink: #eef1f6;
+      --muted: #8993a4;
+      --btn: #232b37;
+      --btn-active: #2d3745;
+      --start-pin: #3ba7ff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%; background: #05070a; color: var(--ink);
+      font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+      overflow: hidden; overscroll-behavior: none; -webkit-text-size-adjust: none;
+      touch-action: manipulation; -webkit-user-select: none; user-select: none;
+    }
+
+    body { display: flex; align-items: center; justify-content: center; }
+
+    .kiosk-frame {
+      width: 100vw; height: 100vh; height: 100dvh; background: var(--panel-bg);
+      overflow: hidden; display: flex; flex-direction: column; position: relative;
+    }
+
+    @media (min-width: 900px) and (min-height: 700px) {
+      .kiosk-frame {
+        width: min(100vw, 540px); height: min(100vh, 960px);
+        border-radius: 18px; box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .7), 0 0 0 1px #232b37;
+      }
+    }
+
+    .header-zone {
+      flex: none; padding: 3vh 20px 1.5vh; text-align: center;
+      background: linear-gradient(180deg, #12161c, #161a22);
+      border-bottom: 1px solid #1c222c;
+    }
+    .main-title { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+    .sub-title { font-size: 14px; font-weight: 500; color: #8993a4; }
+
+    .map-zone {
+      position: relative; width: 100%; flex: none; aspect-ratio: 1760 / 1241;
+      background: #060a0e; overflow: hidden;
+    }
+    .map-zone svg { width: 100%; height: 100%; display: block; }
+
+    .route-path {
+      fill: none; stroke: var(--accent); stroke-width: 14; stroke-linecap: round; stroke-linejoin: round;
+      opacity: 0; filter: drop-shadow(0 0 10px rgba(255, 59, 48, .6));
+    }
+    .route-path.path2 { stroke: var(--accent-path2); }
+    .route-path.visible { opacity: 1; }
+    .route-path.flowing { stroke-dasharray: 22 12; animation: dashflow 0.5s linear infinite; }
+    @keyframes dashflow { to { stroke-dashoffset: -102; } }
+
+    .route-overlay {
+      fill: none; stroke: #fff; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round;
+      opacity: 0; stroke-dasharray: 14 22;
+    }
+    .route-overlay.flowing { opacity: .9; animation: dashflow-white 0.6s linear infinite; }
+    @keyframes dashflow-white { to { stroke-dashoffset: -108; } }
+
+    .pin-start circle.outer { fill: var(--start-pin); stroke: #fff; stroke-width: 4; }
+    .pin-start circle.pulse { fill: rgba(59, 167, 255, .4); stroke: none; animation: startPulse 2s ease-in-out infinite; }
+    @keyframes startPulse { 0%, 100% { r: 15; opacity: .4; } 50% { r: 32; opacity: 0; } }
+
+    .pin-dest circle { fill: var(--accent); stroke: #fff; stroke-width: 4; }
+    .pin-dest { opacity: 0; transform-origin: center; }
+    .pin-dest.show { opacity: 1; animation: pinPop .45s cubic-bezier(.2, 1.4, .4, 1) both; }
+    @keyframes pinPop { 0% { transform: scale(.2); opacity: 0; } 70% { transform: scale(1.25); } 100% { transform: scale(1); opacity: 1; } }
+
+    #flowArrow { visibility: hidden; }
+    #flowArrow path { fill: #fff; stroke: var(--accent); stroke-width: 3; }
+
+    .control-zone {
+      background: linear-gradient(180deg, var(--panel-bg2), #0c0f14);
+      padding: 16px 12px 8px; display: flex; flex-direction: column; gap: 6px;
+      overflow: auto; flex: 1 1 0;
+    }
+    .hint { font-size: 18px; color: var(--muted); line-height: 1.5; min-height: 36px; margin-bottom: 4px; text-align: center; }
+    .hint b { color: #ffd400; }
+
+    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .dest-btn {
+      background: var(--btn); border: 1px solid #2c3646; color: var(--ink);
+      border-radius: 16px; padding: 20px 8px; font-size: 20px; font-weight: 700;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      cursor: pointer;
+    }
+    .dest-btn .ico { font-size: 28px; }
+    .dest-btn.active { background: var(--btn-active); border-color: var(--accent); }
+
+    .reset-row { display: flex; gap: 6px; margin-top: 4px; }
+    .reset-row button { flex: 1; background: #1a2028; border: 2px solid #2c3646; color: var(--muted); border-radius: 12px; padding: 16px 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
+  </style>
+</head>
+
+<body>
+
+  <div class="kiosk-frame">
+    <div class="header-zone">
+      <div class="main-title">포천아트밸리 길찾기 (v2 안내표시본)</div>
+      <div class="sub-title">현재 위치에서 목적지까지 안내합니다</div>
+    </div>
+
+    <div class="map-zone">
+      <svg id="mapSvg" viewBox="0 0 1760 1241" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <clipPath id="mapClip">
+            <rect x="0" y="0" width="1760" height="1241" />
+          </clipPath>
+        </defs>
+        <image id="baseImg" href="아트밸리 전경도_안내표시.jpg" x="0" y="0" width="1760" height="1241" clip-path="url(#mapClip)"
+          preserveAspectRatio="xMidYMid meet" draggable="false" />
+
+        <g id="routesLayer"></g>
+        <g id="overlayLayer"></g>
+        <g id="flowArrow"><path d="M -22,-12 L 20,0 L -22,12 L -10,0 Z"></path></g>
+        <g id="destPins"></g>
+
+        <g class="pin pin-start" id="startPin">
+          <circle class="pulse" r="15" />
+          <circle class="outer" r="15" />
+          <text class="pin-label" x="0" y="-26" text-anchor="middle" fill="#fff" font-weight="700">현위치</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="control-zone">
+      <div class="hint" id="hintText">보고 싶은 곳을 눌러보세요.</div>
+
+      <div class="btn-grid" id="mainGrid">
+        <button class="dest-btn" data-route="lake"><span class="ico">🏞️</span>천주호 가는 길</button>
+        <button class="dest-btn" data-route="cafe"><span class="ico">☕</span>카페 가는 길</button>
+        <button class="dest-btn" data-route="mono"><span class="ico">🚡</span>모노레일 타는 곳</button>
+        <button class="dest-btn" data-route="forest"><span class="ico">🌲</span>힐링숲 산책로</button>
+      </div>
+
+      <div class="reset-row"><button id="stopBtn">🔎 전체보기 / 안내 멈추기</button></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const FULL_VB = { x: 0, y: 0, w: 1760, h: 1241 };
+      const START_POS = [165, 220]; // 천문과학관
+
+      const ROUTE_LABELS = {
+        mono: '모노레일 타는 곳', lake: '천주호', cafe: '카페', forest: '힐링숲 산책로'
+      };
+
+      const ALL_ROUTES = {
+        mono: [[165, 220], [208, 446]],
+        lake: [[165, 220], [350, 360], [550, 420], [833, 338]],
+        cafe: [[165, 220], [550, 420], [833, 338], [1150, 420], [1365, 519]],
+        forest: [[165, 220], [833, 338], [1365, 519], [1402, 625]]
+      };
+
+      const svg = document.getElementById('mapSvg');
+      const routesLayer = document.getElementById('routesLayer');
+      const overlayLayer = document.getElementById('overlayLayer');
+      const destPinsLayer = document.getElementById('destPins');
+      const flowArrow = document.getElementById('flowArrow');
+      const hintText = document.getElementById('hintText');
+      const destBtns = [...document.querySelectorAll('.dest-btn')];
+
+      let motionEl = null, animTimer = null;
+
+      function updateStartPin() {
+        document.getElementById('startPin').setAttribute('transform', `translate(${START_POS[0]},${START_POS[1]})`);
+      }
+
+      function smoothPath(pts) {
+        if (pts.length < 2) return '';
+        if (pts.length === 2) return `M ${pts[0][0]},${pts[0][1]} L ${pts[1][0]},${pts[1][1]}`;
+        let d = `M ${pts[0][0]},${pts[0][1]} `;
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+          d += `C ${p1[0] + (p2[0] - p0[0]) / 6},${p1[1] + (p2[1] - p0[1]) / 6} ${p2[0] - (p3[0] - p1[0]) / 6},${p2[1] - (p3[1] - p1[1]) / 6} ${p2[0]},${p2[1]} `;
+        }
+        return d.trim();
+      }
+
+      function createPathDOM(destKey) {
+        routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; destPinsLayer.innerHTML = '';
+        const pts = ALL_ROUTES[destKey];
+        if (!pts || pts.length < 2) return;
+        const d = smoothPath(pts);
+        
+        const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pathEl.setAttribute('id', 'active-route');
+        pathEl.setAttribute('class', 'route-path');
+        pathEl.setAttribute('d', d);
+        routesLayer.appendChild(pathEl);
+
+        const overlayEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        overlayEl.setAttribute('id', 'active-overlay');
+        overlayEl.setAttribute('class', 'route-overlay');
+        overlayEl.setAttribute('d', d);
+        overlayLayer.appendChild(overlayEl);
+
+        const [dx, dy] = pts[pts.length - 1];
+        const destPin = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        destPin.setAttribute('id', 'active-dest-pin');
+        destPin.setAttribute('class', 'pin pin-dest');
+        destPin.setAttribute('transform', `translate(${dx},${dy})`);
+        destPin.innerHTML = `<circle r="15"></circle>`;
+        destPinsLayer.appendChild(destPin);
+      }
+
+      function resetPreview() {
+        clearTimeout(animTimer);
+        routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; destPinsLayer.innerHTML = '';
+        flowArrow.style.visibility = 'hidden';
+        if (motionEl) { motionEl.remove(); motionEl = null; }
+        destBtns.forEach(b => b.classList.remove('active'));
+      }
+
+      function playPath(destKey) {
+        resetPreview();
+        createPathDOM(destKey);
+        hintText.innerHTML = `<b>${ROUTE_LABELS[destKey]}</b> 경로를 안내합니다.`;
+
+        animTimer = setTimeout(() => {
+          const path = document.getElementById('active-route');
+          const overlay = document.getElementById('active-overlay');
+          const L = path.getTotalLength();
+          path.style.strokeDasharray = L; path.style.strokeDashoffset = L;
+          path.classList.add('visible');
+          path.style.transition = `stroke-dashoffset 1500ms cubic-bezier(.3,.6,.2,1)`;
+          requestAnimationFrame(() => { path.style.strokeDashoffset = 0; });
+
+          path.addEventListener('transitionend', () => {
+            path.classList.add('flowing'); overlay.classList.add('flowing');
+            document.getElementById('active-dest-pin')?.classList.add('show');
+            flowArrow.style.visibility = 'visible';
+            motionEl = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
+            motionEl.setAttribute('dur', '2.8s');
+            motionEl.setAttribute('repeatCount', 'indefinite');
+            motionEl.setAttribute('rotate', 'auto');
+            const mp = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
+            mp.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#active-route');
+            motionEl.appendChild(mp); flowArrow.appendChild(motionEl);
+          }, { once: true });
+        }, 300);
+      }
+
+      destBtns.forEach(btn => btn.addEventListener('click', () => {
+        const k = btn.dataset.route;
+        destBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        playPath(k);
+      }));
+
+      document.getElementById('stopBtn').addEventListener('click', () => {
+        resetPreview();
+        hintText.innerHTML = '보고 싶은 곳을 눌러보세요.';
+      });
+
+      updateStartPin();
+    })();
+  </script>
+</body>
+</html>
