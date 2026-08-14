@@ -7,10 +7,12 @@
   <title>포천아트밸리 키오스크 경로안내 시스템</title>
   <style>
     :root {
-      --accent-red: #ff3b30;   /* 기본 경로 A (Red Neon) */
-      --accent-blue: #0088ff;  /* 대안 경로 B (Blue Neon) */
-      --glow-red: rgba(255, 59, 48, .75);
-      --glow-blue: rgba(0, 136, 255, .75);
+      --accent-red: #ff3b30;    /* 기본 보행로 경로 A (Red Neon) */
+      --accent-blue: #0088ff;   /* 대안/모노레일 경로 B (Blue Neon) */
+      --accent-green: #00e676;  /* 힐링 숲 산책로 경로 C (Emerald Green Neon) */
+      --glow-red: rgba(255, 59, 48, .85);
+      --glow-blue: rgba(0, 136, 255, .85);
+      --glow-green: rgba(0, 230, 118, .85);
       --panel-bg: #12161c;
       --panel-bg2: #1b212b;
       --ink: #eef1f6;
@@ -18,56 +20,75 @@
       --btn: #232b37;
       --btn-active: #2d3745;
       
-      --start-pin: #3ba7ff;
+      --start-pin: #00a2ff;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
-      height: 100%; background: #05070a; color: var(--ink);
+      width: 100vw; height: 100vh; height: 100dvh;
+      position: fixed; inset: 0;
+      background: #05070a; color: var(--ink);
       font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-      overflow: hidden; overscroll-behavior: none; -webkit-text-size-adjust: none;
-      touch-action: manipulation; -webkit-user-select: none; user-select: none;
+      overflow: hidden !important; overscroll-behavior: none; -webkit-text-size-adjust: none;
+      touch-action: none; -webkit-user-select: none; user-select: none;
       -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
     }
 
     body { display: flex; align-items: center; justify-content: center; }
 
     .kiosk-frame {
-      width: 100vw; height: 100vh; height: 100dvh; background: var(--panel-bg);
+      width: 100%; max-width: 560px;
+      height: 100%; max-height: 100dvh;
+      background: var(--panel-bg);
       overflow: hidden; display: flex; flex-direction: column; position: relative;
+      border-radius: 0; box-shadow: none;
     }
 
-    @media (min-width: 900px) and (min-height: 700px) {
+    @media (min-width: 600px) and (min-height: 750px) {
       .kiosk-frame {
-        width: min(100vw, 540px); height: min(100vh, 960px);
-        border-radius: 18px; box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .7), 0 0 0 1px #232b37;
+        height: min(100vh - 20px, 960px);
+        border-radius: 20px;
+        box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .8), 0 0 0 1px #232b37;
       }
     }
 
     /* ① 상단 제목 영역 */
     .header-zone {
-      flex: none; padding: 2.5vh 20px 1.5vh; text-align: center;
+      flex: none; padding: 18px 20px 14px; text-align: center;
       background: linear-gradient(180deg, #12161c, #161a22);
       border-bottom: 1px solid #1c222c;
     }
-    .main-title { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 4px; letter-spacing: -0.02em; }
-    .sub-title { font-size: 14px; font-weight: 500; color: #8993a4; }
+    .main-title { font-size: 24px; font-weight: 800; color: #fff; margin-bottom: 3px; letter-spacing: -0.02em; }
+    .sub-title { font-size: 13px; font-weight: 500; color: #8993a4; }
 
     /* ── 지도 영역 (3337 x 2101 고화질 비율) ── */
     .map-zone {
       position: relative; width: 100%; flex: none; aspect-ratio: 3337 / 2101;
-      background: #060a0e; overflow: hidden;
+      background: #060a0e; overflow: hidden; touch-action: none;
     }
     .map-zone svg { width: 100%; height: 100%; display: block; transition: none; }
 
-    /* ── 경로선 스타일 (빨간 경로 & 파란 경로 동시 표출 지원) ── */
+    /* 지도 플로팅 줌 컨트롤러 (정량적 줌) */
+    .map-zoom-controls {
+      position: absolute; right: 12px; top: 12px; display: flex; flex-direction: column; gap: 6px; z-index: 10;
+    }
+    .map-zoom-btn {
+      width: 38px; height: 38px; border-radius: 10px; background: rgba(18, 22, 28, 0.88);
+      border: 1px solid #3a4454; color: #fff; font-size: 18px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      backdrop-filter: blur(8px); transition: background 0.15s, transform 0.1s;
+    }
+    .map-zoom-btn:active { background: var(--btn-active); transform: scale(0.92); }
+
+    /* ── 경로선 스타일 (빨간 경로 & 파란 경로 & 초록 숲길 경로) ── */
     .route-path {
       fill: none; stroke-width: 18; stroke-linecap: round; stroke-linejoin: round;
       opacity: 0;
     }
-    .route-path.path-red { stroke: var(--accent-red); filter: drop-shadow(0 0 14px var(--glow-red)); }
-    .route-path.path-blue { stroke: var(--accent-blue); filter: drop-shadow(0 0 14px var(--glow-blue)); }
+    .route-path.path-red { stroke: var(--accent-red); filter: drop-shadow(0 0 16px var(--glow-red)); }
+    .route-path.path-blue { stroke: var(--accent-blue); filter: drop-shadow(0 0 16px var(--glow-blue)); }
+    .route-path.path-green { stroke: var(--accent-green); filter: drop-shadow(0 0 16px var(--glow-green)); }
     .route-path.visible { opacity: 1; }
     .route-path.flowing { stroke-dasharray: 30 16; animation: dashflow 0.5s linear infinite; }
     @keyframes dashflow { to { stroke-dashoffset: -138; } }
@@ -83,97 +104,119 @@
     .edit-dot { fill: #ffd400; stroke: #1a1a1a; stroke-width: 3; }
     .edit-dot-num { fill: #111; font-size: 22px; font-weight: 800; text-anchor: middle; dominant-baseline: central; }
 
-    /* ── 핀 공통 ── */
-    .pin { filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .8)); }
-    .pin-label { fill: #fff; font-weight: 800; font-size: 24px; }
-    .pin-label.shadow { stroke: #000; stroke-width: 5; stroke-linejoin: round; paint-order: stroke; opacity: 0.9; }
-    
-    /* 현위치 핀 (파랑 펄스 애니메이션) */
-    .pin-start circle.outer { fill: var(--start-pin); stroke: #fff; stroke-width: 5; }
-    .pin-start circle.pulse { fill: rgba(59, 167, 255, .45); stroke: none; animation: startPulse 2s ease-in-out infinite; }
-    @keyframes startPulse { 0%, 100% { r: 22; opacity: .5; } 50% { r: 52; opacity: 0; } }
-
-    /* 목적지 핀 (펄스 마커 링) */
-    .pin-dest circle.dest-glow { fill: rgba(255, 59, 48, .4); animation: destPulse 1.6s ease-in-out infinite; }
-    .pin-dest circle.dest-core { fill: var(--accent-red); stroke: #fff; stroke-width: 5; }
-    .pin-dest circle.dest-center { fill: #fff; }
-    .pin-dest { opacity: 0; transform-origin: center; }
-    .pin-dest.show { opacity: 1; animation: pinPop .45s cubic-bezier(.2, 1.4, .4, 1) both; }
-    @keyframes destPulse { 0%, 100% { r: 26; opacity: .6; } 50% { r: 60; opacity: 0; } }
-
-    @keyframes pinPop {
-      0% { transform: scale(.2); opacity: 0; }
-      70% { transform: scale(1.25); }
-      100% { transform: scale(1); opacity: 1; }
+    /* ── 핀 공통 (초대형 고가시성 디자인) ── */
+    .pin { filter: drop-shadow(0 6px 16px rgba(0, 0, 0, .95)); }
+    .pin-label { fill: #ffffff; font-weight: 900; font-size: 32px; letter-spacing: -0.01em; }
+    .pin-label.shadow { stroke: #000000; stroke-width: 8; stroke-linejoin: round; paint-order: stroke; opacity: 1; }
+    .pin-badge {
+      fill: #12161c; stroke: #fff; stroke-width: 3; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
     }
+    
+    /* 현위치 핀 (초대형 블루 펄스 & 레이더 링) */
+    .pin-start circle.pulse-outer { fill: rgba(0, 162, 255, .25); animation: startPulseOut 2.4s ease-out infinite; }
+    .pin-start circle.pulse { fill: rgba(0, 162, 255, .5); stroke: none; animation: startPulse 2s ease-in-out infinite; }
+    .pin-start circle.outer { fill: var(--start-pin); stroke: #ffffff; stroke-width: 6; }
+    .pin-start circle.center { fill: #ffffff; }
+    @keyframes startPulse { 0%, 100% { r: 32; opacity: .7; } 50% { r: 76; opacity: 0; } }
+    @keyframes startPulseOut { 0% { r: 24; opacity: .9; } 100% { r: 100; opacity: 0; } }
+
+    /* 목적지 핀 (초대형 레드/골드 타겟 마커 링) */
+    .pin-dest circle.dest-glow-outer { fill: rgba(255, 59, 48, .2); animation: destPulseOut 2s ease-out infinite; }
+    .pin-dest circle.dest-glow { fill: rgba(255, 59, 48, .5); animation: destPulse 1.6s ease-in-out infinite; }
+    .pin-dest circle.dest-core { fill: var(--accent-red); stroke: #ffffff; stroke-width: 6; }
+    .pin-dest circle.dest-center { fill: #ffffff; }
+    .pin-dest.dest-green circle.dest-core { fill: var(--accent-green); }
+    .pin-dest.dest-green circle.dest-glow { fill: rgba(0, 230, 118, .5); }
+    .pin-dest { opacity: 0; transition: opacity 0.3s ease; }
+    .pin-dest.show { opacity: 1; }
+    @keyframes destPulse { 0%, 100% { r: 36; opacity: .8; } 50% { r: 84; opacity: 0; } }
+    @keyframes destPulseOut { 0% { r: 28; opacity: .9; } 100% { r: 110; opacity: 0; } }
+
+    .edit-dot.forest-entry { fill: #00e676; stroke: #fff; stroke-width: 4; }
+    .guide-line.forest-guide { stroke: #00e676; }
 
     /* ── 동시 주행 화살표들 ── */
     .flow-arrow { visibility: hidden; }
-    .flow-arrow path { fill: #fff; stroke-width: 4; filter: drop-shadow(0 0 10px rgba(255, 255, 255, .9)); }
+    .flow-arrow path { fill: #fff; stroke-width: 4; filter: drop-shadow(0 0 12px rgba(255, 255, 255, 1)); }
     .flow-arrow.arrow-red path { stroke: var(--accent-red); }
     .flow-arrow.arrow-blue path { stroke: var(--accent-blue); }
+    .flow-arrow.arrow-green path { stroke: var(--accent-green); }
 
     /* ── 조작 영역 ── */
     .control-zone {
       background: linear-gradient(180deg, var(--panel-bg2), #0c0f14);
-      padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 8px;
-      overflow: auto; flex: 1 1 0;
+      padding: 14px 14px 10px; display: flex; flex-direction: column; gap: 8px;
+      overflow-y: auto; overflow-x: hidden; flex: 1 1 0;
     }
-    .hint { font-size: 17px; color: var(--muted); line-height: 1.5; min-height: 48px; margin-bottom: 2px; text-align: center; }
+    .hint { font-size: 16px; color: var(--muted); line-height: 1.45; min-height: 44px; margin-bottom: 2px; text-align: center; }
     .hint b { color: #ffd400; }
 
     /* 경로 범례 뱃지 */
     .route-legend {
-      display: none; justify-content: center; align-items: center; gap: 12px;
-      padding: 8px 12px; background: rgba(0, 0, 0, 0.4); border-radius: 12px; border: 1px solid #2c3646;
+      display: none; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 6px 12px; background: rgba(0, 0, 0, 0.45); border-radius: 12px; border: 1px solid #2c3646;
     }
     .route-legend.show { display: flex; }
-    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; }
     .legend-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
     .legend-dot.red { background: var(--accent-red); box-shadow: 0 0 8px var(--glow-red); }
     .legend-dot.blue { background: var(--accent-blue); box-shadow: 0 0 8px var(--glow-blue); }
+    .legend-dot.green { background: var(--accent-green); box-shadow: 0 0 8px var(--glow-green); }
 
-    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
     .dest-btn {
       background: var(--btn); border: 1px solid #2c3646; color: var(--ink);
-      border-radius: 16px; padding: 18px 8px; font-size: 19px; font-weight: 700;
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      border-radius: 14px; padding: 15px 8px; font-size: 18px; font-weight: 700;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
       cursor: pointer; transition: transform .12s, background .15s, border-color .15s;
     }
-    .dest-btn .ico { font-size: 28px; }
+    .dest-btn .ico { font-size: 26px; }
     .dest-btn:active { transform: scale(.96); }
     .dest-btn.active { background: var(--btn-active); border-color: var(--accent-red); box-shadow: 0 0 0 1px var(--accent-red) inset; }
     .dest-btn.editing { border-color: #ffd400; box-shadow: 0 0 0 1px #ffd400 inset; }
 
     .reset-row { display: flex; gap: 6px; margin-top: 2px; }
-    .reset-row button { flex: 1; background: #1a2028; border: 2px solid #2c3646; color: var(--muted); border-radius: 12px; padding: 14px 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .reset-row button { flex: 1; background: #1a2028; border: 1px solid #2c3646; color: var(--muted); border-radius: 12px; padding: 12px 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
 
-    /* ── 관리자 바 ── */
+    /* ── 관리자 바 & 내보내기 ── */
     #secretZone { position: absolute; bottom: 0; right: 0; width: 80px; height: 80px; z-index: 9999; }
-    .admin-bar { flex-shrink: 0; display: none; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 8px; padding: 12px 12px; background: #05070a; border-top: 1px solid #1c222c; }
+    .admin-bar { flex-shrink: 0; display: none; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 8px; padding: 10px 12px; background: #05070a; border-top: 1px solid #1c222c; }
     .admin-bar.show { display: flex; }
     .admin-bar-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .admin-bar .title { font-size: 14px; font-weight: 600; color: #5c6675; }
+    .admin-bar .title { font-size: 13px; font-weight: 600; color: #5c6675; }
     .admin-bar .title b { color: #8993a4; font-weight: 700; }
     .admin-bar .status { font-size: 13px; color: #5c6675; opacity: 0; transition: opacity .2s; }
     .admin-bar .status.show { opacity: 1; color: #ffd400; }
-    .mode-toggle { font-size: 14px; border: 1px solid #3a4454; background: #12161c; color: var(--ink); padding: 8px 14px; border-radius: 999px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .mode-toggle { font-size: 13px; border: 1px solid #3a4454; background: #12161c; color: var(--ink); padding: 7px 12px; border-radius: 999px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
     .mode-toggle.on { background: var(--accent-red); border-color: var(--accent-red); color: #1a0500; font-weight: 700; }
-    .close-admin { background: none; border: 1px solid #3a4454; color: #8993a4; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+    .close-admin { background: none; border: 1px solid #3a4454; color: #8993a4; border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
 
-    .start-bar-label { font-size: 13px; color: #5c6675; padding: 2px 4px 0; font-weight: 600; }
-    .start-btn { background: var(--btn); border: 1px solid #2c3646; color: var(--ink); border-radius: 10px; padding: 8px 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: border-color .15s, background .15s; }
+    .start-bar-label { font-size: 12px; color: #5c6675; padding: 2px 4px 0; font-weight: 600; }
+    .start-btn { background: var(--btn); border: 1px solid #2c3646; color: var(--ink); border-radius: 8px; padding: 7px 9px; font-size: 12px; font-weight: 700; cursor: pointer; transition: border-color .15s, background .15s; }
     .start-btn.active { background: var(--btn-active); border-color: #3ba7ff; box-shadow: 0 0 0 1px #3ba7ff inset; color: #7dd3ff; }
 
-    .edit-toolbar { display: none; gap: 6px; flex-wrap: wrap; margin-top: 8px; width: 100%; }
+    .edit-toolbar { display: none; gap: 6px; flex-wrap: wrap; margin-top: 6px; width: 100%; }
     .edit-toolbar.show { display: flex; }
-    .edit-toolbar button { flex: 1; background: #232b37; border: 1px solid #3a4454; color: var(--ink); border-radius: 8px; padding: 8px 4px; font-size: 11px; cursor: pointer; font-weight: 600;}
+    .edit-toolbar button { flex: 1; min-width: 65px; background: #232b37; border: 1px solid #3a4454; color: var(--ink); border-radius: 8px; padding: 8px 4px; font-size: 11px; cursor: pointer; font-weight: 600;}
     .edit-toolbar button:hover { border-color: #ffd400; }
     .edit-toolbar button.active { border-color: #ffd400; color: #ffd400; }
 
-    #exportArea { display: none; width: 100%; height: 110px; background: #0a0d12; color: #8fd18f; font-family: ui-monospace, monospace; font-size: 10px; border: 1px solid #2c3646; border-radius: 8px; padding: 6px; resize: none; margin-top: 8px; }
-    #exportArea.show { display: block; }
+    /* 내보내기 모달 & 토스트 */
+    .export-box { display: none; flex-direction: column; gap: 6px; width: 100%; margin-top: 6px; }
+    .export-box.show { display: flex; }
+    #exportArea { width: 100%; height: 180px; background: #0a0d12; color: #8fd18f; font-family: ui-monospace, monospace; font-size: 11px; border: 1px solid #2c3646; border-radius: 8px; padding: 8px; resize: vertical; }
+    .export-action-row { display: flex; gap: 6px; }
+    .export-action-row button { flex: 1; padding: 8px; font-size: 12px; font-weight: 700; border-radius: 8px; border: 1px solid #3a4454; background: #1a222d; color: #eef1f6; cursor: pointer; }
+
+    .toast-msg {
+      position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-20px);
+      background: rgba(18, 24, 33, 0.95); border: 1px solid #00e676; color: #fff;
+      padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 700;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 230, 118, 0.4);
+      z-index: 10000; opacity: 0; pointer-events: none; transition: opacity 0.3s, transform 0.3s;
+    }
+    .toast-msg.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   </style>
 </head>
 
@@ -189,7 +232,14 @@
     </div>
 
     <!-- ② 고화질 지도 영역 (3337 x 2101) -->
-    <div class="map-zone">
+    <div class="map-zone" id="mapZone">
+      <!-- 플로팅 정량 줌 컨트롤러 -->
+      <div class="map-zoom-controls">
+        <button class="map-zoom-btn" id="zoomInBtn" title="확대">➕</button>
+        <button class="map-zoom-btn" id="zoomOutBtn" title="축소">➖</button>
+        <button class="map-zoom-btn" id="zoomResetBtn" title="전체보기">⟲</button>
+      </div>
+
       <svg id="mapSvg" viewBox="0 0 3337 2101" preserveAspectRatio="xMidYMid meet">
         <defs>
           <clipPath id="mapClip">
@@ -209,12 +259,14 @@
         <!-- 에디터 가이드 영역 -->
         <g id="editDots"></g>
 
-        <!-- 현위치 핀 -->
+        <!-- 현위치 핀 (초대형 고가시성 디자인) -->
         <g class="pin pin-start" id="startPin">
-          <circle class="pulse" r="22" />
-          <circle class="outer" r="20" />
-          <text class="pin-label shadow" x="0" y="-32" text-anchor="middle">현위치</text>
-          <text class="pin-label" x="0" y="-32" text-anchor="middle">현위치</text>
+          <circle class="pulse-outer" r="32" />
+          <circle class="pulse" r="30" />
+          <circle class="outer" r="28" />
+          <circle class="center" r="10" />
+          <text class="pin-label shadow" x="0" y="-42" text-anchor="middle">📍 현위치</text>
+          <text class="pin-label" x="0" y="-42" text-anchor="middle">📍 현위치</text>
         </g>
       </svg>
     </div>
@@ -223,10 +275,11 @@
     <div class="control-zone">
       <div class="hint" id="hintText">보고 싶은 곳을 눌러보세요.<br>경로를 선택하면 <b>동시 다중 경로</b>가 선명하게 안내됩니다!</div>
 
-      <!-- 경로 범례 (복수 경로일 때 자동 노출) -->
+      <!-- 경로 범례 (복수 경로 및 숲길일 때 자동 노출) -->
       <div class="route-legend" id="routeLegend">
         <div class="legend-item" id="legendRed"><span class="legend-dot red"></span><span id="legendRedText">보행로 코스</span></div>
         <div class="legend-item" id="legendBlue"><span class="legend-dot blue"></span><span id="legendBlueText">계단/모노레일 코스</span></div>
+        <div class="legend-item" id="legendGreen" style="display:none;"><span class="legend-dot green"></span><span id="legendGreenText">🌲 힐링 숲길 산책로</span></div>
       </div>
 
       <div class="btn-grid" id="mainGrid">
@@ -240,13 +293,24 @@
 
       <div class="edit-toolbar" id="editToolbar">
         <button id="addPathBtn">+ 경로 추가</button>
+        <button id="setForestStartBtn" title="마지막으로 찍은 점을 숲길 시작점으로 지정">🌲 숲길 시작점 지정</button>
         <button id="undoPoint">↩ 취소</button>
         <button id="clearRoute">🗑 경로 초기화</button>
-        <button id="exportJson">⇩ 내보내기</button>
+        <button id="exportJson">⇩ 데이터 내보내기</button>
       </div>
       
-      <textarea id="exportArea" readonly></textarea>
+      <div class="export-box" id="exportBox">
+        <textarea id="exportArea" readonly></textarea>
+        <div class="export-action-row">
+          <button id="copyJsonBtn">📋 JSON 복사</button>
+          <button id="downloadJsonBtn">💾 파일 저장 (.json)</button>
+          <button id="closeExportBtn">닫기</button>
+        </div>
+      </div>
     </div>
+
+    <!-- 토스트 알림 메시지 -->
+    <div class="toast-msg" id="toastMsg"></div>
 
     <!-- ④ 관리자 바 -->
     <div class="admin-bar">
@@ -297,651 +361,122 @@
         info: { label: '관광정보센터', pos: ANCHORS.info }
       };
 
+      // 목적지별 공식 기준 도착 앵커 좌표 (시작점처럼 정확한 고정 좌표)
+      const DEST_PRESETS = {
+        astro: {
+          mono: ANCHORS.monoDown,       // [1075, 803] 모노레일 하행 승차장
+          lake: [1247, 663],            // 천주호 전망데크 진입광장
+          cafe: ANCHORS.cafe,           // [2599, 703] 전망카페
+          forest: [2089, 1472]          // [2089, 1472] 힐링숲 산책로 종착지
+        },
+        ticket: {
+          mono: ANCHORS.monoLower,      // [2326, 1535] 모노레일 승강장
+          lake: ANCHORS.lake,           // [1575, 520] 천주호
+          cafe: ANCHORS.cafe,           // [2599, 703] 전망카페
+          forest: ANCHORS.forest        // [2499, 1034] 힐링숲 입구
+        },
+        info: {
+          mono: ANCHORS.monoLower,      // [2326, 1535] 모노레일 승강장
+          lake: ANCHORS.lake,           // [1575, 520] 천주호
+          cafe: ANCHORS.cafe,           // [2599, 703] 전망카페
+          forest: ANCHORS.forest        // [2499, 1034] 힐링숲 입구
+        }
+      };
+
       const ROUTE_LABELS = {
         mono: '모노레일 타는 곳', lake: '천주호', cafe: '전망카페', forest: '힐링숲 산책로'
       };
 
-      // 동시 표출 복수 경로 데이터
+      // 동시 표출 복수 경로 데이터 (모든 코스명을 "코스 1", "코스 2"로 정돈)
       let ALL_ROUTES = {
       "astro": {
             "mono": [
                   {
                         "id": "mono_0",
-                        "name": "산마루 보행로",
+                        "name": "코스 1",
                         "color": "red",
                         "points": [
-                              [
-                                    189,
-                                    296
-                              ],
-                              [
-                                    318,
-                                    408
-                              ],
-                              [
-                                    401,
-                                    426
-                              ],
-                              [
-                                    474,
-                                    460
-                              ],
-                              [
-                                    464,
-                                    541
-                              ],
-                              [
-                                    454,
-                                    611
-                              ],
-                              [
-                                    501,
-                                    658
-                              ],
-                              [
-                                    592,
-                                    679
-                              ],
-                              [
-                                    712,
-                                    739
-                              ],
-                              [
-                                    837,
-                                    794
-                              ],
-                              [
-                                    936,
-                                    757
-                              ],
-                              [
-                                    1038,
-                                    731
-                              ],
-                              [
-                                    1116,
-                                    770
-                              ],
-                              [
-                                    1074,
-                                    799
-                              ]
+                              [ 189, 296 ], [ 318, 408 ], [ 401, 426 ], [ 474, 460 ], [ 464, 541 ],
+                              [ 454, 611 ], [ 501, 658 ], [ 592, 679 ], [ 712, 739 ], [ 837, 794 ],
+                              [ 936, 757 ], [ 1038, 731 ], [ 1116, 770 ], [ 1075, 803 ]
                         ]
                   },
                   {
                         "id": "mono_1",
-                        "name": "경로 2",
+                        "name": "코스 2",
                         "color": "blue",
                         "points": [
-                              [
-                                    189,
-                                    296
-                              ],
-                              [
-                                    305,
-                                    400
-                              ],
-                              [
-                                    412,
-                                    452
-                              ],
-                              [
-                                    506,
-                                    486
-                              ],
-                              [
-                                    459,
-                                    556
-                              ],
-                              [
-                                    456,
-                                    621
-                              ],
-                              [
-                                    594,
-                                    601
-                              ],
-                              [
-                                    733,
-                                    606
-                              ],
-                              [
-                                    866,
-                                    627
-                              ],
-                              [
-                                    1001,
-                                    616
-                              ],
-                              [
-                                    1074,
-                                    569
-                              ],
-                              [
-                                    1113,
-                                    619
-                              ],
-                              [
-                                    1168,
-                                    658
-                              ],
-                              [
-                                    1085,
-                                    705
-                              ],
-                              [
-                                    1032,
-                                    721
-                              ],
-                              [
-                                    1121,
-                                    767
-                              ],
-                              [
-                                    1074,
-                                    799
-                              ]
+                              [ 189, 296 ], [ 305, 400 ], [ 412, 452 ], [ 506, 486 ], [ 459, 556 ],
+                              [ 456, 621 ], [ 594, 601 ], [ 733, 606 ], [ 866, 627 ], [ 1001, 616 ],
+                              [ 1074, 569 ], [ 1113, 619 ], [ 1168, 658 ], [ 1085, 705 ], [ 1032, 721 ],
+                              [ 1121, 767 ], [ 1075, 803 ]
                         ]
                   }
             ],
             "lake": [
                   {
                         "id": "lake_0",
-                        "name": "산마루 보행로 코스",
+                        "name": "코스 1",
                         "color": "red",
                         "points": [
-                              [
-                                    189,
-                                    296
-                              ],
-                              [
-                                    371,
-                                    395
-                              ],
-                              [
-                                    481,
-                                    477
-                              ],
-                              [
-                                    465,
-                                    544
-                              ],
-                              [
-                                    441,
-                                    605
-                              ],
-                              [
-                                    511,
-                                    663
-                              ],
-                              [
-                                    584,
-                                    684
-                              ],
-                              [
-                                    660,
-                                    693
-                              ],
-                              [
-                                    733,
-                                    721
-                              ],
-                              [
-                                    809,
-                                    757
-                              ],
-                              [
-                                    873,
-                                    781
-                              ],
-                              [
-                                    967,
-                                    748
-                              ],
-                              [
-                                    1077,
-                                    727
-                              ],
-                              [
-                                    1180,
-                                    690
-                              ],
-                              [
-                                    1247,
-                                    663
-                              ]
+                              [ 189, 296 ], [ 371, 395 ], [ 481, 477 ], [ 465, 544 ], [ 441, 605 ],
+                              [ 511, 663 ], [ 584, 684 ], [ 660, 693 ], [ 733, 721 ], [ 809, 757 ],
+                              [ 873, 781 ], [ 967, 748 ], [ 1077, 727 ], [ 1180, 690 ], [ 1247, 663 ]
                         ]
                   },
                   {
                         "id": "lake_1",
-                        "name": "호수 직통 계단 코스",
+                        "name": "코스 2",
                         "color": "blue",
                         "points": [
-                              [
-                                    189,
-                                    296
-                              ],
-                              [
-                                    271,
-                                    405
-                              ],
-                              [
-                                    386,
-                                    431
-                              ],
-                              [
-                                    443,
-                                    455
-                              ],
-                              [
-                                    490,
-                                    512
-                              ],
-                              [
-                                    446,
-                                    585
-                              ],
-                              [
-                                    467,
-                                    611
-                              ],
-                              [
-                                    537,
-                                    616
-                              ],
-                              [
-                                    615,
-                                    590
-                              ],
-                              [
-                                    720,
-                                    601
-                              ],
-                              [
-                                    808,
-                                    621
-                              ],
-                              [
-                                    920,
-                                    637
-                              ],
-                              [
-                                    978,
-                                    619
-                              ],
-                              [
-                                    1064,
-                                    572
-                              ],
-                              [
-                                    1103,
-                                    601
-                              ],
-                              [
-                                    1168,
-                                    650
-                              ],
-                              [
-                                    1220,
-                                    658
-                              ]
+                              [ 189, 296 ], [ 271, 405 ], [ 386, 431 ], [ 443, 455 ], [ 490, 512 ],
+                              [ 446, 585 ], [ 467, 611 ], [ 537, 616 ], [ 615, 590 ], [ 720, 601 ],
+                              [ 808, 621 ], [ 920, 637 ], [ 978, 619 ], [ 1064, 572 ], [ 1103, 601 ],
+                              [ 1168, 650 ], [ 1247, 663 ]
                         ]
                   }
             ],
             "cafe": [
                   {
                         "id": "cafe_0",
-                        "name": "하늘정원 산책길",
+                        "name": "코스 1",
                         "color": "red",
                         "points": [
-                              [
-                                    189,
-                                    296
-                              ],
-                              [
-                                    339,
-                                    410
-                              ],
-                              [
-                                    474,
-                                    468
-                              ],
-                              [
-                                    459,
-                                    548
-                              ],
-                              [
-                                    448,
-                                    611
-                              ],
-                              [
-                                    532,
-                                    653
-                              ],
-                              [
-                                    639,
-                                    692
-                              ],
-                              [
-                                    730,
-                                    747
-                              ],
-                              [
-                                    866,
-                                    804
-                              ],
-                              [
-                                    941,
-                                    825
-                              ],
-                              [
-                                    1053,
-                                    854
-                              ],
-                              [
-                                    1184,
-                                    848
-                              ],
-                              [
-                                    1337,
-                                    846
-                              ],
-                              [
-                                    1502,
-                                    833
-                              ],
-                              [
-                                    1710,
-                                    799
-                              ],
-                              [
-                                    1882,
-                                    809
-                              ],
-                              [
-                                    2060,
-                                    801
-                              ],
-                              [
-                                    2226,
-                                    788
-                              ],
-                              [
-                                    2331,
-                                    726
-                              ],
-                              [
-                                    2427,
-                                    694
-                              ],
-                              [
-                                    2544,
-                                    671
-                              ],
-                              [
-                                    2599,
-                                    702
-                              ]
+                              [ 189, 296 ], [ 339, 410 ], [ 474, 468 ], [ 459, 548 ], [ 448, 611 ],
+                              [ 532, 653 ], [ 639, 692 ], [ 730, 747 ], [ 866, 804 ], [ 941, 825 ],
+                              [ 1053, 854 ], [ 1184, 848 ], [ 1337, 846 ], [ 1502, 833 ], [ 1710, 799 ],
+                              [ 1882, 809 ], [ 2060, 801 ], [ 2226, 788 ], [ 2331, 726 ], [ 2427, 694 ],
+                              [ 2544, 671 ], [ 2599, 703 ]
                         ]
                   },
                   {
                         "id": "cafe_1",
-                        "name": "경로 2",
+                        "name": "코스 2",
                         "color": "blue",
                         "points": [
-                              [
-                                    189,
-                                    296
-                              ],
-                              [
-                                    326,
-                                    408
-                              ],
-                              [
-                                    433,
-                                    457
-                              ],
-                              [
-                                    485,
-                                    496
-                              ],
-                              [
-                                    454,
-                                    562
-                              ],
-                              [
-                                    469,
-                                    637
-                              ],
-                              [
-                                    558,
-                                    603
-                              ],
-                              [
-                                    699,
-                                    603
-                              ],
-                              [
-                                    793,
-                                    624
-                              ],
-                              [
-                                    910,
-                                    635
-                              ],
-                              [
-                                    991,
-                                    611
-                              ],
-                              [
-                                    1053,
-                                    567
-                              ],
-                              [
-                                    1103,
-                                    616
-                              ],
-                              [
-                                    1191,
-                                    661
-                              ],
-                              [
-                                    1139,
-                                    721
-                              ],
-                              [
-                                    1079,
-                                    749
-                              ],
-                              [
-                                    1137,
-                                    775
-                              ],
-                              [
-                                    1204,
-                                    807
-                              ],
-                              [
-                                    1293,
-                                    809
-                              ],
-                              [
-                                    1491,
-                                    807
-                              ],
-                              [
-                                    1674,
-                                    807
-                              ],
-                              [
-                                    1854,
-                                    807
-                              ],
-                              [
-                                    2041,
-                                    804
-                              ],
-                              [
-                                    2211,
-                                    794
-                              ],
-                              [
-                                    2357,
-                                    721
-                              ],
-                              [
-                                    2498,
-                                    658
-                              ],
-                              [
-                                    2602,
-                                    705
-                              ]
+                              [ 189, 296 ], [ 326, 408 ], [ 433, 457 ], [ 485, 496 ], [ 454, 562 ],
+                              [ 469, 637 ], [ 558, 603 ], [ 699, 603 ], [ 793, 624 ], [ 910, 635 ],
+                              [ 991, 611 ], [ 1053, 567 ], [ 1103, 616 ], [ 1191, 661 ], [ 1139, 721 ],
+                              [ 1079, 749 ], [ 1137, 775 ], [ 1204, 807 ], [ 1293, 809 ], [ 1491, 807 ],
+                              [ 1674, 807 ], [ 1854, 807 ], [ 2041, 804 ], [ 2211, 794 ], [ 2357, 721 ],
+                              [ 2498, 658 ], [ 2599, 703 ]
                         ]
                   }
             ],
             "forest": [
                   {
                         "id": "forest_0",
-                        "name": "전망대 경유 코스",
+                        "name": "코스 1",
                         "color": "red",
+                        "forestStartIndex": 23,
                         "points": [
-                              [
-                                    189,
-                                    296
-                              ],
-                              [
-                                    362,
-                                    402
-                              ],
-                              [
-                                    474,
-                                    491
-                              ],
-                              [
-                                    446,
-                                    569
-                              ],
-                              [
-                                    469,
-                                    650
-                              ],
-                              [
-                                    566,
-                                    676
-                              ],
-                              [
-                                    670,
-                                    710
-                              ],
-                              [
-                                    772,
-                                    760
-                              ],
-                              [
-                                    892,
-                                    801
-                              ],
-                              [
-                                    1032,
-                                    846
-                              ],
-                              [
-                                    1173,
-                                    854
-                              ],
-                              [
-                                    1343,
-                                    851
-                              ],
-                              [
-                                    1559,
-                                    809
-                              ],
-                              [
-                                    1768,
-                                    807
-                              ],
-                              [
-                                    1960,
-                                    809
-                              ],
-                              [
-                                    2070,
-                                    796
-                              ],
-                              [
-                                    2206,
-                                    760
-                              ],
-                              [
-                                    2323,
-                                    734
-                              ],
-                              [
-                                    2430,
-                                    705
-                              ],
-                              [
-                                    2466,
-                                    692
-                              ],
-                              [
-                                    2445,
-                                    731
-                              ],
-                              [
-                                    2378,
-                                    762
-                              ],
-                              [
-                                    2380,
-                                    825
-                              ],
-                              [
-                                    2498,
-                                    807
-                              ],
-                              [
-                                    2565,
-                                    760
-                              ],
-                              [
-                                    2595,
-                                    873
-                              ],
-                              [
-                                    2534,
-                                    978
-                              ],
-                              [
-                                    2497,
-                                    1027
-                              ],
-                              [
-                                    2466,
-                                    1114
-                              ],
-                              [
-                                    2435,
-                                    1219
-                              ],
-                              [
-                                    2361,
-                                    1306
-                              ],
-                              [
-                                    2237,
-                                    1361
-                              ],
-                              [
-                                    2163,
-                                    1417
-                              ],
-                              [
-                                    2089,
-                                    1472
-                              ]
+                              [ 189, 296 ], [ 362, 402 ], [ 474, 491 ], [ 446, 569 ], [ 469, 650 ],
+                              [ 566, 676 ], [ 670, 710 ], [ 772, 760 ], [ 892, 801 ], [ 1032, 846 ],
+                              [ 1173, 854 ], [ 1343, 851 ], [ 1559, 809 ], [ 1768, 807 ], [ 1960, 809 ],
+                              [ 2070, 796 ], [ 2206, 760 ], [ 2323, 734 ], [ 2430, 705 ], [ 2466, 692 ],
+                              [ 2445, 731 ], [ 2378, 762 ], [ 2380, 825 ], [ 2498, 807 ], [ 2565, 760 ],
+                              [ 2595, 873 ], [ 2534, 978 ], [ 2497, 1027 ], [ 2466, 1114 ], [ 2435, 1219 ],
+                              [ 2361, 1306 ], [ 2237, 1361 ], [ 2163, 1417 ], [ 2089, 1472 ]
                         ]
                   }
             ]
@@ -950,139 +485,51 @@
             "mono": [
                   {
                         "id": "mono_0",
-                        "name": "모노레일 승강장",
+                        "name": "코스 1",
                         "color": "red",
                         "points": [
-                              [
-                                    2440,
-                                    1711
-                              ],
-                              [
-                                    2326,
-                                    1535
-                              ]
+                              [ 2440, 1711 ], [ 2326, 1535 ]
                         ]
                   }
             ],
             "lake": [
                   {
                         "id": "lake_0",
-                        "name": "도보 코스 (22도 경사로)",
+                        "name": "코스 1",
                         "color": "red",
                         "points": [
-                              [
-                                    2440,
-                                    1711
-                              ],
-                              [
-                                    2114,
-                                    1488
-                              ],
-                              [
-                                    1850,
-                                    1280
-                              ],
-                              [
-                                    1520,
-                                    1050
-                              ],
-                              [
-                                    1240,
-                                    890
-                              ],
-                              [
-                                    1075,
-                                    803
-                              ],
-                              [
-                                    1330,
-                                    680
-                              ],
-                              [
-                                    1575,
-                                    520
-                              ]
+                              [ 2440, 1711 ], [ 2114, 1488 ], [ 1850, 1280 ], [ 1520, 1050 ],
+                              [ 1240, 890 ], [ 1075, 803 ], [ 1330, 680 ], [ 1575, 520 ]
                         ]
                   },
                   {
                         "id": "lake_1",
-                        "name": "모노레일 이용 코스",
+                        "name": "코스 2",
                         "color": "blue",
                         "points": [
-                              [
-                                    2440,
-                                    1711
-                              ],
-                              [
-                                    2326,
-                                    1535
-                              ],
-                              [
-                                    1550,
-                                    1150
-                              ],
-                              [
-                                    661,
-                                    649
-                              ],
-                              [
-                                    900,
-                                    740
-                              ],
-                              [
-                                    1075,
-                                    803
-                              ],
-                              [
-                                    1575,
-                                    520
-                              ]
+                              [ 2440, 1711 ], [ 2326, 1535 ], [ 1550, 1150 ], [ 661, 649 ],
+                              [ 900, 740 ], [ 1075, 803 ], [ 1575, 520 ]
                         ]
                   }
             ],
             "cafe": [
                   {
                         "id": "cafe_0",
-                        "name": "힐링숲 경유 코스",
+                        "name": "코스 1",
                         "color": "red",
                         "points": [
-                              [
-                                    2440,
-                                    1711
-                              ],
-                              [
-                                    2114,
-                                    1488
-                              ],
-                              [
-                                    2499,
-                                    1034
-                              ],
-                              [
-                                    2599,
-                                    703
-                              ]
+                              [ 2440, 1711 ], [ 2114, 1488 ], [ 2499, 1034 ], [ 2599, 703 ]
                         ]
                   }
             ],
             "forest": [
                   {
                         "id": "forest_0",
-                        "name": "힐링숲 산책로 입구",
+                        "name": "코스 1",
                         "color": "red",
+                        "forestStartIndex": 1,
                         "points": [
-                              [
-                                    2440,
-                                    1711
-                              ],
-                              [
-                                    2114,
-                                    1488
-                              ],
-                              [
-                                    2499,
-                                    1034
-                              ]
+                              [ 2440, 1711 ], [ 2114, 1488 ], [ 2499, 1034 ]
                         ]
                   }
             ]
@@ -1091,92 +538,42 @@
             "mono": [
                   {
                         "id": "mono_0",
-                        "name": "모노레일 승강장",
+                        "name": "코스 1",
                         "color": "red",
                         "points": [
-                              [
-                                    3171,
-                                    1493
-                              ],
-                              [
-                                    2750,
-                                    1530
-                              ],
-                              [
-                                    2326,
-                                    1535
-                              ]
+                              [ 3171, 1493 ], [ 2750, 1530 ], [ 2326, 1535 ]
                         ]
                   }
             ],
             "lake": [
                   {
                         "id": "lake_0",
-                        "name": "도보 코스",
+                        "name": "코스 1",
                         "color": "red",
                         "points": [
-                              [
-                                    3171,
-                                    1493
-                              ],
-                              [
-                                    2114,
-                                    1488
-                              ],
-                              [
-                                    1850,
-                                    1280
-                              ],
-                              [
-                                    1520,
-                                    1050
-                              ],
-                              [
-                                    1075,
-                                    803
-                              ],
-                              [
-                                    1575,
-                                    520
-                              ]
+                              [ 3171, 1493 ], [ 2114, 1488 ], [ 1850, 1280 ], [ 1520, 1050 ],
+                              [ 1075, 803 ], [ 1575, 520 ]
                         ]
                   }
             ],
             "cafe": [
                   {
                         "id": "cafe_0",
-                        "name": "산책로 경유 코스",
+                        "name": "코스 1",
                         "color": "red",
                         "points": [
-                              [
-                                    3171,
-                                    1493
-                              ],
-                              [
-                                    2499,
-                                    1034
-                              ],
-                              [
-                                    2599,
-                                    703
-                              ]
+                              [ 3171, 1493 ], [ 2499, 1034 ], [ 2599, 703 ]
                         ]
                   }
             ],
             "forest": [
                   {
                         "id": "forest_0",
-                        "name": "힐링숲 산책로 입구",
+                        "name": "코스 1",
                         "color": "red",
+                        "forestStartIndex": 1,
                         "points": [
-                              [
-                                    3171,
-                                    1493
-                              ],
-                              [
-                                    2499,
-                                    1034
-                              ]
+                              [ 3171, 1493 ], [ 2499, 1034 ]
                         ]
                   }
             ]
@@ -1195,6 +592,16 @@
       if (!START_PRESETS[currentStartKey]) currentStartKey = defaultStart;
 
       function getStart() { return START_PRESETS[currentStartKey].pos; }
+      function getDestPos(destKey) {
+        if (DEST_PRESETS[currentStartKey] && DEST_PRESETS[currentStartKey][destKey]) {
+          return DEST_PRESETS[currentStartKey][destKey];
+        }
+        const routes = getDestRoutes(destKey);
+        if (routes && routes[0] && routes[0].points && routes[0].points.length > 0) {
+          return routes[0].points[routes[0].points.length - 1];
+        }
+        return ANCHORS[destKey] || [1500, 1000];
+      }
       function getDestRoutes(destKey) { return ALL_ROUTES[currentStartKey][destKey] || []; }
 
       const svg = document.getElementById('mapSvg');
@@ -1208,11 +615,15 @@
       const legendRedText = document.getElementById('legendRedText');
       const legendBlue = document.getElementById('legendBlue');
       const legendBlueText = document.getElementById('legendBlueText');
+      const legendGreen = document.getElementById('legendGreen');
+      const legendGreenText = document.getElementById('legendGreenText');
       const modeToggleBtn = document.getElementById('modeToggle');
       const editToolbar = document.getElementById('editToolbar');
       
       const previewReset = document.getElementById('previewReset');
+      const exportBox = document.getElementById('exportBox');
       const exportArea = document.getElementById('exportArea');
+      const toastMsg = document.getElementById('toastMsg');
       const zoomBadge = document.getElementById('zoomBadge');
       const destBtns = [...document.querySelectorAll('.dest-btn')];
       const startBtns = [...document.querySelectorAll('.start-btn')];
@@ -1222,8 +633,17 @@
       let zoomAnim = null, animTimer = null;
       let currentVB = { ...FULL_VB };
 
-      // ── 애니메이션 & 줌 (모든 복수 경로를 한 화면에 자동 포커스) ──
-      function animateViewBox(target, duration = 600) {
+      // ── 토스트 알림 ──
+      let toastTimer = null;
+      function showToast(text) {
+        clearTimeout(toastTimer);
+        toastMsg.textContent = text;
+        toastMsg.classList.add('show');
+        toastTimer = setTimeout(() => { toastMsg.classList.remove('show'); }, 2600);
+      }
+
+      // ── 애니메이션 & 정량적 줌 ──
+      function animateViewBox(target, duration = 500) {
         if (zoomAnim) cancelAnimationFrame(zoomAnim);
         const start = { ...currentVB };
         const startTime = performance.now();
@@ -1231,8 +651,10 @@
         function step(now) {
           const t = Math.min(1, (now - startTime) / duration);
           const e = ease(t);
-          currentVB.x = start.x + (target.x - start.x) * e; currentVB.y = start.y + (target.y - start.y) * e;
-          currentVB.w = start.w + (target.w - start.w) * e; currentVB.h = start.h + (target.h - start.h) * e;
+          currentVB.x = start.x + (target.x - start.x) * e;
+          currentVB.y = start.y + (target.y - start.y) * e;
+          currentVB.w = start.w + (target.w - start.w) * e;
+          currentVB.h = start.h + (target.h - start.h) * e;
           svg.setAttribute('viewBox', `${currentVB.x} ${currentVB.y} ${currentVB.w} ${currentVB.h}`);
           if (t < 1) zoomAnim = requestAnimationFrame(step);
           else zoomAnim = null;
@@ -1251,25 +673,72 @@
             if (x > maxX) maxX = x; if (y > maxY) maxY = y;
           });
         });
+
+        const targetPos = getDestPos(destKey);
+        if (targetPos) {
+          if (targetPos[0] < minX) minX = targetPos[0];
+          if (targetPos[1] < minY) minY = targetPos[1];
+          if (targetPos[0] > maxX) maxX = targetPos[0];
+          if (targetPos[1] > maxY) maxY = targetPos[1];
+        }
         
         if (minX === Infinity) { zoomToFull(); return; }
 
-        let vx = minX - ZOOM_PADDING, vy = minY - ZOOM_PADDING;
-        let vw = (maxX - minX) + ZOOM_PADDING * 2, vh = (maxY - minY) + ZOOM_PADDING * 2;
-        const minDim = 850;
-        if (vw < minDim) { const d = minDim - vw; vx -= d / 2; vw = minDim; }
-        if (vh < minDim) { const d = minDim - vh; vy -= d / 2; vh = minDim; }
-        const mapZone = document.querySelector('.map-zone');
-        const aspect = mapZone.clientWidth / mapZone.clientHeight;
+        const PADDING = 340;
+        let vx = minX - PADDING, vy = minY - PADDING;
+        let vw = (maxX - minX) + PADDING * 2, vh = (maxY - minY) + PADDING * 2;
+        
+        const minDimW = 1650, minDimH = 1050;
+        if (vw < minDimW) { const d = minDimW - vw; vx -= d / 2; vw = minDimW; }
+        if (vh < minDimH) { const d = minDimH - vh; vy -= d / 2; vh = minDimH; }
+
+        const mapZone = document.getElementById('mapZone');
+        const aspect = (mapZone.clientWidth && mapZone.clientHeight) ? (mapZone.clientWidth / mapZone.clientHeight) : (3337 / 2101);
         const vbAspect = vw / vh;
         if (vbAspect > aspect) vh = vw / aspect; else vw = vh * aspect;
-        if (vx < 0) vx = 0; if (vy < 0) vy = 0;
-        if (vx + vw > 3337) vx = 3337 - vw; if (vy + vh > 2101) vy = 2101 - vh;
-        animateViewBox({ x: vx, y: vy, w: vw, h: vh }, 700);
+
+        if (vw > 3337) vw = 3337;
+        if (vh > 2101) vh = 2101;
+        if (vx < 0) vx = 0;
+        if (vy < 0) vy = 0;
+        if (vx + vw > 3337) vx = 3337 - vw;
+        if (vy + vh > 2101) vy = 2101 - vh;
+
+        animateViewBox({ x: vx, y: vy, w: vw, h: vh }, 600);
         zoomBadge.classList.add('show');
       }
 
-      function zoomToFull() { animateViewBox({ ...FULL_VB }, 500); zoomBadge.classList.remove('show'); }
+      function zoomToFull() {
+        animateViewBox({ ...FULL_VB }, 450);
+        zoomBadge.classList.remove('show');
+      }
+
+      function manualZoom(factor) {
+        const cx = currentVB.x + currentVB.w / 2;
+        const cy = currentVB.y + currentVB.h / 2;
+        let newW = currentVB.w * factor;
+        let newH = currentVB.h * factor;
+        if (newW < 800) { newW = 800; newH = 800 * (2101 / 3337); }
+        if (newW > 3337) { zoomToFull(); return; }
+        let newX = cx - newW / 2;
+        let newY = cy - newH / 2;
+        if (newX < 0) newX = 0;
+        if (newY < 0) newY = 0;
+        if (newX + newW > 3337) newX = 3337 - newW;
+        if (newY + newH > 2101) newY = 2101 - newH;
+        animateViewBox({ x: newX, y: newY, w: newW, h: newH }, 250);
+        zoomBadge.classList.add('show');
+      }
+
+      document.getElementById('zoomInBtn').addEventListener('click', () => manualZoom(0.75));
+      document.getElementById('zoomOutBtn').addEventListener('click', () => manualZoom(1.33));
+      document.getElementById('zoomResetBtn').addEventListener('click', () => zoomToFull());
+
+      document.getElementById('mapZone').addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (e.deltaY < 0) manualZoom(0.85);
+        else manualZoom(1.15);
+      }, { passive: false });
 
       // ── 렌더링 ──
       function updateStartPin() {
@@ -1290,65 +759,100 @@
         return d.trim();
       }
 
-      /* ── 핵심: 모든 복수 경로 및 다중 화살표를 한 번에 생성하고 동시 주행 ── */
+      /* ── 핵심: 모든 복수 경로 렌더링 + 힐링숲 듀얼 분기 초록색 지원 + 도착지 정밀 앵커 스냅 ── */
       function renderAllPathsForDest(destKey) {
         routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; arrowsLayer.innerHTML = ''; destPinsLayer.innerHTML = '';
         const routes = getDestRoutes(destKey);
         if (!routes || routes.length === 0) return;
 
-        let destPos = null;
+        // 도착지 앵커 위치 (시작점처럼 정확한 고정 좌표)
+        const targetPos = getDestPos(destKey);
+        let subPathIndex = 0;
 
-        routes.forEach((rt, idx) => {
+        routes.forEach((rt, routeIdx) => {
           if (!rt.points || rt.points.length < 2) return;
-          const d = smoothPath(rt.points);
-          const isBlue = rt.color === 'blue';
-          const pathId = `active-route-${idx}`;
-          const overlayId = `active-overlay-${idx}`;
 
-          // 1. 메인 발광 라인
-          const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          pathEl.setAttribute('id', pathId);
-          pathEl.setAttribute('class', `route-path ${isBlue ? 'path-blue' : 'path-red'}`);
-          pathEl.setAttribute('d', d);
-          routesLayer.appendChild(pathEl);
+          // 경로 복사 및 끝점을 공식 도착 앵커로 정밀 스냅 (사람이 찍은 미세 오차 자동 보정)
+          const pts = rt.points.map(p => p.slice());
+          if (targetPos) {
+            pts[pts.length - 1] = targetPos.slice();
+          }
 
-          // 2. 내부 화이트 흐르는 오버레이
-          const overlayEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          overlayEl.setAttribute('id', overlayId);
-          overlayEl.setAttribute('class', 'route-overlay');
-          overlayEl.setAttribute('d', d);
-          overlayLayer.appendChild(overlayEl);
+          const baseColor = rt.color || (routeIdx % 2 === 0 ? 'red' : 'blue');
+          let segments = [];
 
-          // 3. 각 경로별 동시 주행 화살표
-          const arrowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-          arrowGroup.setAttribute('id', `flow-arrow-${idx}`);
-          arrowGroup.setAttribute('class', `flow-arrow ${isBlue ? 'arrow-blue' : 'arrow-red'}`);
-          arrowGroup.innerHTML = `<path d="M -30,-16 L 28,0 L -30,16 L -14,0 Z"></path>`;
-          
-          const motionEl = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
-          motionEl.setAttribute('dur', `${2.5 + idx * 0.3}s`);
-          motionEl.setAttribute('repeatCount', 'indefinite');
-          motionEl.setAttribute('rotate', 'auto');
-          
-          const mp = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
-          mp.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#${pathId}`);
-          motionEl.appendChild(mp);
-          arrowGroup.appendChild(motionEl);
-          arrowsLayer.appendChild(arrowGroup);
+          // 힐링 숲 산책로(forest)일 경우: 숲길 진입점부터 자동으로 초록색(green)으로 분할 렌더링
+          if (destKey === 'forest') {
+            const splitIdx = (typeof rt.forestStartIndex === 'number') ? rt.forestStartIndex : (pts.length >= 24 ? 23 : Math.max(1, Math.floor(pts.length / 2)));
+            if (splitIdx > 0 && splitIdx < pts.length) {
+              const seg1 = pts.slice(0, splitIdx + 1); // 진입로 (코스1: Red, 코스2: Blue)
+              const seg2 = pts.slice(splitIdx);        // 힐링 숲길 (Green)
+              segments.push({ color: baseColor, points: seg1, name: `${rt.name} (진입로)` });
+              segments.push({ color: 'green', points: seg2, name: `${rt.name} (숲길 산책로)` });
+            } else {
+              segments.push({ color: 'green', points: pts, name: rt.name });
+            }
+          } else {
+            segments.push({ color: baseColor, points: pts, name: rt.name });
+          }
 
-          destPos = rt.points[rt.points.length - 1];
+          segments.forEach(seg => {
+            if (seg.points.length < 2) return;
+            const d = smoothPath(seg.points);
+            const pathId = `active-route-${subPathIndex}`;
+            const overlayId = `active-overlay-${subPathIndex}`;
+            const colorClass = seg.color === 'blue' ? 'path-blue' : (seg.color === 'green' ? 'path-green' : 'path-red');
+            const arrowClass = seg.color === 'blue' ? 'arrow-blue' : (seg.color === 'green' ? 'arrow-green' : 'arrow-red');
+
+            // 1. 메인 발광 라인
+            const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            pathEl.setAttribute('id', pathId);
+            pathEl.setAttribute('class', `route-path ${colorClass}`);
+            pathEl.setAttribute('d', d);
+            routesLayer.appendChild(pathEl);
+
+            // 2. 내부 화이트 흐르는 오버레이
+            const overlayEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            overlayEl.setAttribute('id', overlayId);
+            overlayEl.setAttribute('class', 'route-overlay');
+            overlayEl.setAttribute('d', d);
+            overlayLayer.appendChild(overlayEl);
+
+            // 3. 각 경로별 동시 주행 화살표
+            const arrowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            arrowGroup.setAttribute('id', `flow-arrow-${subPathIndex}`);
+            arrowGroup.setAttribute('class', `flow-arrow ${arrowClass}`);
+            arrowGroup.innerHTML = `<path d="M -32,-18 L 30,0 L -32,18 L -16,0 Z"></path>`;
+            
+            const motionEl = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
+            motionEl.setAttribute('dur', `${2.6 + subPathIndex * 0.25}s`);
+            motionEl.setAttribute('repeatCount', 'indefinite');
+            motionEl.setAttribute('rotate', 'auto');
+            
+            const mp = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
+            mp.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#${pathId}`);
+            motionEl.appendChild(mp);
+            arrowGroup.appendChild(motionEl);
+            arrowsLayer.appendChild(arrowGroup);
+
+            subPathIndex++;
+          });
         });
 
-        // 4. 목적지 도착 핀 (최종 지점 펄스 마커 링)
-        if (destPos) {
+        // 4. 목적지 도착 핀 (시작점처럼 정확한 고정 앵커 위치에 완벽하게 꽂힘)
+        if (targetPos) {
+          const isGreenDest = (destKey === 'forest');
           const destPin = document.createElementNS('http://www.w3.org/2000/svg', 'g');
           destPin.setAttribute('id', 'active-dest-pin');
-          destPin.setAttribute('class', 'pin pin-dest');
-          destPin.setAttribute('transform', `translate(${destPos[0]},${destPos[1]})`);
+          destPin.setAttribute('class', `pin pin-dest ${isGreenDest ? 'dest-green' : ''}`);
+          destPin.setAttribute('transform', `translate(${targetPos[0]},${targetPos[1]})`);
           destPin.innerHTML = `
-            <circle class="dest-glow" r="28"></circle>
-            <circle class="dest-core" r="18"></circle>
-            <circle class="dest-center" r="7"></circle>
+            <circle class="dest-glow-outer" r="36"></circle>
+            <circle class="dest-glow" r="32"></circle>
+            <circle class="dest-core" r="28"></circle>
+            <circle class="dest-center" r="10"></circle>
+            <text class="pin-label shadow" x="0" y="-45" text-anchor="middle">🚩 ${ROUTE_LABELS[destKey] || '도착'}</text>
+            <text class="pin-label" x="0" y="-45" text-anchor="middle">🚩 ${ROUTE_LABELS[destKey] || '도착'}</text>
           `;
           destPinsLayer.appendChild(destPin);
         }
@@ -1360,6 +864,7 @@
         destBtns.forEach(b => b.classList.remove('active')); 
         activeDestKey = null;
         routeLegend.classList.remove('show');
+        legendGreen.style.display = 'none';
         zoomToFull();
       }
 
@@ -1375,24 +880,38 @@
         renderAllPathsForDest(destKey);
         zoomToAllRoutes(destKey);
 
-        // UI 범례 및 안내 힌트 갱신
-        if (routes.length >= 2) {
+        // UI 범례 및 안내 힌트 갱신 (모든 코스를 "코스 1", "코스 2"로 정돈)
+        if (destKey === 'forest') {
           routeLegend.classList.add('show');
-          legendRedText.textContent = routes[0]?.name || '기본 경로';
+          legendRedText.textContent = '코스 1 (진입로)';
+          if (routes.length >= 2) {
+            legendBlue.style.display = 'flex';
+            legendBlueText.textContent = '코스 2 (진입로)';
+          } else {
+            legendBlue.style.display = 'none';
+          }
+          legendGreen.style.display = 'flex';
+          legendGreenText.textContent = '🌲 힐링 숲길 구간';
+          setHint(`<b>${ROUTE_LABELS[destKey]}</b> 경로를 안내합니다.<br>숲길 진입 시 <b>초록색 산책로</b>로 자연스럽게 연결됩니다! 🌲`);
+        } else if (routes.length >= 2) {
+          routeLegend.classList.add('show');
+          legendRedText.textContent = routes[0]?.name || '코스 1';
           legendBlue.style.display = 'flex';
-          legendBlueText.textContent = routes[1]?.name || '대안 경로';
-          setHint(`<b>${ROUTE_LABELS[destKey]}</b> 가는 2가지 경로를 동시에 안내합니다.<br>원하시는 코스(🔴 / 🔵)를 선택해 이동하세요!`);
+          legendBlueText.textContent = routes[1]?.name || '코스 2';
+          legendGreen.style.display = 'none';
+          setHint(`<b>${ROUTE_LABELS[destKey]}</b> 가는 2가지 코스를 동시에 안내합니다.<br>원하시는 경로(🔴 <b>코스 1</b> / 🔵 <b>코스 2</b>)를 확인하세요!`);
         } else {
           routeLegend.classList.add('show');
-          legendRedText.textContent = routes[0]?.name || '추천 경로';
+          legendRedText.textContent = routes[0]?.name || '코스 1';
           legendBlue.style.display = 'none';
-          setHint(`<b>${ROUTE_LABELS[destKey]} (${routes[0]?.name || '추천 경로'})</b> 코스를 안내합니다.`);
+          legendGreen.style.display = 'none';
+          setHint(`<b>${ROUTE_LABELS[destKey]} (코스 1)</b> 경로를 안내합니다.`);
         }
 
         // 경로선 드로잉 및 다중 화살표 동시 주행 발동
         animTimer = setTimeout(() => {
-          routes.forEach((rt, idx) => {
-            const path = document.getElementById(`active-route-${idx}`);
+          const pathElements = routesLayer.querySelectorAll('.route-path');
+          pathElements.forEach((path, idx) => {
             const overlay = document.getElementById(`active-overlay-${idx}`);
             const arrow = document.getElementById(`flow-arrow-${idx}`);
             if (!path) return;
@@ -1406,7 +925,7 @@
 
             setTimeout(() => {
               path.classList.add('flowing');
-              overlay.classList.add('flowing');
+              if (overlay) overlay.classList.add('flowing');
               if (arrow) arrow.style.visibility = 'visible';
               document.getElementById('active-dest-pin')?.classList.add('show');
             }, dur);
@@ -1462,7 +981,7 @@
         
         renderAllPathsForDest(destKey);
         const routeObj = getDestRoutes(destKey)[pathIndex];
-        setHint(`<b>${ROUTE_LABELS[destKey]} (${routeObj?.name || '경로'})</b> 수정 모드 — 지도 클릭으로 경유점을 찍으세요.`);
+        setHint(`<b>${ROUTE_LABELS[destKey]} (${routeObj?.name || '코스'})</b> 수정 모드 — 지도 클릭으로 경유점을 찍으세요.`);
         redrawEditGuide();
         renderEditPathButtons();
       }
@@ -1485,18 +1004,38 @@
       function redrawEditGuide() {
         editDotsLayer.innerHTML = '';
         if (!editingDestKey) return;
-        const pts = getDestRoutes(editingDestKey)[editingPathIndex]?.points;
+        const currentRoute = getDestRoutes(editingDestKey)[editingPathIndex];
+        const pts = currentRoute?.points;
         if (!pts) return;
+        
+        const fIdx = (typeof currentRoute.forestStartIndex === 'number') ? currentRoute.forestStartIndex : (editingDestKey === 'forest' && pts.length >= 24 ? 23 : -1);
+
         if (pts.length > 1) {
-          const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-          line.setAttribute('class', 'guide-line');
-          line.setAttribute('points', pts.map(p => p.join(',')).join(' '));
-          editDotsLayer.appendChild(line);
+          if (fIdx > 0 && fIdx < pts.length) {
+            const seg1 = pts.slice(0, fIdx + 1);
+            const seg2 = pts.slice(fIdx);
+            const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+            line1.setAttribute('class', 'guide-line');
+            line1.setAttribute('points', seg1.map(p => p.join(',')).join(' '));
+            editDotsLayer.appendChild(line1);
+
+            const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+            line2.setAttribute('class', 'guide-line forest-guide');
+            line2.setAttribute('points', seg2.map(p => p.join(',')).join(' '));
+            editDotsLayer.appendChild(line2);
+          } else {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+            line.setAttribute('class', `guide-line ${editingDestKey === 'forest' ? 'forest-guide' : ''}`);
+            line.setAttribute('points', pts.map(p => p.join(',')).join(' '));
+            editDotsLayer.appendChild(line);
+          }
         }
+
         pts.forEach((p, i) => {
+          const isForestDot = (fIdx >= 0 && i >= fIdx);
           const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
           g.setAttribute('transform', `translate(${p[0]},${p[1]})`);
-          g.innerHTML = `<circle class="edit-dot" r="18"></circle><text class="edit-dot-num" y="1">${i}</text>`;
+          g.innerHTML = `<circle class="edit-dot ${isForestDot ? 'forest-entry' : ''}" r="18"></circle><text class="edit-dot-num" y="1">${i}</text>`;
           editDotsLayer.appendChild(g);
         });
       }
@@ -1512,16 +1051,38 @@
         }
       });
 
+      document.getElementById('setForestStartBtn').addEventListener('click', () => {
+        if (!editingDestKey) return;
+        const currentRoute = getDestRoutes(editingDestKey)[editingPathIndex];
+        const pts = currentRoute.points;
+        if (pts.length < 2) {
+          showToast('⚠️ 점을 2개 이상 찍은 후 지정해 주세요.');
+          return;
+        }
+        currentRoute.forestStartIndex = pts.length - 1;
+        redrawEditGuide();
+        renderAllPathsForDest(editingDestKey);
+        showToast(`🌲 [${currentRoute.name}] 현재 점(${pts.length - 1}번)부터 숲길 구간으로 지정되었습니다!`);
+      });
+
       document.getElementById('undoPoint').addEventListener('click', () => {
         if (!editingDestKey) return;
-        const pts = getDestRoutes(editingDestKey)[editingPathIndex].points;
-        if (pts.length > 1) pts.pop();
+        const currentRoute = getDestRoutes(editingDestKey)[editingPathIndex];
+        const pts = currentRoute.points;
+        if (pts.length > 1) {
+          pts.pop();
+          if (currentRoute.forestStartIndex >= pts.length) {
+            delete currentRoute.forestStartIndex;
+          }
+        }
         redrawEditGuide(); renderAllPathsForDest(editingDestKey);
       });
 
       document.getElementById('clearRoute').addEventListener('click', () => {
         if (!editingDestKey) return;
-        getDestRoutes(editingDestKey)[editingPathIndex].points = [getStart().slice()];
+        const currentRoute = getDestRoutes(editingDestKey)[editingPathIndex];
+        currentRoute.points = [getStart().slice()];
+        delete currentRoute.forestStartIndex;
         redrawEditGuide(); renderAllPathsForDest(editingDestKey);
       });
 
@@ -1529,16 +1090,53 @@
         if (!editingDestKey) return;
         const routes = getDestRoutes(editingDestKey);
         const newColor = routes.length % 2 === 0 ? 'red' : 'blue';
-        routes.push({ id: `${editingDestKey}_${routes.length}`, name: `경로 ${routes.length + 1}`, color: newColor, points: [getStart().slice()] });
+        const courseName = `코스 ${routes.length + 1}`;
+        routes.push({ id: `${editingDestKey}_${routes.length}`, name: courseName, color: newColor, points: [getStart().slice()] });
         enterEditRoute(editingDestKey, routes.length - 1);
       });
 
+      // ── 내보내기 & 복사 & JSON 다운로드 ──
+      function getExportJsonString() {
+        const out = { startPresets: START_PRESETS, destPresets: DEST_PRESETS, currentStart: currentStartKey, ALL_ROUTES };
+        return JSON.stringify(out, null, 2);
+      }
+
       document.getElementById('exportJson').addEventListener('click', () => {
-        exportArea.classList.toggle('show');
-        if (exportArea.classList.contains('show')) {
-          const out = { startPresets: START_PRESETS, currentStart: currentStartKey, ALL_ROUTES };
-          exportArea.value = JSON.stringify(out, null, 2); exportArea.select();
+        exportBox.classList.toggle('show');
+        if (exportBox.classList.contains('show')) {
+          const jsonStr = getExportJsonString();
+          exportArea.value = jsonStr;
+          exportArea.select();
         }
+      });
+
+      document.getElementById('copyJsonBtn').addEventListener('click', () => {
+        const jsonStr = getExportJsonString();
+        navigator.clipboard.writeText(jsonStr).then(() => {
+          showToast('📋 전체 경로 데이터가 클립보드에 복사되었습니다!');
+        }).catch(() => {
+          exportArea.select();
+          document.execCommand('copy');
+          showToast('📋 전체 경로 데이터가 복사되었습니다!');
+        });
+      });
+
+      document.getElementById('downloadJsonBtn').addEventListener('click', () => {
+        const jsonStr = getExportJsonString();
+        const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '포천아트밸리_경로데이터.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('💾 "포천아트밸리_경로데이터.json" 다운로드 완료!');
+      });
+
+      document.getElementById('closeExportBtn').addEventListener('click', () => {
+        exportBox.classList.remove('show');
       });
 
       modeToggleBtn.addEventListener('click', () => {
@@ -1547,7 +1145,7 @@
         modeToggleBtn.textContent = editMode ? '✅ 제작 모드 ON' : '🖊 경로 제작 모드';
         editToolbar.classList.toggle('show', editMode);
         previewReset.style.display = editMode ? 'none' : 'flex';
-        exportArea.classList.remove('show');
+        exportBox.classList.remove('show');
         
         if (editMode) {
           resetPreview();
