@@ -718,7 +718,7 @@
         const cy = currentVB.y + currentVB.h / 2;
         let newW = currentVB.w * factor;
         let newH = currentVB.h * factor;
-        if (newW < 800) { newW = 800; newH = 800 * (2101 / 3337); }
+        if (newW < 750) { newW = 750; newH = 750 * (2101 / 3337); }
         if (newW > 3337) { zoomToFull(); return; }
         let newX = cx - newW / 2;
         let newY = cy - newH / 2;
@@ -726,7 +726,7 @@
         if (newY < 0) newY = 0;
         if (newX + newW > 3337) newX = 3337 - newW;
         if (newY + newH > 2101) newY = 2101 - newH;
-        animateViewBox({ x: newX, y: newY, w: newW, h: newH }, 250);
+        animateViewBox({ x: newX, y: newY, w: newW, h: newH }, 220);
         zoomBadge.classList.add('show');
       }
 
@@ -785,11 +785,11 @@
 
       document.getElementById('zoomInBtn').addEventListener('click', (e) => {
         e.stopPropagation();
-        manualZoom(0.75);
+        manualZoom(0.55); // 기존 대비 2배 빠른 강력 줌인 (약 1.82배 확대)
       });
       document.getElementById('zoomOutBtn').addEventListener('click', (e) => {
         e.stopPropagation();
-        manualZoom(1.33);
+        manualZoom(1.82); // 기존 대비 2배 빠른 시원한 줌아웃 (약 1.82배 축소)
       });
       document.getElementById('zoomResetBtn').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -798,8 +798,8 @@
 
       mapZone.addEventListener('wheel', (e) => {
         e.preventDefault();
-        if (e.deltaY < 0) manualZoom(0.85);
-        else manualZoom(1.15);
+        if (e.deltaY < 0) manualZoom(0.7);
+        else manualZoom(1.43);
       }, { passive: false });
 
       // ── 렌더링 ──
