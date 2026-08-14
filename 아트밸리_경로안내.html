@@ -818,14 +818,15 @@
             overlayEl.setAttribute('d', d);
             overlayLayer.appendChild(overlayEl);
 
-            // 3. 각 경로별 동시 주행 화살표
+            // 3. 각 경로별 동시 주행 화살표 (부드러운 페이드인/아웃으로 시작점 공백 및 순간이동 깜빡임 제거)
             const arrowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             arrowGroup.setAttribute('id', `flow-arrow-${subPathIndex}`);
             arrowGroup.setAttribute('class', `flow-arrow ${arrowClass}`);
-            arrowGroup.innerHTML = `<path d="M -32,-18 L 30,0 L -32,18 L -16,0 Z"></path>`;
+            arrowGroup.innerHTML = `<path d="M -26,-15 L 24,0 L -26,15 L -12,0 Z"></path>`;
             
+            const durSeconds = 2.6 + subPathIndex * 0.25;
             const motionEl = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
-            motionEl.setAttribute('dur', `${2.6 + subPathIndex * 0.25}s`);
+            motionEl.setAttribute('dur', `${durSeconds}s`);
             motionEl.setAttribute('repeatCount', 'indefinite');
             motionEl.setAttribute('rotate', 'auto');
             
@@ -833,6 +834,16 @@
             mp.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#${pathId}`);
             motionEl.appendChild(mp);
             arrowGroup.appendChild(motionEl);
+
+            // 시작점/도착점 스무스 페이드 (공백/깜빡임 원천 차단)
+            const fadeAnim = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+            fadeAnim.setAttribute('attributeName', 'opacity');
+            fadeAnim.setAttribute('values', '0; 0.2; 1; 1; 1; 0.3; 0');
+            fadeAnim.setAttribute('keyTimes', '0; 0.06; 0.16; 0.5; 0.84; 0.94; 1');
+            fadeAnim.setAttribute('dur', `${durSeconds}s`);
+            fadeAnim.setAttribute('repeatCount', 'indefinite');
+            arrowGroup.appendChild(fadeAnim);
+
             arrowsLayer.appendChild(arrowGroup);
 
             subPathIndex++;
@@ -892,7 +903,7 @@
           }
           legendGreen.style.display = 'flex';
           legendGreenText.textContent = '🌲 힐링 숲길 구간';
-          setHint(`<b>${ROUTE_LABELS[destKey]}</b> 경로를 안내합니다.<br>숲길 진입 시 <b>초록색 산책로</b>로 자연스럽게 연결됩니다! 🌲`);
+          setHint(`<b>${ROUTE_LABELS[destKey]}</b> 경로를 안내합니다.<br>먼저 <b>빨간 진입로</b>를 지난 후 <b>초록색 숲길</b>로 이어집니다! 🌲`);
         } else if (routes.length >= 2) {
           routeLegend.classList.add('show');
           legendRedText.textContent = routes[0]?.name || '코스 1';
@@ -908,29 +919,79 @@
           setHint(`<b>${ROUTE_LABELS[destKey]} (코스 1)</b> 경로를 안내합니다.`);
         }
 
-        // 경로선 드로잉 및 다중 화살표 동시 주행 발동
-        animTimer = setTimeout(() => {
-          const pathElements = routesLayer.querySelectorAll('.route-path');
-          pathElements.forEach((path, idx) => {
-            const overlay = document.getElementById(`active-overlay-${idx}`);
-            const arrow = document.getElementById(`flow-arrow-${idx}`);
-            if (!path) return;
+        // 경로선 드로잉 발동 (숲길은 진입로 완료 후 순차 체이닝 드로잉)
+        const isForest = (destKey === 'forest');
 
-            const L = path.getTotalLength();
-            path.style.strokeDasharray = L; path.style.strokeDashoffset = L;
-            path.classList.add('visible'); path.getBoundingClientRect();
-            const dur = Math.min(2200, Math.max(700, L * 1.2));
-            path.style.transition = `stroke-dashoffset ${dur}ms cubic-bezier(.3,.6,.2,1)`;
-            requestAnimationFrame(() => { path.style.strokeDashoffset = 0; });
+        if (isForest) {
+          // 숲길 순차 릴레이 드로잉: 1구간(진입로) -> 2구간(초록 숲길)
+          animTimer = setTimeout(() => {
+            const path0 = document.getElementById('active-route-0');
+            const overlay0 = document.getElementById('active-overlay-0');
+            const arrow0 = document.getElementById('flow-arrow-0');
+            const path1 = document.getElementById('active-route-1');
+            const overlay1 = document.getElementById('active-overlay-1');
+            const arrow1 = document.getElementById('flow-arrow-1');
+
+            if (!path0) return;
+
+            // 1단계: 진입로 드로잉
+            const L0 = path0.getTotalLength();
+            path0.style.strokeDasharray = L0; path0.style.strokeDashoffset = L0;
+            path0.classList.add('visible'); path0.getBoundingClientRect();
+            const dur0 = Math.min(1800, Math.max(700, L0 * 1.0));
+            path0.style.transition = `stroke-dashoffset ${dur0}ms cubic-bezier(.3,.6,.2,1)`;
+            requestAnimationFrame(() => { path0.style.strokeDashoffset = 0; });
 
             setTimeout(() => {
-              path.classList.add('flowing');
-              if (overlay) overlay.classList.add('flowing');
-              if (arrow) arrow.style.visibility = 'visible';
-              document.getElementById('active-dest-pin')?.classList.add('show');
-            }, dur);
-          });
-        }, 500);
+              path0.classList.add('flowing');
+              if (overlay0) overlay0.classList.add('flowing');
+              if (arrow0) arrow0.style.visibility = 'visible';
+
+              // 2단계: 숲길 진입점에 도달했을 때 초록 숲길 이어서 드로잉!
+              if (path1) {
+                const L1 = path1.getTotalLength();
+                path1.style.strokeDasharray = L1; path1.style.strokeDashoffset = L1;
+                path1.classList.add('visible'); path1.getBoundingClientRect();
+                const dur1 = Math.min(1600, Math.max(600, L1 * 1.0));
+                path1.style.transition = `stroke-dashoffset ${dur1}ms cubic-bezier(.3,.6,.2,1)`;
+                requestAnimationFrame(() => { path1.style.strokeDashoffset = 0; });
+
+                setTimeout(() => {
+                  path1.classList.add('flowing');
+                  if (overlay1) overlay1.classList.add('flowing');
+                  if (arrow1) arrow1.style.visibility = 'visible';
+                  document.getElementById('active-dest-pin')?.classList.add('show');
+                }, dur1);
+              } else {
+                document.getElementById('active-dest-pin')?.classList.add('show');
+              }
+            }, dur0);
+          }, 450);
+        } else {
+          // 일반 목적지: 모든 복수 경로 동시 전개
+          animTimer = setTimeout(() => {
+            const pathElements = routesLayer.querySelectorAll('.route-path');
+            pathElements.forEach((path, idx) => {
+              const overlay = document.getElementById(`active-overlay-${idx}`);
+              const arrow = document.getElementById(`flow-arrow-${idx}`);
+              if (!path) return;
+
+              const L = path.getTotalLength();
+              path.style.strokeDasharray = L; path.style.strokeDashoffset = L;
+              path.classList.add('visible'); path.getBoundingClientRect();
+              const dur = Math.min(2200, Math.max(700, L * 1.2));
+              path.style.transition = `stroke-dashoffset ${dur}ms cubic-bezier(.3,.6,.2,1)`;
+              requestAnimationFrame(() => { path.style.strokeDashoffset = 0; });
+
+              setTimeout(() => {
+                path.classList.add('flowing');
+                if (overlay) overlay.classList.add('flowing');
+                if (arrow) arrow.style.visibility = 'visible';
+                document.getElementById('active-dest-pin')?.classList.add('show');
+              }, dur);
+            });
+          }, 450);
+        }
       }
 
       destBtns.forEach(btn => btn.addEventListener('click', () => {
