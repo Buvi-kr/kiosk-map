@@ -90,15 +90,14 @@
     .route-path.path-blue { stroke: var(--accent-blue); filter: drop-shadow(0 0 16px var(--glow-blue)); }
     .route-path.path-green { stroke: var(--accent-green); filter: drop-shadow(0 0 16px var(--glow-green)); }
     .route-path.visible { opacity: 1; }
-    .route-path.flowing { stroke-dasharray: 30 16; animation: dashflow 0.5s linear infinite; }
-    @keyframes dashflow { to { stroke-dashoffset: -138; } }
+    /* 메인 선은 언제나 꽉 찬 솔리드 실선으로 유지 (색상 끊김/공백 원천 방지) */
 
     .route-overlay {
-      fill: none; stroke: #fff; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round;
-      opacity: 0; stroke-dasharray: 18 28;
+      fill: none; stroke: #ffffff; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round;
+      opacity: 0; stroke-dasharray: 20 32;
     }
-    .route-overlay.flowing { opacity: .95; animation: dashflow-white 0.6s linear infinite; }
-    @keyframes dashflow-white { to { stroke-dashoffset: -138; } }
+    .route-overlay.flowing { opacity: 0.95; animation: dashflow-white 0.7s linear infinite; }
+    @keyframes dashflow-white { to { stroke-dashoffset: -156; } }
 
     .guide-line { fill: none; stroke: #ffd400; stroke-width: 6; stroke-dasharray: 8 10; opacity: .85; }
     .edit-dot { fill: #ffd400; stroke: #1a1a1a; stroke-width: 3; }
@@ -943,7 +942,8 @@
             requestAnimationFrame(() => { path0.style.strokeDashoffset = 0; });
 
             setTimeout(() => {
-              path0.classList.add('flowing');
+              path0.style.strokeDasharray = 'none';
+              path0.style.strokeDashoffset = '0';
               if (overlay0) overlay0.classList.add('flowing');
               if (arrow0) arrow0.style.visibility = 'visible';
 
@@ -957,7 +957,8 @@
                 requestAnimationFrame(() => { path1.style.strokeDashoffset = 0; });
 
                 setTimeout(() => {
-                  path1.classList.add('flowing');
+                  path1.style.strokeDasharray = 'none';
+                  path1.style.strokeDashoffset = '0';
                   if (overlay1) overlay1.classList.add('flowing');
                   if (arrow1) arrow1.style.visibility = 'visible';
                   document.getElementById('active-dest-pin')?.classList.add('show');
@@ -984,7 +985,8 @@
               requestAnimationFrame(() => { path.style.strokeDashoffset = 0; });
 
               setTimeout(() => {
-                path.classList.add('flowing');
+                path.style.strokeDasharray = 'none';
+                path.style.strokeDashoffset = '0';
                 if (overlay) overlay.classList.add('flowing');
                 if (arrow) arrow.style.visibility = 'visible';
                 document.getElementById('active-dest-pin')?.classList.add('show');
