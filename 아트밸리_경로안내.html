@@ -65,8 +65,9 @@
     /* ── 지도 영역 (3337 x 2101 고화질 비율) ── */
     .map-zone {
       position: relative; width: 100%; flex: none; aspect-ratio: 3337 / 2101;
-      background: #060a0e; overflow: hidden; touch-action: none;
+      background: #060a0e; overflow: hidden; touch-action: none; cursor: grab; user-select: none;
     }
+    .map-zone.panning { cursor: grabbing; }
     .map-zone svg { width: 100%; height: 100%; display: block; transition: none; }
 
     /* 지도 플로팅 줌 컨트롤러 (정량적 줌) */
@@ -729,11 +730,73 @@
         zoomBadge.classList.add('show');
       }
 
-      document.getElementById('zoomInBtn').addEventListener('click', () => manualZoom(0.75));
-      document.getElementById('zoomOutBtn').addEventListener('click', () => manualZoom(1.33));
-      document.getElementById('zoomResetBtn').addEventListener('click', () => zoomToFull());
+      /* ── 지도 드래그 팬(Pan) & 휠/버튼 정량 줌 컨트롤러 ── */
+      let isPanning = false;
+      let panStartX = 0, panStartY = 0;
+      let panStartVB_X = 0, panStartVB_Y = 0;
+      let hasDragged = false;
 
-      document.getElementById('mapZone').addEventListener('wheel', (e) => {
+      const mapZone = document.getElementById('mapZone');
+
+      mapZone.addEventListener('pointerdown', (e) => {
+        // 줌 버튼 클릭 시 무시
+        if (e.target.closest('.map-zoom-controls')) return;
+        isPanning = true;
+        hasDragged = false;
+        panStartX = e.clientX;
+        panStartY = e.clientY;
+        panStartVB_X = currentVB.x;
+        panStartVB_Y = currentVB.y;
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isPanning) return;
+        const dist = Math.hypot(e.clientX - panStartX, e.clientY - panStartY);
+        if (dist > 4) {
+          hasDragged = true;
+          mapZone.classList.add('panning');
+        }
+        if (hasDragged) {
+          const scaleX = currentVB.w / mapZone.clientWidth;
+          const scaleY = currentVB.h / mapZone.clientHeight;
+          let nx = panStartVB_X - (e.clientX - panStartX) * scaleX;
+          let ny = panStartVB_Y - (e.clientY - panStartY) * scaleY;
+          if (nx < 0) nx = 0;
+          if (ny < 0) ny = 0;
+          if (nx + currentVB.w > 3337) nx = 3337 - currentVB.w;
+          if (ny + currentVB.h > 2101) ny = 2101 - currentVB.h;
+          currentVB.x = nx;
+          currentVB.y = ny;
+          svg.setAttribute('viewBox', `${nx} ${ny} ${currentVB.w} ${currentVB.h}`);
+          zoomBadge.classList.add('show');
+        }
+      });
+
+      window.addEventListener('pointerup', (e) => {
+        if (!isPanning) return;
+        isPanning = false;
+        mapZone.classList.remove('panning');
+      });
+
+      window.addEventListener('pointercancel', () => {
+        isPanning = false;
+        mapZone.classList.remove('panning');
+      });
+
+      document.getElementById('zoomInBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        manualZoom(0.75);
+      });
+      document.getElementById('zoomOutBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        manualZoom(1.33);
+      });
+      document.getElementById('zoomResetBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        zoomToFull();
+      });
+
+      mapZone.addEventListener('wheel', (e) => {
         e.preventDefault();
         if (e.deltaY < 0) manualZoom(0.85);
         else manualZoom(1.15);
@@ -1130,7 +1193,7 @@
       }
 
       svg.addEventListener('click', (evt) => {
-        if (!editMode) return;
+        if (!editMode || hasDragged) return;
         const [x, y] = toSvg(evt);
         if (editingDestKey) {
           const pts = getDestRoutes(editingDestKey)[editingPathIndex].points;
