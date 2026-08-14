@@ -7,10 +7,10 @@
   <title>포천아트밸리 키오스크 경로안내 시스템</title>
   <style>
     :root {
-      --accent: #ff3b30; /* 기본 경로 A (Red Neon) */
-      --accent-path2: #0066ff; /* 대안 경로 B (Blue Neon) */
-      --accent-glow: rgba(255, 59, 48, .7);
-      --accent-glow-path2: rgba(0, 102, 255, .7);
+      --accent-red: #ff3b30;   /* 기본 경로 A (Red Neon) */
+      --accent-blue: #0088ff;  /* 대안 경로 B (Blue Neon) */
+      --glow-red: rgba(255, 59, 48, .75);
+      --glow-blue: rgba(0, 136, 255, .75);
       --panel-bg: #12161c;
       --panel-bg2: #1b212b;
       --ink: #eef1f6;
@@ -45,7 +45,7 @@
       }
     }
 
-    /* ① 상단 제목 영역 (깔끔한 키오스크 헤더) */
+    /* ① 상단 제목 영역 */
     .header-zone {
       flex: none; padding: 2.5vh 20px 1.5vh; text-align: center;
       background: linear-gradient(180deg, #12161c, #161a22);
@@ -54,19 +54,20 @@
     .main-title { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 4px; letter-spacing: -0.02em; }
     .sub-title { font-size: 14px; font-weight: 500; color: #8993a4; }
 
-    /* ── 지도 영역 (3337 x 2101 고화질 16:10 비율) ── */
+    /* ── 지도 영역 (3337 x 2101 고화질 비율) ── */
     .map-zone {
       position: relative; width: 100%; flex: none; aspect-ratio: 3337 / 2101;
       background: #060a0e; overflow: hidden;
     }
     .map-zone svg { width: 100%; height: 100%; display: block; transition: none; }
 
-    /* ── 경로선 ── */
+    /* ── 경로선 스타일 (빨간 경로 & 파란 경로 동시 표출 지원) ── */
     .route-path {
-      fill: none; stroke: var(--accent); stroke-width: 18; stroke-linecap: round; stroke-linejoin: round;
-      opacity: 0; filter: drop-shadow(0 0 14px var(--accent-glow));
+      fill: none; stroke-width: 18; stroke-linecap: round; stroke-linejoin: round;
+      opacity: 0;
     }
-    .route-path.path2 { stroke: var(--accent-path2); filter: drop-shadow(0 0 14px var(--accent-glow-path2)); }
+    .route-path.path-red { stroke: var(--accent-red); filter: drop-shadow(0 0 14px var(--glow-red)); }
+    .route-path.path-blue { stroke: var(--accent-blue); filter: drop-shadow(0 0 14px var(--glow-blue)); }
     .route-path.visible { opacity: 1; }
     .route-path.flowing { stroke-dasharray: 30 16; animation: dashflow 0.5s linear infinite; }
     @keyframes dashflow { to { stroke-dashoffset: -138; } }
@@ -92,9 +93,9 @@
     .pin-start circle.pulse { fill: rgba(59, 167, 255, .45); stroke: none; animation: startPulse 2s ease-in-out infinite; }
     @keyframes startPulse { 0%, 100% { r: 22; opacity: .5; } 50% { r: 52; opacity: 0; } }
 
-    /* 목적지 핀 (지도 인쇄 박스와 중복 없는 펄스 마커 링) */
+    /* 목적지 핀 (펄스 마커 링) */
     .pin-dest circle.dest-glow { fill: rgba(255, 59, 48, .4); animation: destPulse 1.6s ease-in-out infinite; }
-    .pin-dest circle.dest-core { fill: var(--accent); stroke: #fff; stroke-width: 5; }
+    .pin-dest circle.dest-core { fill: var(--accent-red); stroke: #fff; stroke-width: 5; }
     .pin-dest circle.dest-center { fill: #fff; }
     .pin-dest { opacity: 0; transform-origin: center; }
     .pin-dest.show { opacity: 1; animation: pinPop .45s cubic-bezier(.2, 1.4, .4, 1) both; }
@@ -106,49 +107,47 @@
       100% { transform: scale(1); opacity: 1; }
     }
 
-    #flowArrow { visibility: hidden; }
-    #flowArrow path { fill: #fff; stroke: var(--accent); stroke-width: 4; filter: drop-shadow(0 0 10px rgba(255, 255, 255, .9)); }
-    #flowArrow.path2 path { stroke: var(--accent-path2); }
+    /* ── 동시 주행 화살표들 ── */
+    .flow-arrow { visibility: hidden; }
+    .flow-arrow path { fill: #fff; stroke-width: 4; filter: drop-shadow(0 0 10px rgba(255, 255, 255, .9)); }
+    .flow-arrow.arrow-red path { stroke: var(--accent-red); }
+    .flow-arrow.arrow-blue path { stroke: var(--accent-blue); }
 
     /* ── 조작 영역 ── */
     .control-zone {
       background: linear-gradient(180deg, var(--panel-bg2), #0c0f14);
-      padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 6px;
+      padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 8px;
       overflow: auto; flex: 1 1 0;
     }
-    .hint { font-size: 18px; color: var(--muted); line-height: 1.5; min-height: 36px; margin-bottom: 4px; text-align: center; }
+    .hint { font-size: 17px; color: var(--muted); line-height: 1.5; min-height: 48px; margin-bottom: 2px; text-align: center; }
     .hint b { color: #ffd400; }
 
+    /* 경로 범례 뱃지 */
+    .route-legend {
+      display: none; justify-content: center; align-items: center; gap: 12px;
+      padding: 8px 12px; background: rgba(0, 0, 0, 0.4); border-radius: 12px; border: 1px solid #2c3646;
+    }
+    .route-legend.show { display: flex; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; }
+    .legend-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+    .legend-dot.red { background: var(--accent-red); box-shadow: 0 0 8px var(--glow-red); }
+    .legend-dot.blue { background: var(--accent-blue); box-shadow: 0 0 8px var(--glow-blue); }
+
     .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .btn-grid.hide { display: none; }
 
     .dest-btn {
       background: var(--btn); border: 1px solid #2c3646; color: var(--ink);
-      border-radius: 16px; padding: 20px 8px; font-size: 20px; font-weight: 700;
+      border-radius: 16px; padding: 18px 8px; font-size: 19px; font-weight: 700;
       display: flex; flex-direction: column; align-items: center; gap: 6px;
       cursor: pointer; transition: transform .12s, background .15s, border-color .15s;
     }
     .dest-btn .ico { font-size: 28px; }
     .dest-btn:active { transform: scale(.96); }
-    .dest-btn.active { background: var(--btn-active); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+    .dest-btn.active { background: var(--btn-active); border-color: var(--accent-red); box-shadow: 0 0 0 1px var(--accent-red) inset; }
     .dest-btn.editing { border-color: #ffd400; box-shadow: 0 0 0 1px #ffd400 inset; }
 
-    /* 복수 경로 선택 UI */
-    .path-selection { display: none; flex-direction: column; gap: 10px; align-items: center; padding: 0 10px; }
-    .path-selection.show { display: flex; }
-    .path-title { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 4px; }
-    .path-title span { font-size: 15px; color: var(--muted); font-weight: 500; display: block; margin-top: 4px; }
-    .path-btn {
-      width: 100%; background: var(--btn); border: 1px solid #2c3646; color: var(--ink);
-      border-radius: 12px; padding: 16px; font-size: 18px; font-weight: 700; cursor: pointer; transition: transform 0.1s;
-    }
-    .path-btn.red { border-left: 6px solid var(--accent); }
-    .path-btn.blue { border-left: 6px solid var(--accent-path2); }
-    .path-btn:active { transform: scale(.98); }
-    .path-back { margin-top: 4px; padding: 12px 24px; background: none; border: 1px solid #3a4454; color: #8993a4; border-radius: 8px; font-size: 15px; cursor: pointer; font-weight: 600; }
-
-    .reset-row { display: flex; gap: 6px; margin-top: 4px; }
-    .reset-row button { flex: 1; background: #1a2028; border: 2px solid #2c3646; color: var(--muted); border-radius: 12px; padding: 16px 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .reset-row { display: flex; gap: 6px; margin-top: 2px; }
+    .reset-row button { flex: 1; background: #1a2028; border: 2px solid #2c3646; color: var(--muted); border-radius: 12px; padding: 14px 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
 
     /* ── 관리자 바 ── */
     #secretZone { position: absolute; bottom: 0; right: 0; width: 80px; height: 80px; z-index: 9999; }
@@ -160,7 +159,7 @@
     .admin-bar .status { font-size: 13px; color: #5c6675; opacity: 0; transition: opacity .2s; }
     .admin-bar .status.show { opacity: 1; color: #ffd400; }
     .mode-toggle { font-size: 14px; border: 1px solid #3a4454; background: #12161c; color: var(--ink); padding: 8px 14px; border-radius: 999px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-    .mode-toggle.on { background: var(--accent); border-color: var(--accent); color: #1a0500; font-weight: 700; }
+    .mode-toggle.on { background: var(--accent-red); border-color: var(--accent-red); color: #1a0500; font-weight: 700; }
     .close-admin { background: none; border: 1px solid #3a4454; color: #8993a4; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
 
     .start-bar-label { font-size: 13px; color: #5c6675; padding: 2px 4px 0; font-weight: 600; }
@@ -202,10 +201,7 @@
 
         <g id="routesLayer"></g>
         <g id="overlayLayer"></g>
-
-        <g id="flowArrow">
-          <path d="M -30,-16 L 28,0 L -30,16 L -14,0 Z"></path>
-        </g>
+        <g id="arrowsLayer"></g>
         
         <!-- 목적지 영역 -->
         <g id="destPins"></g>
@@ -225,20 +221,19 @@
 
     <!-- ③ 방문객 주 조작 영역 -->
     <div class="control-zone">
-      <div class="hint" id="hintText">보고 싶은 곳을 눌러보세요.<br>경로를 선택하면 <b>해당 구간으로 자동 확대</b>되어 선명하게 보여요!</div>
+      <div class="hint" id="hintText">보고 싶은 곳을 눌러보세요.<br>경로를 선택하면 <b>동시 다중 경로</b>가 선명하게 안내됩니다!</div>
+
+      <!-- 경로 범례 (복수 경로일 때 자동 노출) -->
+      <div class="route-legend" id="routeLegend">
+        <div class="legend-item" id="legendRed"><span class="legend-dot red"></span><span id="legendRedText">보행로 코스</span></div>
+        <div class="legend-item" id="legendBlue"><span class="legend-dot blue"></span><span id="legendBlueText">계단/모노레일 코스</span></div>
+      </div>
 
       <div class="btn-grid" id="mainGrid">
         <button class="dest-btn" data-route="lake"><span class="ico">🏞️</span>천주호 가는 길</button>
         <button class="dest-btn" data-route="cafe"><span class="ico">☕</span>카페 가는 길</button>
         <button class="dest-btn" data-route="mono"><span class="ico">🚡</span>모노레일 타는 곳</button>
         <button class="dest-btn" data-route="forest"><span class="ico">🌲</span>힐링숲 산책로</button>
-      </div>
-
-      <!-- 복수 경로 선택 UI -->
-      <div class="path-selection" id="pathSelection">
-        <div class="path-title" id="pathTitle">목적지 가는 길<span>어떤 길로 갈까요?</span></div>
-        <div id="pathBtnContainer" style="width:100%; display:flex; flex-direction:column; gap:8px;"></div>
-        <button class="path-back" id="pathBackBtn">뒤로</button>
       </div>
 
       <div class="reset-row" id="previewReset"><button id="stopBtn">🔎 전체보기 / 안내 멈추기</button></div>
@@ -306,21 +301,21 @@
         mono: '모노레일 타는 곳', lake: '천주호', cafe: '전망카페', forest: '힐링숲 산책로'
       };
 
-      // 노란 점 앵커 및 보행로 라인 기반 정밀 경로 데이터
+      // 동시 표출 복수 경로 데이터
       let ALL_ROUTES = {
         astro: {
           mono: [ 
-            { id: 'mono_0', name: '기본길', color: 'red', points: [ANCHORS.astro, ANCHORS.sanmaru, [480, 580], ANCHORS.monoUpper] } 
+            { id: 'mono_0', name: '산마루 보행로', color: 'red', points: [ANCHORS.astro, ANCHORS.sanmaru, [480, 580], ANCHORS.monoUpper] } 
           ],
           lake: [
-            { id: 'lake_0', name: '산마루 보행로', color: 'red', points: [ANCHORS.astro, ANCHORS.sanmaru, ANCHORS.monoUpper, [900, 740], ANCHORS.monoDown, [1330, 680], ANCHORS.lake] },
-            { id: 'lake_1', name: '호수 직통 계단길', color: 'blue', points: [ANCHORS.astro, [520, 360], [900, 420], [1250, 480], ANCHORS.lake] }
+            { id: 'lake_0', name: '산마루 보행로 코스', color: 'red', points: [ANCHORS.astro, ANCHORS.sanmaru, ANCHORS.monoUpper, [900, 740], ANCHORS.monoDown, [1330, 680], ANCHORS.lake] },
+            { id: 'lake_1', name: '호수 직통 계단 코스', color: 'blue', points: [ANCHORS.astro, [520, 360], [900, 420], [1250, 480], ANCHORS.lake] }
           ],
           cafe: [ 
-            { id: 'cafe_0', name: '하늘정원길', color: 'red', points: [ANCHORS.astro, [520, 360], ANCHORS.lake, ANCHORS.skyGarden, ANCHORS.lakeStage, ANCHORS.cafe] } 
+            { id: 'cafe_0', name: '하늘정원 산책길', color: 'red', points: [ANCHORS.astro, [520, 360], ANCHORS.lake, ANCHORS.skyGarden, ANCHORS.lakeStage, ANCHORS.cafe] } 
           ],
           forest: [ 
-            { id: 'forest_0', name: '전망대 경유길', color: 'red', points: [ANCHORS.astro, [520, 360], ANCHORS.lake, ANCHORS.cafe, ANCHORS.forest] } 
+            { id: 'forest_0', name: '전망대 경유 코스', color: 'red', points: [ANCHORS.astro, [520, 360], ANCHORS.lake, ANCHORS.cafe, ANCHORS.forest] } 
           ]
         },
         ticket: {
@@ -328,7 +323,8 @@
             { id: 'mono_0', name: '모노레일 승강장', color: 'red', points: [ANCHORS.ticket, ANCHORS.monoLower] } 
           ],
           lake: [ 
-            { id: 'lake_0', name: '도보 코스 (22도 경사로)', color: 'red', points: [ANCHORS.ticket, ANCHORS.gate, [1850, 1280], [1520, 1050], [1240, 890], ANCHORS.monoDown, [1330, 680], ANCHORS.lake] } 
+            { id: 'lake_0', name: '도보 코스 (22도 경사로)', color: 'red', points: [ANCHORS.ticket, ANCHORS.gate, [1850, 1280], [1520, 1050], [1240, 890], ANCHORS.monoDown, [1330, 680], ANCHORS.lake] },
+            { id: 'lake_1', name: '모노레일 이용 코스', color: 'blue', points: [ANCHORS.ticket, ANCHORS.monoLower, [1550, 1150], ANCHORS.monoUpper, [900, 740], ANCHORS.monoDown, ANCHORS.lake] }
           ],
           cafe: [ 
             { id: 'cafe_0', name: '힐링숲 경유 코스', color: 'red', points: [ANCHORS.ticket, ANCHORS.gate, ANCHORS.forest, ANCHORS.cafe] } 
@@ -370,17 +366,16 @@
       const svg = document.getElementById('mapSvg');
       const routesLayer = document.getElementById('routesLayer');
       const overlayLayer = document.getElementById('overlayLayer');
+      const arrowsLayer = document.getElementById('arrowsLayer');
       const destPinsLayer = document.getElementById('destPins');
       const editDotsLayer = document.getElementById('editDots');
-      const flowArrow = document.getElementById('flowArrow');
       const hintText = document.getElementById('hintText');
+      const routeLegend = document.getElementById('routeLegend');
+      const legendRedText = document.getElementById('legendRedText');
+      const legendBlue = document.getElementById('legendBlue');
+      const legendBlueText = document.getElementById('legendBlueText');
       const modeToggleBtn = document.getElementById('modeToggle');
       const editToolbar = document.getElementById('editToolbar');
-      
-      const mainGrid = document.getElementById('mainGrid');
-      const pathSelection = document.getElementById('pathSelection');
-      const pathBtnContainer = document.getElementById('pathBtnContainer');
-      const pathTitle = document.getElementById('pathTitle');
       
       const previewReset = document.getElementById('previewReset');
       const exportArea = document.getElementById('exportArea');
@@ -389,11 +384,11 @@
       const startBtns = [...document.querySelectorAll('.start-btn')];
 
       let editMode = false, editingDestKey = null, editingPathIndex = 0;
-      let activeDestKey = null, activePathIndex = null;
-      let motionEl = null, zoomAnim = null;
+      let activeDestKey = null;
+      let zoomAnim = null, animTimer = null;
       let currentVB = { ...FULL_VB };
 
-      // ── 애니메이션 & 줌 ──
+      // ── 애니메이션 & 줌 (모든 복수 경로를 한 화면에 자동 포커스) ──
       function animateViewBox(target, duration = 600) {
         if (zoomAnim) cancelAnimationFrame(zoomAnim);
         const start = { ...currentVB };
@@ -411,17 +406,23 @@
         zoomAnim = requestAnimationFrame(step);
       }
 
-      function zoomToPath(destKey, pathIndex) {
-        const pts = getDestRoutes(destKey)[pathIndex]?.points;
-        if (!pts || pts.length < 2) { zoomToFull(); return; }
+      function zoomToAllRoutes(destKey) {
+        const routes = getDestRoutes(destKey);
+        if (!routes || routes.length === 0) { zoomToFull(); return; }
+        
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        pts.forEach(([x, y]) => {
-          if (x < minX) minX = x; if (y < minY) minY = y;
-          if (x > maxX) maxX = x; if (y > maxY) maxY = y;
+        routes.forEach(rt => {
+          rt.points.forEach(([x, y]) => {
+            if (x < minX) minX = x; if (y < minY) minY = y;
+            if (x > maxX) maxX = x; if (y > maxY) maxY = y;
+          });
         });
+        
+        if (minX === Infinity) { zoomToFull(); return; }
+
         let vx = minX - ZOOM_PADDING, vy = minY - ZOOM_PADDING;
         let vw = (maxX - minX) + ZOOM_PADDING * 2, vh = (maxY - minY) + ZOOM_PADDING * 2;
-        const minDim = 800;
+        const minDim = 850;
         if (vw < minDim) { const d = minDim - vw; vx -= d / 2; vw = minDim; }
         if (vh < minDim) { const d = minDim - vh; vy -= d / 2; vh = minDim; }
         const mapZone = document.querySelector('.map-zone');
@@ -455,131 +456,129 @@
         return d.trim();
       }
 
-      // 목적지 핀 생성 (글자 중복 없는 펄스 마커 링)
-      function createPathDOM(destKey, pathIndex, isPreview) {
-        routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; destPinsLayer.innerHTML = '';
-        const routeObj = getDestRoutes(destKey)[pathIndex];
-        if (!routeObj || routeObj.points.length < 2) return;
-        
-        const pts = routeObj.points;
-        const d = smoothPath(pts);
-        const pathClass = routeObj.color === 'blue' ? 'route-path path2' : 'route-path';
-        
-        const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        pathEl.setAttribute('id', 'active-route');
-        pathEl.setAttribute('class', pathClass);
-        pathEl.setAttribute('d', d);
-        routesLayer.appendChild(pathEl);
+      /* ── 핵심: 모든 복수 경로 및 다중 화살표를 한 번에 생성하고 동시 주행 ── */
+      function renderAllPathsForDest(destKey) {
+        routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; arrowsLayer.innerHTML = ''; destPinsLayer.innerHTML = '';
+        const routes = getDestRoutes(destKey);
+        if (!routes || routes.length === 0) return;
 
-        const overlayEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        overlayEl.setAttribute('id', 'active-overlay');
-        overlayEl.setAttribute('class', 'route-overlay');
-        overlayEl.setAttribute('d', d);
-        overlayLayer.appendChild(overlayEl);
+        let destPos = null;
 
-        const [dx, dy] = pts[pts.length - 1];
-        const destPin = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        destPin.setAttribute('id', 'active-dest-pin');
-        destPin.setAttribute('class', 'pin pin-dest');
-        destPin.setAttribute('transform', `translate(${dx},${dy})`);
-        destPin.innerHTML = `
-          <circle class="dest-glow" r="28"></circle>
-          <circle class="dest-core" r="18"></circle>
-          <circle class="dest-center" r="7"></circle>
-        `;
-        destPinsLayer.appendChild(destPin);
+        routes.forEach((rt, idx) => {
+          if (!rt.points || rt.points.length < 2) return;
+          const d = smoothPath(rt.points);
+          const isBlue = rt.color === 'blue';
+          const pathId = `active-route-${idx}`;
+          const overlayId = `active-overlay-${idx}`;
+
+          // 1. 메인 발광 라인
+          const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          pathEl.setAttribute('id', pathId);
+          pathEl.setAttribute('class', `route-path ${isBlue ? 'path-blue' : 'path-red'}`);
+          pathEl.setAttribute('d', d);
+          routesLayer.appendChild(pathEl);
+
+          // 2. 내부 화이트 흐르는 오버레이
+          const overlayEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          overlayEl.setAttribute('id', overlayId);
+          overlayEl.setAttribute('class', 'route-overlay');
+          overlayEl.setAttribute('d', d);
+          overlayLayer.appendChild(overlayEl);
+
+          // 3. 각 경로별 동시 주행 화살표
+          const arrowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          arrowGroup.setAttribute('id', `flow-arrow-${idx}`);
+          arrowGroup.setAttribute('class', `flow-arrow ${isBlue ? 'arrow-blue' : 'arrow-red'}`);
+          arrowGroup.innerHTML = `<path d="M -30,-16 L 28,0 L -30,16 L -14,0 Z"></path>`;
+          
+          const motionEl = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
+          motionEl.setAttribute('dur', `${2.5 + idx * 0.3}s`);
+          motionEl.setAttribute('repeatCount', 'indefinite');
+          motionEl.setAttribute('rotate', 'auto');
+          
+          const mp = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
+          mp.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#${pathId}`);
+          motionEl.appendChild(mp);
+          arrowGroup.appendChild(motionEl);
+          arrowsLayer.appendChild(arrowGroup);
+
+          destPos = rt.points[rt.points.length - 1];
+        });
+
+        // 4. 목적지 도착 핀 (최종 지점 펄스 마커 링)
+        if (destPos) {
+          const destPin = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          destPin.setAttribute('id', 'active-dest-pin');
+          destPin.setAttribute('class', 'pin pin-dest');
+          destPin.setAttribute('transform', `translate(${destPos[0]},${destPos[1]})`);
+          destPin.innerHTML = `
+            <circle class="dest-glow" r="28"></circle>
+            <circle class="dest-core" r="18"></circle>
+            <circle class="dest-center" r="7"></circle>
+          `;
+          destPinsLayer.appendChild(destPin);
+        }
       }
 
-      /* ── 경로 애니메이션 재생 ── */
-      let animTimer = null;
       function resetPreview() {
         clearTimeout(animTimer);
-        routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; destPinsLayer.innerHTML = '';
-        flowArrow.style.visibility = 'hidden';
-        if (motionEl) { motionEl.remove(); motionEl = null; }
+        routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; arrowsLayer.innerHTML = ''; destPinsLayer.innerHTML = '';
         destBtns.forEach(b => b.classList.remove('active')); 
-        activeDestKey = null; activePathIndex = null;
+        activeDestKey = null;
+        routeLegend.classList.remove('show');
         zoomToFull();
-        showMainGrid();
       }
 
-      function startFlowArrow(routeObj) {
-        flowArrow.style.visibility = 'visible';
-        flowArrow.setAttribute('class', routeObj.color === 'blue' ? 'path2' : '');
-        if (motionEl) motionEl.remove();
-        motionEl = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
-        motionEl.setAttribute('dur', '2.6s');
-        motionEl.setAttribute('repeatCount', 'indefinite');
-        motionEl.setAttribute('rotate', 'auto');
-        const mp = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
-        mp.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#active-route');
-        motionEl.appendChild(mp); flowArrow.appendChild(motionEl);
-      }
-
-      function playPath(destKey, pathIndex) {
+      function playDestination(destKey) {
         if (editMode) return;
         clearTimeout(animTimer);
-        const routeObj = getDestRoutes(destKey)[pathIndex];
-        if (!routeObj || routeObj.points.length < 2) {
-          setHint(`경로가 없습니다. 제작 모드에서 찍어주세요.`); return;
+        const routes = getDestRoutes(destKey);
+        if (!routes || routes.length === 0) {
+          setHint(`경로가 없습니다. 관리자 제작 모드에서 등록해 주세요.`); return;
         }
 
-        activeDestKey = destKey; activePathIndex = pathIndex;
-        createPathDOM(destKey, pathIndex, true);
-        zoomToPath(destKey, pathIndex);
-        
-        const colorName = routeObj.color === 'blue' ? '<span style="color:var(--accent-path2);font-weight:900;">파란 선</span>' : '<span style="color:var(--accent);font-weight:900;">빨간 선</span>';
-        setHint(`<b>${ROUTE_LABELS[destKey]} (${routeObj.name})</b> 안내 중!<br>확대된 지도에서 ${colorName}을 따라가세요.`);
+        activeDestKey = destKey;
+        renderAllPathsForDest(destKey);
+        zoomToAllRoutes(destKey);
 
+        // UI 범례 및 안내 힌트 갱신
+        if (routes.length >= 2) {
+          routeLegend.classList.add('show');
+          legendRedText.textContent = routes[0]?.name || '기본 경로';
+          legendBlue.style.display = 'flex';
+          legendBlueText.textContent = routes[1]?.name || '대안 경로';
+          setHint(`<b>${ROUTE_LABELS[destKey]}</b> 가는 2가지 경로를 동시에 안내합니다.<br>원하시는 코스(🔴 / 🔵)를 선택해 이동하세요!`);
+        } else {
+          routeLegend.classList.add('show');
+          legendRedText.textContent = routes[0]?.name || '추천 경로';
+          legendBlue.style.display = 'none';
+          setHint(`<b>${ROUTE_LABELS[destKey]} (${routes[0]?.name || '추천 경로'})</b> 코스를 안내합니다.`);
+        }
+
+        // 경로선 드로잉 및 다중 화살표 동시 주행 발동
         animTimer = setTimeout(() => {
-          const path = document.getElementById('active-route');
-          const overlay = document.getElementById('active-overlay');
-          const L = path.getTotalLength();
-          path.style.strokeDasharray = L; path.style.strokeDashoffset = L;
-          path.classList.add('visible'); path.getBoundingClientRect();
-          const dur = Math.min(3000, Math.max(800, L * 1.5));
-          path.style.transition = `stroke-dashoffset ${dur}ms cubic-bezier(.3,.6,.2,1)`;
-          requestAnimationFrame(() => { path.style.strokeDashoffset = 0; });
+          routes.forEach((rt, idx) => {
+            const path = document.getElementById(`active-route-${idx}`);
+            const overlay = document.getElementById(`active-overlay-${idx}`);
+            const arrow = document.getElementById(`flow-arrow-${idx}`);
+            if (!path) return;
 
-          const done = () => {
-            path.removeEventListener('transitionend', done);
-            path.classList.add('flowing'); overlay.classList.add('flowing');
-            document.getElementById('active-dest-pin')?.classList.add('show');
-            startFlowArrow(routeObj);
-          };
-          path.addEventListener('transitionend', done);
-        }, 750);
+            const L = path.getTotalLength();
+            path.style.strokeDasharray = L; path.style.strokeDashoffset = L;
+            path.classList.add('visible'); path.getBoundingClientRect();
+            const dur = Math.min(2200, Math.max(700, L * 1.2));
+            path.style.transition = `stroke-dashoffset ${dur}ms cubic-bezier(.3,.6,.2,1)`;
+            requestAnimationFrame(() => { path.style.strokeDashoffset = 0; });
+
+            setTimeout(() => {
+              path.classList.add('flowing');
+              overlay.classList.add('flowing');
+              if (arrow) arrow.style.visibility = 'visible';
+              document.getElementById('active-dest-pin')?.classList.add('show');
+            }, dur);
+          });
+        }, 500);
       }
-
-      /* ── 복수 경로 UI ── */
-      function showPathSelection(destKey) {
-        const routes = getDestRoutes(destKey);
-        if (routes.length === 1) { playPath(destKey, 0); return; }
-        
-        mainGrid.classList.add('hide');
-        pathSelection.classList.add('show');
-        pathTitle.innerHTML = `${ROUTE_LABELS[destKey]} 가는 길<span>어떤 길로 갈까요?</span>`;
-        pathBtnContainer.innerHTML = '';
-        
-        routes.forEach((rt, idx) => {
-          const btn = document.createElement('button');
-          btn.className = `path-btn ${rt.color === 'blue' ? 'blue' : 'red'}`;
-          const ico = rt.color === 'blue' ? '🔵' : '🔴';
-          btn.innerHTML = `${ico} ${rt.name}`;
-          btn.onclick = () => playPath(destKey, idx);
-          pathBtnContainer.appendChild(btn);
-        });
-      }
-
-      function showMainGrid() {
-        pathSelection.classList.remove('show');
-        mainGrid.classList.remove('hide');
-      }
-
-      document.getElementById('pathBackBtn').onclick = () => {
-        resetPreview();
-        setHint('보고 싶은 곳을 눌러보세요.<br>경로를 선택하면 <b>해당 구간으로 자동 확대</b>되어 선명하게 보여요!');
-      };
 
       destBtns.forEach(btn => btn.addEventListener('click', () => {
         const k = btn.dataset.route;
@@ -588,13 +587,13 @@
           resetPreview();
           destBtns.forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
-          showPathSelection(k);
+          playDestination(k);
         }
       }));
 
       document.getElementById('stopBtn').addEventListener('click', () => {
         resetPreview();
-        setHint('보고 싶은 곳을 눌러보세요.<br>경로를 선택하면 <b>해당 구간으로 자동 확대</b>되어 선명하게 보여요!');
+        setHint('보고 싶은 곳을 눌러보세요.<br>경로를 선택하면 <b>동시 다중 경로</b>가 선명하게 안내됩니다!');
       });
 
       /* ── 시작점 전환 ── */
@@ -627,7 +626,7 @@
         editingDestKey = destKey; editingPathIndex = pathIndex;
         destBtns.forEach(b => b.classList.toggle('editing', b.dataset.route === destKey));
         
-        createPathDOM(destKey, pathIndex, false);
+        renderAllPathsForDest(destKey);
         const routeObj = getDestRoutes(destKey)[pathIndex];
         setHint(`<b>${ROUTE_LABELS[destKey]} (${routeObj?.name || '경로'})</b> 수정 모드 — 지도 클릭으로 경유점을 찍으세요.`);
         redrawEditGuide();
@@ -675,7 +674,7 @@
           const pts = getDestRoutes(editingDestKey)[editingPathIndex].points;
           pts.push([x, y]);
           redrawEditGuide();
-          createPathDOM(editingDestKey, editingPathIndex, false);
+          renderAllPathsForDest(editingDestKey);
         }
       });
 
@@ -683,13 +682,13 @@
         if (!editingDestKey) return;
         const pts = getDestRoutes(editingDestKey)[editingPathIndex].points;
         if (pts.length > 1) pts.pop();
-        redrawEditGuide(); createPathDOM(editingDestKey, editingPathIndex, false);
+        redrawEditGuide(); renderAllPathsForDest(editingDestKey);
       });
 
       document.getElementById('clearRoute').addEventListener('click', () => {
         if (!editingDestKey) return;
         getDestRoutes(editingDestKey)[editingPathIndex].points = [getStart().slice()];
-        redrawEditGuide(); createPathDOM(editingDestKey, editingPathIndex, false);
+        redrawEditGuide(); renderAllPathsForDest(editingDestKey);
       });
 
       document.getElementById('addPathBtn').addEventListener('click', () => {
@@ -717,13 +716,13 @@
         exportArea.classList.remove('show');
         
         if (editMode) {
-          resetPreview(); showMainGrid();
+          resetPreview();
           setHint(`[관리자] 목적지를 누르면 경로를 편집할 수 있습니다.`);
         } else {
           editingDestKey = null; editDotsLayer.innerHTML = '';
           destBtns.forEach(b => b.classList.remove('editing'));
-          zoomToFull(); routesLayer.innerHTML=''; overlayLayer.innerHTML='';
-          setHint('보고 싶은 곳을 눌러보세요.<br>경로를 선택하면 <b>해당 구간으로 자동 확대</b>되어 선명하게 보여요!');
+          zoomToFull(); routesLayer.innerHTML=''; overlayLayer.innerHTML=''; arrowsLayer.innerHTML='';
+          setHint('보고 싶은 곳을 눌러보세요.<br>경로를 선택하면 <b>동시 다중 경로</b>가 선명하게 안내됩니다!');
         }
       });
 
@@ -759,14 +758,12 @@
         if (editMode) return;
         idleTimer = setTimeout(() => {
           resetPreview();
-          setHint('보고 싶은 곳을 눌러보세요. 경로를 선택하면 <b>해당 구간으로 자동 확대</b>되어 선명하게 보여요!');
+          setHint('보고 싶은 곳을 눌러보세요.<br>경로를 선택하면 <b>동시 다중 경로</b>가 선명하게 안내됩니다!');
         }, IDLE_RESET_MS);
       }
       
-      const _playPath = playPath;
-      playPath = function (key, idx) { _playPath(key, idx); armIdleReset(); };
-      const _showPathSelection = showPathSelection;
-      showPathSelection = function (key) { _showPathSelection(key); armIdleReset(); };
+      const _playDestination = playDestination;
+      playDestination = function (key) { _playDestination(key); armIdleReset(); };
       
       document.addEventListener('pointerdown', armIdleReset, { passive: true });
       
