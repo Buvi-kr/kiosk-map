@@ -1622,12 +1622,15 @@
 
       // ── 스마트폰 QR 코드 동적 렌더링 ──
       function initQrCode() {
-        // 실제 방문객 스마트폰 카메라 스캔용 공식 GitHub Pages 배포 URL
-        const GITHUB_PAGES_URL = 'https://buvi-kr.github.io/kiosk-map/qr.html';
+        // 공식 Cloudflare Workers 배포 주소
+        const DEFAULT_LIVE_URL = 'https://kiosk-map.cje0173.workers.dev/qr.html';
 
-        let targetUrl = GITHUB_PAGES_URL;
+        let targetUrl = DEFAULT_LIVE_URL;
         if (window.location.protocol.startsWith('http') && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-          targetUrl = window.location.href.replace(/index\.html.*/i, 'qr.html');
+          targetUrl = window.location.origin + window.location.pathname.replace(/index\.html.*/i, 'qr.html');
+          if (!targetUrl.endsWith('qr.html')) {
+            targetUrl = targetUrl.replace(/\/$/, '') + '/qr.html';
+          }
         }
 
         const headerQrCodeEl = document.getElementById('headerQrCode');
