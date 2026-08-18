@@ -174,110 +174,70 @@
       display: block;
     }
 
-    /* 플로팅 컨트롤 버튼 */
-    .floating-tools {
-      position: absolute;
-      right: 12px;
-      top: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      z-index: 15;
-    }
-
-    .tool-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      background: rgba(22, 28, 38, 0.9);
-      border: 1px solid #334155;
-      color: #fff;
-      font-size: 16px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-      transition: background 0.15s, transform 0.1s;
-    }
-
-    .tool-btn:active {
-      background: #3b495e;
-      transform: scale(0.92);
-    }
-
-    .tool-btn.active {
-      background: #0088ff;
-      border-color: #00f0ff;
-      box-shadow: 0 0 14px rgba(0, 136, 255, 0.6);
-    }
-
-    /* 상단 내비게이션 안내 배너 */
+    /* ── 상단 초슬림 미니 내비게이션 알림 캡슐 (지도를 가리지 않는 디자인) ── */
     .nav-guide-banner {
       position: absolute;
-      left: 12px;
-      right: 60px;
-      top: 12px;
-      background: rgba(16, 22, 31, 0.92);
-      border: 1px solid #2d3b4e;
-      border-radius: 14px;
-      padding: 8px 12px;
+      left: 50%;
+      top: 10px;
+      transform: translateX(-50%);
+      background: rgba(13, 19, 28, 0.92);
+      border: 1px solid #00f0ff;
+      border-radius: 24px;
+      padding: 6px 14px;
       display: flex;
       align-items: center;
       gap: 8px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-      z-index: 15;
-      transition: all 0.3s ease;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 12px rgba(0, 240, 255, 0.3);
+      z-index: 30;
+      white-space: nowrap;
+      max-width: 92%;
+      animation: bannerPop 0.25s ease-out;
     }
 
-    .nav-guide-banner.highlight {
-      border-color: #00f0ff;
-      box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+    @keyframes bannerPop {
+      0% { transform: translate(-50%, -10px); opacity: 0; }
+      100% { transform: translate(-50%, 0); opacity: 1; }
     }
 
     .nav-icon {
-      font-size: 20px;
+      font-size: 14px;
       flex: none;
     }
 
     .nav-info {
-      flex: 1;
-      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .nav-dest-title {
       font-size: 13px;
       font-weight: 800;
-      color: #fff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      color: #ffffff;
     }
 
     .nav-meta {
-      font-size: 11px;
+      font-size: 12px;
       color: #38bdf8;
-      font-weight: 600;
-      margin-top: 1px;
+      font-weight: 700;
     }
 
     .nav-close-btn {
-      flex: none;
-      width: 24px;
-      height: 24px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
-      background: #252f3e;
+      background: rgba(255, 255, 255, 0.15);
       border: none;
-      color: #94a3b8;
-      font-size: 12px;
+      color: #cbd5e1;
+      font-size: 11px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
+      margin-left: 2px;
     }
+
 
     /* ── 하단 조작 시트 (큼직한 2열 그리드) ── */
     .bottom-sheet {
@@ -321,24 +281,25 @@
       align-items: center;
       justify-content: center;
       gap: 4px;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
+      white-space: nowrap;
     }
 
     .cat-tab.active {
-      background: linear-gradient(135deg, #0088ff, #0055ff);
+      background: #2563eb;
+      border-color: #60a5fa;
       color: #fff;
-      border-color: #38bdf8;
-      box-shadow: 0 2px 10px rgba(0, 136, 255, 0.4);
+      box-shadow: 0 0 12px rgba(37, 99, 235, 0.5);
     }
 
-    /* 목적지 큼직한 2열 그리드 */
+    /* 목적지 2열 그리드 */
     .dest-chips {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
-      max-height: 240px;
       overflow-y: auto;
-      padding: 2px 0 4px;
+      max-height: 30vh;
+      padding-right: 2px;
       scrollbar-width: none;
     }
 
@@ -439,12 +400,9 @@
       stroke-width: 16;
       stroke-linecap: round;
       stroke-linejoin: round;
-      opacity: 0;
-    }
-
-    .route-path.path-red {
-      stroke: var(--accent-red);
       filter: drop-shadow(0 0 14px var(--glow-red));
+      stroke: var(--accent-red);
+      opacity: 0;
     }
 
     .route-path.path-blue {
@@ -476,27 +434,17 @@
       to { stroke-dashoffset: -64; }
     }
 
-    /* 내 위치 마커 */
+    /* 내 위치 마커 (과녁 파동 제거 ➔ 세련된 스마트 블루 닷) */
     .my-pos-group {
       cursor: pointer;
       transition: transform 0.2s ease-out;
     }
 
-    .my-pos-outer {
-      fill: rgba(0, 162, 255, 0.25);
-      animation: my-pulse 2s infinite ease-out;
-    }
-
-    .my-pos-mid {
-      fill: rgba(0, 162, 255, 0.5);
+    .my-pos-halo {
+      fill: rgba(0, 136, 255, 0.25);
     }
 
     .my-pos-core {
-      fill: #ffffff;
-      stroke: #0088ff;
-      stroke-width: 4;
-    }
-
     @keyframes my-pulse {
       0% { r: 18; opacity: 0.9; }
       100% { r: 60; opacity: 0; }
@@ -594,18 +542,10 @@
       <div class="nav-guide-banner" id="navBanner" style="display: none;">
         <div class="nav-icon" id="navIcon">🚩</div>
         <div class="nav-info">
-          <div class="nav-dest-title" id="navTitle">천주호 가는 길</div>
-          <div class="nav-meta" id="navMeta">남은 거리 약 150m · 도보 2분</div>
+          <span class="nav-dest-title" id="navTitle">천주호 전망대</span>
+          <span class="nav-meta" id="navMeta">· 150m (도보 2분)</span>
         </div>
         <button class="nav-close-btn" id="closeNavBtn">✕</button>
-      </div>
-
-      <!-- 플로팅 컨트롤러 -->
-      <div class="floating-tools">
-        <button class="tool-btn active" id="myLocationBtn" title="내 위치로 이동">🎯</button>
-        <button class="tool-btn" id="zoomInBtn" title="확대">➕</button>
-        <button class="tool-btn" id="zoomOutBtn" title="축소">➖</button>
-        <button class="tool-btn" id="zoomResetBtn" title="전체보기">⟲</button>
       </div>
 
       <!-- SVG 지도 본체 -->
@@ -629,11 +569,10 @@
         <!-- 목적지 마커 레이어 -->
         <g id="destPins"></g>
 
-        <!-- 내 위치 마커 -->
-        <g id="myPosPin" class="my-pos-group" transform="translate(2440, 1711)">
-          <circle class="my-pos-outer" r="45"></circle>
-          <circle class="my-pos-mid" r="22"></circle>
-          <circle class="my-pos-core" r="12"></circle>
+        <!-- 내 위치 마커 (스마트 블루 닷) -->
+        <g id="myPosPin" class="my-pos-group" transform="translate(189, 296)">
+          <circle class="my-pos-halo" r="22"></circle>
+          <circle class="my-pos-core" r="10"></circle>
         </g>
       </svg>
     </main>
@@ -700,7 +639,7 @@
       }
 
       // ── 2D 아핀 직교 정사영 변환 공식 (실측 2개 기준점) ──
-      const lat_astro = 37.92490, lng_astro = 127.24270;
+      const lat_astro = 37.9250, lng_astro = 127.2435; // 폰 실측 천문과학관 정밀 좌표
       const x_astro = 189, y_astro = 296;
       const lat_ticket = 37.92320, lng_ticket = 127.23710;
       const x_ticket = 2440, y_ticket = 1711;
@@ -731,13 +670,13 @@
         }, { once: true });
       }, { once: true });
 
-      // ── 구글 지도 실측 GPS (천문과학관: 37.9249, 127.2427 / 매표소: 37.9232, 127.2371) ──
+      // ── 구글 지도 & 폰 실측 GPS 매핑 ──
       const POI_MASTER = {
-        astro:       { name: '천문과학관',           svg: [189, 296],   lat: 37.92490, lng: 127.24270 },
+        astro:       { name: '천문과학관',           svg: [189, 296],   lat: 37.9250,  lng: 127.2435 },
         sanmaru:     { name: '산마루공연장',         svg: [316, 519],   lat: 37.92468, lng: 127.24285 },
         monoUpper:   { name: '모노레일 상부하차장',   svg: [661, 649],   lat: 37.92455, lng: 127.24220 },
         monoDown:    { name: '모노레일 상행중간',     svg: [1075, 803],  lat: 37.92420, lng: 127.24120 },
-        lake:        { name: '천주호 전망데크',       svg: [1575, 520],  lat: 37.92440, lng: 127.24050 },
+        lake:        { name: '천주호 전망대',         svg: [1247, 663],  lat: 37.92440, lng: 127.24050 },
         skyGarden:   { name: '하늘정원',             svg: [2102, 514],  lat: 37.92415, lng: 127.23980 },
         lakeStage:   { name: '호수공연장',           svg: [2366, 429],  lat: 37.92425, lng: 127.23920 },
         cafe:        { name: '전망카페',             svg: [2599, 703],  lat: 37.92395, lng: 127.23880 },
@@ -964,13 +903,11 @@
         const meters = Math.max(20, Math.round(mainLen * 0.22));
         const minutes = Math.max(1, Math.ceil(meters / 70));
 
-        // 상단 배너 안내문
+        // 상단 초슬림 미니 캡슐 안내문
         navBanner.style.display = 'flex';
         navIcon.textContent = destObj.icon;
-        navTitle.textContent = `${finalLabel} 가는 길`;
-        navMeta.textContent = (destObj.id === 'lake' || destObj.id === 'cafe')
-          ? `코스 1 & 코스 2 (약 ${meters}m · 도보 ${minutes}분)`
-          : `남은 거리 약 ${meters}m · 도보 약 ${minutes}분`;
+        navTitle.textContent = `${finalLabel}`;
+        navMeta.textContent = `· 약 ${meters}m (도보 ${minutes}분)`;
 
         // SVG 경로 렌더링 & 애니메이션
         routeSegments.forEach((seg, idx) => {
@@ -1077,18 +1014,21 @@
         animateViewBox({ ...FULL_VB }, 400);
       }
 
-      // ── 터치 제스처 (드래그 & 핀치 줌) ──
+      // ── 스마트폰 터치 제스처 엔진 (핀치 줌 / 더블 탭 / 부드러운 패닝) ──
       let isPanning = false, hasDragged = false;
       let panStartX = 0, panStartY = 0, panStartVB_X = 0, panStartVB_Y = 0;
+      let initialPinchDist = null, initialPinchVB = null;
+      let lastTouchEndTime = 0;
 
-      mapZone.addEventListener('pointerdown', (e) => {
-        if (e.target.closest('.floating-tools') || e.target.closest('.nav-guide-banner')) return;
+      // 1) 마우스 드래그 (PC 테스트 호환)
+      mapZone.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.nav-guide-banner')) return;
         isPanning = true; hasDragged = false;
         panStartX = e.clientX; panStartY = e.clientY;
         panStartVB_X = currentVB.x; panStartVB_Y = currentVB.y;
       });
 
-      window.addEventListener('pointermove', (e) => {
+      window.addEventListener('mousemove', (e) => {
         if (!isPanning) return;
         const dist = Math.hypot(e.clientX - panStartX, e.clientY - panStartY);
         if (dist > 4) { hasDragged = true; mapZone.classList.add('panning'); }
@@ -1105,8 +1045,102 @@
         }
       });
 
-      window.addEventListener('pointerup', () => { isPanning = false; mapZone.classList.remove('panning'); });
-      window.addEventListener('pointercancel', () => { isPanning = false; mapZone.classList.remove('panning'); });
+      window.addEventListener('mouseup', () => { isPanning = false; mapZone.classList.remove('panning'); });
+
+      // PC 마우스 휠 줌
+      mapZone.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const factor = e.deltaY > 0 ? 1.15 : 0.85;
+        let newW = currentVB.w * factor, newH = currentVB.h * factor;
+        if (newW < 500) return;
+        if (newW > 3337) { zoomToFull(); return; }
+        const rect = mapZone.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) / rect.width;
+        const my = (e.clientY - rect.top) / rect.height;
+        let nx = (currentVB.x + mx * currentVB.w) - mx * newW;
+        let ny = (currentVB.y + my * currentVB.h) - my * newH;
+        if (nx < 0) nx = 0; if (ny < 0) ny = 0;
+        if (nx + newW > 3337) nx = 3337 - newW;
+        if (ny + newH > 2101) ny = 2101 - newH;
+        currentVB = { x: nx, y: ny, w: newW, h: newH };
+        svg.setAttribute('viewBox', `${nx} ${ny} ${newW} ${newH}`);
+      }, { passive: false });
+
+      // 2) 스마트폰 터치 (1손가락 이동, 2손가락 핀치 줌, 더블 탭 확대)
+      mapZone.addEventListener('touchstart', (e) => {
+        if (e.target.closest('.nav-guide-banner')) return;
+        if (e.touches.length === 1) {
+          isPanning = true; hasDragged = false;
+          panStartX = e.touches[0].clientX; panStartY = e.touches[0].clientY;
+          panStartVB_X = currentVB.x; panStartVB_Y = currentVB.y;
+        } else if (e.touches.length === 2) {
+          isPanning = false;
+          const t1 = e.touches[0], t2 = e.touches[1];
+          initialPinchDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+          initialPinchVB = { ...currentVB };
+        }
+      }, { passive: false });
+
+      mapZone.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 1 && isPanning) {
+          e.preventDefault();
+          const dist = Math.hypot(e.touches[0].clientX - panStartX, e.touches[0].clientY - panStartY);
+          if (dist > 4) { hasDragged = true; mapZone.classList.add('panning'); }
+          const scaleX = currentVB.w / mapZone.clientWidth;
+          const scaleY = currentVB.h / mapZone.clientHeight;
+          let nx = panStartVB_X - (e.touches[0].clientX - panStartX) * scaleX;
+          let ny = panStartVB_Y - (e.touches[0].clientY - panStartY) * scaleY;
+          if (nx < 0) nx = 0; if (ny < 0) ny = 0;
+          if (nx + currentVB.w > 3337) nx = 3337 - currentVB.w;
+          if (ny + currentVB.h > 2101) ny = 2101 - currentVB.h;
+          currentVB.x = nx; currentVB.y = ny;
+          svg.setAttribute('viewBox', `${nx} ${ny} ${currentVB.w} ${currentVB.h}`);
+        } else if (e.touches.length === 2 && initialPinchDist && initialPinchVB) {
+          e.preventDefault();
+          const t1 = e.touches[0], t2 = e.touches[1];
+          const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+          const factor = initialPinchDist / Math.max(10, currentDist);
+          let newW = initialPinchVB.w * factor;
+          let newH = initialPinchVB.h * factor;
+          if (newW < 500) { newW = 500; newH = 500 * (2101 / 3337); }
+          if (newW > 3337) { newW = 3337; newH = 2101; }
+
+          const rect = mapZone.getBoundingClientRect();
+          const midX = (t1.clientX + t2.clientX) / 2 - rect.left;
+          const midY = (t1.clientY + t2.clientY) / 2 - rect.top;
+          const svgMidX = initialPinchVB.x + (midX / rect.width) * initialPinchVB.w;
+          const svgMidY = initialPinchVB.y + (midY / rect.height) * initialPinchVB.h;
+
+          let nx = svgMidX - (midX / rect.width) * newW;
+          let ny = svgMidY - (midY / rect.height) * newH;
+          if (nx < 0) nx = 0; if (ny < 0) ny = 0;
+          if (nx + newW > 3337) nx = 3337 - newW;
+          if (ny + newH > 2101) ny = 2101 - newH;
+
+          currentVB = { x: nx, y: ny, w: newW, h: newH };
+          svg.setAttribute('viewBox', `${nx} ${ny} ${newW} ${newH}`);
+        }
+      }, { passive: false });
+
+      mapZone.addEventListener('touchend', (e) => {
+        if (e.touches.length === 0) {
+          isPanning = false;
+          initialPinchDist = null;
+          mapZone.classList.remove('panning');
+
+          // 스마트폰 더블 탭 줌 토글 (톡톡 터치 시 줌인/줌아웃)
+          const now = performance.now();
+          if (now - lastTouchEndTime < 300 && !hasDragged) {
+            if (currentVB.w < 2200) zoomToFull();
+            else zoomToMyPos();
+          }
+          lastTouchEndTime = now;
+        } else if (e.touches.length === 1) {
+          isPanning = true;
+          panStartX = e.touches[0].clientX; panStartY = e.touches[0].clientY;
+          panStartVB_X = currentVB.x; panStartVB_Y = currentVB.y;
+        }
+      });
 
       // ── 하단 목적지 큼직한 2열 그리드 렌더링 ──
       function renderChips(cat = 'all') {
@@ -1134,23 +1168,7 @@
         });
       });
 
-      // 플로팅 & 하단 버튼 이벤트
-      document.getElementById('myLocationBtn').addEventListener('click', zoomToMyPos);
-      document.getElementById('zoomInBtn').addEventListener('click', () => {
-        const factor = 0.65;
-        let newW = currentVB.w * factor, newH = currentVB.h * factor;
-        if (newW < 750) return;
-        let newX = currentVB.x + (currentVB.w - newW) / 2, newY = currentVB.y + (currentVB.h - newH) / 2;
-        animateViewBox({ x: newX, y: newY, w: newW, h: newH }, 220);
-      });
-      document.getElementById('zoomOutBtn').addEventListener('click', () => {
-        const factor = 1.5;
-        let newW = currentVB.w * factor, newH = currentVB.h * factor;
-        if (newW > 3337) { zoomToFull(); return; }
-        let newX = currentVB.x + (currentVB.w - newW) / 2, newY = currentVB.y + (currentVB.h - newH) / 2;
-        animateViewBox({ x: newX, y: newY, w: newW, h: newH }, 220);
-      });
-      document.getElementById('zoomResetBtn').addEventListener('click', zoomToFull);
+      // 안내 닫기 버튼 이벤트
       document.getElementById('closeNavBtn').addEventListener('click', clearNavigation);
       document.getElementById('bottomStopBtn')?.addEventListener('click', clearNavigation);
 
