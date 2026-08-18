@@ -36,6 +36,7 @@
 ├── qr.html                      # 모바일 QR 스캔 실시간 GPS 가이드
 ├── editor.html                  # 마스터 도로망 스튜디오 & 경로 테스터
 ├── master_roads_unified.json    # 84% 압축 최적화된 통합 도로망 그래프 데이터
+├── qrcode.min.js                # 오프라인 단독 구동 QR 코드 생성 엔진
 ├── 아트밸리_전경도_안내_v2.webp    # 초경량 고화질 지도 원본
 ├── 아트밸리_전경도_안내_v2.jpg     # 호환성 Fallback 지도
 ├── 천문과학관_로고.png            # 로고 이미지
