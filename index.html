@@ -85,35 +85,31 @@
     /* ① 상단 제목 영역 */
     .header-zone {
       flex: none;
-      padding: 10px 16px;
+      padding: 10px 20px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
       position: relative;
       background: linear-gradient(180deg, #141a24, #0f131a);
       border-bottom: 1px solid #1f2735;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-      gap: 10px;
-    }
-
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex: 1;
-      min-width: 0;
+      min-height: 76px;
     }
 
     .header-logo {
-      height: 18px;
-      max-width: 55px;
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 20px;
+      max-width: 60px;
       object-fit: contain;
       opacity: 0.85;
       filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
     }
 
     .main-title {
-      font-size: 20px;
+      font-size: 26px;
       font-weight: 900;
       letter-spacing: -0.03em;
       margin: 0;
@@ -121,8 +117,8 @@
       background: linear-gradient(180deg, #ffffff 30%, #b3d7ff 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 2px 10px rgba(0, 136, 255, 0.4));
-      white-space: nowrap;
+      filter: drop-shadow(0 2px 12px rgba(0, 136, 255, 0.4));
+      text-align: center;
     }
 
     .main-title .point-text {
@@ -132,189 +128,30 @@
       -webkit-text-fill-color: transparent;
     }
 
-    /* ── 우측 대형 QR 코드 배너 카드 ── */
+    /* ── 우측 이따시만한 QR 코드 ── */
     .header-qr-box {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: linear-gradient(135deg, rgba(0, 230, 118, 0.12), rgba(0, 136, 255, 0.15));
-      border: 1px solid rgba(0, 230, 118, 0.4);
-      border-radius: 12px;
-      padding: 5px 8px;
-      cursor: pointer;
-      box-shadow: 0 0 14px rgba(0, 230, 118, 0.25);
-      transition: all 0.2s ease;
-      text-decoration: none;
-    }
-
-    .header-qr-box:hover {
-      background: linear-gradient(135deg, rgba(0, 230, 118, 0.22), rgba(0, 136, 255, 0.25));
-      border-color: #00e676;
-      box-shadow: 0 0 20px rgba(0, 230, 118, 0.45);
-      transform: translateY(-1px);
-    }
-
-    .header-qr-box:active {
-      transform: scale(0.97);
-    }
-
-    .qr-canvas-wrap {
-      width: 52px;
-      height: 52px;
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 62px;
+      height: 62px;
       background: #ffffff;
-      border-radius: 6px;
+      border-radius: 8px;
       padding: 3px;
+      box-shadow: 0 0 16px rgba(0, 230, 118, 0.5), 0 4px 12px rgba(0, 0, 0, 0.5);
+      border: 2px solid #00e676;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
     }
 
-    .qr-canvas-wrap img,
-    .qr-canvas-wrap canvas {
+    .header-qr-box img,
+    .header-qr-box canvas {
       width: 100% !important;
       height: 100% !important;
       display: block;
-    }
-
-    .header-qr-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .qr-badge {
-      font-size: 11px;
-      font-weight: 800;
-      color: #00e676;
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      white-space: nowrap;
-      letter-spacing: -0.02em;
-    }
-
-    .qr-sub {
-      font-size: 10px;
-      font-weight: 700;
-      color: #94a3b8;
-      white-space: nowrap;
-    }
-
-    /* ── 초대형 QR 팝업 모달 ── */
-    .qr-modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(10px);
-      z-index: 99999;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .qr-modal-overlay.show {
-      display: flex;
-    }
-
-    .qr-modal-card {
-      background: #111722;
-      border: 1px solid #28374d;
-      border-radius: 24px;
-      padding: 28px 24px;
-      max-width: 400px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      position: relative;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 230, 118, 0.2);
-      animation: modalPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    @keyframes modalPop {
-      0% { transform: scale(0.85); opacity: 0; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-
-    .qr-modal-close {
-      position: absolute;
-      top: 16px;
-      right: 18px;
-      background: #1e293b;
-      border: none;
-      color: #94a3b8;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s;
-    }
-
-    .qr-modal-close:hover {
-      background: #334155;
-      color: #fff;
-    }
-
-    .qr-modal-title {
-      font-size: 19px;
-      font-weight: 900;
-      color: #ffffff;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .qr-modal-desc {
-      font-size: 13px;
-      color: #94a3b8;
-      line-height: 1.5;
-      margin-bottom: 20px;
-    }
-
-    .qr-modal-desc b {
-      color: #00e676;
-    }
-
-    .qr-modal-code-wrap {
-      width: 220px;
-      height: 220px;
-      background: #ffffff;
-      border-radius: 16px;
-      padding: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-      margin-bottom: 18px;
-    }
-
-    .qr-modal-code-wrap img,
-    .qr-modal-code-wrap canvas {
-      width: 100% !important;
-      height: 100% !important;
-    }
-
-    .qr-modal-url {
-      font-size: 12px;
-      color: #38bdf8;
-      font-family: ui-monospace, monospace;
-      background: #090d14;
-      border: 1px solid #1e2a3a;
-      padding: 8px 14px;
-      border-radius: 10px;
-      word-break: break-all;
-      width: 100%;
     }
 
     /* ── 지도 영역 (3337 x 2101 고화질 비율) ── */
@@ -1022,31 +859,9 @@
 
     <!-- ① 상단 헤더 -->
     <div class="header-zone">
-      <div class="header-left">
-        <img src="천문과학관_로고.png" alt="포천아트밸리 천문과학관" class="header-logo">
-        <div class="main-title">포천아트밸리 <span class="point-text">길찾기 안내</span></div>
-      </div>
-      <div class="header-qr-box" id="headerQrBtn" title="스마트폰으로 실시간 길찾기 보기">
-        <div class="qr-canvas-wrap" id="headerQrCode"></div>
-        <div class="header-qr-info">
-          <div class="qr-badge">📱 모바일 GPS</div>
-          <div class="qr-sub">QR 스캔 ➔</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 초대형 QR 팝업 모달 -->
-    <div class="qr-modal-overlay" id="qrModalOverlay">
-      <div class="qr-modal-card">
-        <button class="qr-modal-close" id="qrModalCloseBtn" title="닫기">✕</button>
-        <div class="qr-modal-title">📱 스마트폰 실시간 GPS 길안내</div>
-        <div class="qr-modal-desc">
-          스마트폰 기본 카메라로 아래 <b>QR 코드</b>를 비춰보세요!<br>
-          내 위치를 확인하며 실시간으로 목적지까지 안내해 드립니다.
-        </div>
-        <div class="qr-modal-code-wrap" id="modalQrCode"></div>
-        <div class="qr-modal-url" id="modalQrUrl"></div>
-      </div>
+      <img src="천문과학관_로고.png" alt="포천아트밸리 천문과학관" class="header-logo">
+      <div class="main-title">아트밸리 <span class="point-text">길찾기</span></div>
+      <div class="header-qr-box" id="headerQrCode" title="스마트폰으로 길안내 보기"></div>
     </div>
 
     <!-- ② 고화질 지도 영역 (3337 x 2101) -->
@@ -1805,7 +1620,7 @@
         if (editMode) document.getElementById('modeToggle').click();
       });
 
-      // ── 스마트폰 QR 코드 동적 렌더링 & 모달 제어 ──
+      // ── 스마트폰 QR 코드 동적 렌더링 ──
       function initQrCode() {
         let targetUrl = window.location.href.replace(/index\.html.*/i, 'qr.html');
         if (window.location.protocol === 'file:') {
@@ -1813,58 +1628,15 @@
         }
 
         const headerQrCodeEl = document.getElementById('headerQrCode');
-        const modalQrCodeEl = document.getElementById('modalQrCode');
-        const modalQrUrlEl = document.getElementById('modalQrUrl');
-        const qrModalOverlay = document.getElementById('qrModalOverlay');
-        const headerQrBtn = document.getElementById('headerQrBtn');
-        const qrModalCloseBtn = document.getElementById('qrModalCloseBtn');
-
-        if (modalQrUrlEl) modalQrUrlEl.textContent = targetUrl;
-
-        // 1. 상단 미니 QR 생성
         if (typeof QRCode !== 'undefined' && headerQrCodeEl) {
           headerQrCodeEl.innerHTML = '';
           new QRCode(headerQrCodeEl, {
             text: targetUrl,
-            width: 52,
-            height: 52,
+            width: 56,
+            height: 56,
             colorDark: '#000000',
             colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.M
-          });
-        }
-
-        // 2. 모달 대형 QR 생성
-        if (typeof QRCode !== 'undefined' && modalQrCodeEl) {
-          modalQrCodeEl.innerHTML = '';
-          new QRCode(modalQrCodeEl, {
-            text: targetUrl,
-            width: 220,
-            height: 220,
-            colorDark: '#000000',
-            colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.H
-          });
-        }
-
-        // 3. 모달 열기/닫기 이벤트
-        if (headerQrBtn && qrModalOverlay) {
-          headerQrBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            qrModalOverlay.classList.add('show');
-          });
-        }
-
-        if (qrModalCloseBtn && qrModalOverlay) {
-          qrModalCloseBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            qrModalOverlay.classList.remove('show');
-          });
-        }
-
-        if (qrModalOverlay) {
-          qrModalOverlay.addEventListener('click', (e) => {
-            if (e.target === qrModalOverlay) qrModalOverlay.classList.remove('show');
           });
         }
       }
