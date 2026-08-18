@@ -1622,15 +1622,16 @@
 
       // ── 스마트폰 QR 코드 동적 렌더링 ──
       function initQrCode() {
-        // 공식 Cloudflare Workers 배포 주소
-        const DEFAULT_LIVE_URL = 'https://kiosk-map.cje0173.workers.dev/qr.html';
+        let targetUrl = '';
 
-        let targetUrl = DEFAULT_LIVE_URL;
         if (window.location.protocol.startsWith('http') && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-          targetUrl = window.location.origin + window.location.pathname.replace(/index\.html.*/i, 'qr.html');
-          if (!targetUrl.endsWith('qr.html')) {
-            targetUrl = targetUrl.replace(/\/$/, '') + '/qr.html';
-          }
+          // 현재 라이브 웹 호스트(Cloudflare, GitHub Pages 등) 기준 qr.html 주소 자동 조합
+          const path = window.location.pathname;
+          const basePath = path.substring(0, path.lastIndexOf('/') + 1);
+          targetUrl = window.location.origin + basePath + 'qr.html';
+        } else {
+          // 로컬 테스트 / 파일 환경에서는 공식 Cloudflare Workers 주소 기본 적용
+          targetUrl = 'https://kiosk-map.cje0173.workers.dev/qr.html';
         }
 
         const headerQrCodeEl = document.getElementById('headerQrCode');
