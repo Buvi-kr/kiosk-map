@@ -116,27 +116,50 @@
       color: #fff;
     }
 
-    .app-title span {
-      color: #ffd400;
-    }
-
     .gps-badge {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 12px;
-      font-weight: 700;
+      font-size: 11px;
+      padding: 4px 9px;
+      border-radius: 14px;
+      font-weight: 800;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
       background: rgba(0, 230, 118, 0.15);
       border: 1px solid rgba(0, 230, 118, 0.4);
       color: #00e676;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
     }
 
-    .gps-badge.simulated {
-      background: rgba(255, 170, 0, 0.15);
-      border-color: rgba(255, 170, 0, 0.4);
-      color: #ffaa00;
+    .gps-badge:active {
+      transform: scale(0.94);
+    }
+
+    .gps-badge.error {
+      background: rgba(255, 59, 48, 0.2);
+      border-color: rgba(255, 59, 48, 0.6);
+      color: #ff6b6b;
+      animation: badgePulse 1.5s infinite;
+    }
+
+    @keyframes badgePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+
+    .gps-badge.active {
+      background: rgba(0, 136, 255, 0.2);
+      border-color: rgba(0, 136, 255, 0.6);
+      color: #38bdf8;
+    }
+
+    .gps-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 6px currentColor;
     }
 
     .gps-badge .dot {
@@ -1171,35 +1194,93 @@
       document.getElementById('closeNavBtn').addEventListener('click', clearNavigation);
       document.getElementById('bottomStopBtn')?.addEventListener('click', clearNavigation);
 
-      // ── 실시간 GPS 수신 추적 (100% 실측 좌표 기반) ──
+      // ── 실시간 GPS 수신 추적 & 2초 주기 갱신 시스템 ──
+      let watchId = null;
+      let gpsIntervalTimer = null;
+
+      function handleGpsSuccess(pos, isManual = false) {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const accuracy = Math.round(pos.coords.accuracy || 0);
+
+        gpsBadge.classList.remove('error');
+        gpsBadge.classList.add('active');
+        gpsStatusText.textContent = `GPS 정상 (±${accuracy}m)`;
+
+        // 실제 GPS를 그림 지도 픽셀로 변환
+        currentPos = gpsToSvg(lat, lng);
+        updateMyPosPin();
+
+        if (isManual) {
+          showToast(`📍 내 위치 갱신 완료 (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+          zoomToMyPos();
+        }
+
+        // 안내 중인 경로가 있다면 실시간 동적 갱신
+        if (activeDestObj) renderDynamicRoute(activeDestObj);
+      }
+
+      function handleGpsError(err, isManual = false) {
+        gpsBadge.classList.remove('active');
+        gpsBadge.classList.add('error');
+        gpsStatusText.textContent = 'GPS 권한 필요 탭!';
+
+        if (isManual) {
+          if (err && err.code === 1) { // PERMISSION_DENIED
+            showToast('⚠️ 브라우저 주소창 좌측 🔒(설정)을 눌러 위치 권한을 허용해주세요.');
+          } else if (err && err.code === 2) { // POSITION_UNAVAILABLE
+            showToast('📡 GPS 신호를 수신 중입니다. 잠시 후 다시 탭해주세요.');
+          } else {
+            showToast('⚠️ 위치를 확인할 수 없습니다. 다시 탭해주세요.');
+          }
+        }
+      }
+
+      function requestGpsPermission(isManual = false) {
+        if (!navigator.geolocation) {
+          gpsStatusText.textContent = 'GPS 미지원';
+          if (isManual) showToast('이 기기는 GPS를 지원하지 않습니다.');
+          return;
+        }
+
+        if (isManual) showToast('📡 GPS 위치를 확인하는 중...');
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => handleGpsSuccess(pos, isManual),
+          (err) => handleGpsError(err, isManual),
+          { enableHighAccuracy: true, maximumAge: 1000, timeout: 6000 }
+        );
+      }
+
       function initGeolocation() {
         if (!navigator.geolocation) {
           gpsStatusText.textContent = 'GPS 미지원 기기';
           return;
         }
 
-        navigator.geolocation.watchPosition(
-          (pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-
-            // 우측 상단 배지에 실시간 위도/경도 표출
-            gpsStatusText.textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-            gpsBadge.classList.add('active');
-
-            // 실제 GPS를 그림 지도 픽셀로 변환
-            currentPos = gpsToSvg(lat, lng);
-            updateMyPosPin();
-
-            // 안내 중인 경로가 있다면 실시간 동적 갱신
-            if (activeDestObj) renderDynamicRoute(activeDestObj);
-          },
-          (err) => {
-            gpsStatusText.textContent = 'GPS 권한 필요';
-          },
-          { enableHighAccuracy: true, maximumAge: 2000, timeout: 6000 }
+        // 1) 이벤트 기반 실시간 연속 추적 (1초 캐시)
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        watchId = navigator.geolocation.watchPosition(
+          (pos) => handleGpsSuccess(pos, false),
+          (err) => handleGpsError(err, false),
+          { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
         );
+
+        // 2) 2초 주기 하트비트 보조 폴링 (센서 누락 방지)
+        if (gpsIntervalTimer) clearInterval(gpsIntervalTimer);
+        gpsIntervalTimer = setInterval(() => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => handleGpsSuccess(pos, false),
+            null,
+            { enableHighAccuracy: true, maximumAge: 1500, timeout: 3000 }
+          );
+        }, 2000);
       }
+
+      // 우측 상단 GPS 뱃지 터치/클릭 시 권한 재요청 & 내 위치 갱신
+      gpsBadge.addEventListener('click', () => {
+        requestGpsPermission(true);
+      });
 
       // ── URL 파라미터 체크 (?dest=lake or ?start=astro 등) ──
       function checkUrlParams() {
