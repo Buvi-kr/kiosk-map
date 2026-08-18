@@ -6,6 +6,7 @@
   <meta name="viewport"
     content="width=device-width, height=device-height, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>포천아트밸리 키오스크 경로안내 시스템</title>
+  <script src="qrcode.min.js"></script>
   <style>
     :root {
       --accent-red: #ff3b30;
@@ -84,7 +85,7 @@
     /* ① 상단 제목 영역 */
     .header-zone {
       flex: none;
-      padding: 16px 20px;
+      padding: 10px 20px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -92,17 +93,19 @@
       background: linear-gradient(180deg, #141a24, #0f131a);
       border-bottom: 1px solid #1f2735;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      min-height: 76px;
     }
 
     .header-logo {
       position: absolute;
-      left: 12px;
-      top: 12px;
-      height: 22px;
-      max-width: 75px;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 24px;
+      max-width: 60px;
       object-fit: contain;
-      opacity: 0.88;
-      filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.5));
+      opacity: 0.85;
+      filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
     }
 
     .main-title {
@@ -123,6 +126,32 @@
       background: linear-gradient(180deg, #fff380 20%, #ffb800 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+    }
+
+    /* ── 우측 대형 QR 코드 박스 ── */
+    .header-qr-box {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 62px;
+      height: 62px;
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 3px;
+      box-shadow: 0 0 16px rgba(0, 230, 118, 0.5), 0 4px 12px rgba(0, 0, 0, 0.5);
+      border: 2px solid #00e676;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .header-qr-box img,
+    .header-qr-box canvas {
+      width: 56px !important;
+      height: 56px !important;
+      display: block;
     }
 
     /* ── 지도 영역 (3337 x 2101 고화질 비율) ── */
@@ -820,44 +849,7 @@
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
-  
-    /* ── 우측 대형 QR 코드 박스 ── */
-    .header-qr-box {
-      position: absolute;
-      right: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 62px;
-      height: 62px;
-      background: #ffffff;
-      border-radius: 8px;
-      padding: 3px;
-      box-shadow: 0 0 16px rgba(0, 230, 118, 0.5), 0 4px 12px rgba(0, 0, 0, 0.5);
-      border: 2px solid #00e676;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-    .header-qr-box img,
-    .header-qr-box canvas {
-      width: 56px !important;
-      height: 56px !important;
-      display: block;
-    }
-    .header-logo {
-      position: absolute;
-      left: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      height: 24px;
-      max-width: 60px;
-      object-fit: contain;
-      opacity: 0.85;
-    }
-
   </style>
-  <script src="qrcode.min.js"></script>
 </head>
 
 <body>
@@ -866,14 +858,737 @@
     <div id="secretZone"></div>
 
     <!-- ① 상단 헤더 -->
-        <!-- ① 상단 제목 영역 -->
     <div class="header-zone">
-      <img src="logo.png" onerror="this.src='천문과학관_로고.png'; this.onerror=function(){this.style.display='none';};" alt="로고" class="header-logo" />
+      <img src="logo.png" onerror="this.src='천문과학관_로고.png'; this.onerror=function(){this.style.display='none';};" alt="로고" class="header-logo">
       <h1 class="main-title"><span class="point-text">아트밸리</span> 길찾기</h1>
       <div class="header-qr-box" id="headerQrBox" title="스마트폰으로 스캔하여 실시간 모바일 가이드 열기">
         <div id="headerQrCode"></div>
       </div>
-      <div id="secretZone" style="position: absolute; right: 0; top: 0; width: 40px; height: 40px; z-index: 999;"></div>
     </div>
 
-    >
+    <!-- ② 고화질 지도 영역 (3337 x 2101) -->
+    <div class="map-zone" id="mapZone">
+      <!-- 플로팅 정량 줌 컨트롤러 -->
+      <div class="map-zoom-controls">
+        <button class="map-zoom-btn" id="zoomInBtn" title="확대">➕</button>
+        <button class="map-zoom-btn" id="zoomOutBtn" title="축소">➖</button>
+        <button class="map-zoom-btn" id="zoomResetBtn" title="전체보기">⟲</button>
+      </div>
+
+      <svg id="mapSvg" viewBox="0 0 3337 2101" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <clipPath id="mapClip">
+            <rect x="0" y="0" width="3337" height="2101" />
+          </clipPath>
+        </defs>
+        <image id="baseImg" href="아트밸리_전경도_안내_v2_mobile.webp" x="0" y="0" width="3337" height="2101" clip-path="url(#mapClip)"
+          preserveAspectRatio="xMidYMid meet" draggable="false" />
+
+        <g id="routesLayer"></g>
+        <g id="overlayLayer"></g>
+        <g id="arrowsLayer"></g>
+
+        <!-- 목적지 영역 -->
+        <g id="destPins"></g>
+
+        <!-- 에디터 가이드 영역 -->
+        <g id="editDots"></g>
+
+        <!-- 현위치 핀 (초대형 고가시성 디자인) -->
+        <g class="pin pin-start" id="startPin">
+          <circle class="pulse-outer" r="32" />
+          <circle class="pulse" r="30" />
+          <circle class="outer" r="28" />
+          <circle class="center" r="10" />
+          <text class="pin-label shadow" x="0" y="-42" text-anchor="middle">📍 현위치</text>
+          <text class="pin-label" x="0" y="-42" text-anchor="middle">📍 현위치</text>
+        </g>
+      </svg>
+    </div>
+
+    <!-- ③ 방문객 주 조작 영역 -->
+    <div class="control-zone">
+      <div class="hint" id="hintText">원하시는 목적지 버튼을 눌러주세요.</div>
+
+      <!-- 경로 범례 (복수 경로 및 숲길일 때 자동 노출) -->
+      <div class="route-legend" id="routeLegend">
+        <div class="legend-item" id="legendRed"><span class="legend-dot red"></span><span id="legendRedText">보행로
+            코스</span></div>
+        <div class="legend-item" id="legendBlue"><span class="legend-dot blue"></span><span id="legendBlueText">계단/모노레일
+            코스</span></div>
+        <div class="legend-item" id="legendGreen" style="display:none;"><span class="legend-dot green"></span><span
+            id="legendGreenText">🌲 힐링 숲길 산책로</span></div>
+      </div>
+
+      <div class="btn-grid" id="mainGrid">
+        <button class="dest-btn" data-route="lake"><span class="ico">🏞️</span>천주호 가는 길</button>
+        <button class="dest-btn" data-route="cafe"><span class="ico">☕</span>전망카페 가는 길</button>
+        <button class="dest-btn" data-route="mono"><span class="ico">🚡</span>모노레일 탑승장</button>
+        <button class="dest-btn" data-route="forest"><span class="ico">🌲</span>힐링숲 산책로</button>
+      </div>
+
+      <div class="reset-row" id="previewReset"><button id="stopBtn">⟲ 처음으로 / 전체 지도 보기</button></div>
+
+      <div class="edit-toolbar" id="editToolbar">
+        <button id="addPathBtn">+ 경로 추가</button>
+        <button id="setForestStartBtn" title="마지막으로 찍은 점을 숲길 시작점으로 지정">🌲 숲길 시작점 지정</button>
+        <button id="undoPoint">↩ 취소</button>
+        <button id="clearRoute">🗑 경로 초기화</button>
+        <button id="exportJson">⇩ 데이터 내보내기</button>
+      </div>
+
+      <div class="export-box" id="exportBox">
+        <textarea id="exportArea" readonly></textarea>
+        <div class="export-action-row">
+          <button id="copyJsonBtn">📋 JSON 복사</button>
+          <button id="downloadJsonBtn">💾 파일 저장 (.json)</button>
+          <button id="closeExportBtn">닫기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 토스트 알림 메시지 -->
+    <div class="toast-msg" id="toastMsg"></div>
+
+    <!-- ④ 관리자 바 -->
+    <div class="admin-bar">
+      <div class="admin-bar-group">
+        <div class="title">포천아트밸리 <b>길찾기 안내</b> · 관리자</div>
+        <span class="status" id="zoomBadge">🔍 확대 중</span>
+        <button class="mode-toggle" id="modeToggle">🖊 경로 제작 모드</button>
+      </div>
+
+      <div class="admin-bar-group" id="startBar">
+        <div class="start-bar-label">시작 위치</div>
+        <button class="start-btn" data-start="ticket"><span class="ico">🎫</span>매표소</button>
+        <button class="start-btn" data-start="astro"><span class="ico">🔭</span>천문과학관</button>
+        <button class="start-btn" data-start="info"><span class="ico">ℹ️</span>관광정보센터</button>
+        <button class="close-admin" id="closeAdminBtn">✖ 닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const FULL_VB = { x: 0, y: 0, w: 3337, h: 2101 };
+      const ANCHORS = {
+        astro: [189, 296], sanmaru: [316, 519], monoUpper: [661, 649], monoDown: [1075, 803], lake: [1575, 520],
+        skyGarden: [2102, 514], lakeStage: [2366, 429], cafe: [2599, 703], sculpture: [2057, 937], forest: [2499, 1034],
+        gate: [2114, 1488], monoLower: [2326, 1535], ticket: [2440, 1711], artMuseum: [2840, 1740], info: [3171, 1493]
+      };
+
+      const START_PRESETS = {
+        ticket: { label: '매표소', pos: ANCHORS.ticket },
+        astro: { label: '천문과학관', pos: ANCHORS.astro },
+        info: { label: '관광정보센터', pos: ANCHORS.info }
+      };
+
+      const DEST_PRESETS = {
+        astro: { mono: ANCHORS.monoDown, lake: [1247, 663], cafe: ANCHORS.cafe, forest: [2089, 1472] },
+        ticket: { mono: ANCHORS.monoLower, lake: ANCHORS.lake, cafe: ANCHORS.cafe, forest: ANCHORS.forest },
+        info: { mono: ANCHORS.monoLower, lake: ANCHORS.lake, cafe: ANCHORS.cafe, forest: ANCHORS.forest }
+      };
+
+      const ROUTE_LABELS = {
+        mono: '모노레일 타는 곳', lake: '천주호', cafe: '전망카페', forest: '힐링숲 산책로'
+      };
+
+      let ALL_ROUTES = {
+        astro: {
+          mono: [
+            { id: "mono_0", name: "코스 1", color: "red", points: [[189, 296], [318, 408], [401, 426], [474, 460], [464, 541], [454, 611], [501, 658], [592, 679], [712, 739], [837, 794], [936, 757], [1038, 731], [1116, 770], [1075, 803]] },
+            { id: "mono_1", name: "코스 2", color: "blue", points: [[189, 296], [305, 400], [412, 452], [506, 486], [459, 556], [456, 621], [594, 601], [733, 606], [866, 627], [1001, 616], [1074, 569], [1113, 619], [1168, 658], [1085, 705], [1032, 721], [1121, 767], [1075, 803]] }
+          ],
+          lake: [
+            { id: "lake_0", name: "코스 1", color: "red", points: [[189, 296], [371, 395], [481, 477], [465, 544], [441, 605], [511, 663], [584, 684], [660, 693], [733, 721], [809, 757], [873, 781], [967, 748], [1077, 727], [1180, 690], [1247, 663]] },
+            { id: "lake_1", name: "코스 2", color: "blue", points: [[189, 296], [271, 405], [386, 431], [443, 455], [490, 512], [446, 585], [467, 611], [537, 616], [615, 590], [720, 601], [808, 621], [920, 637], [978, 619], [1064, 572], [1103, 601], [1168, 650], [1247, 663]] }
+          ],
+          cafe: [
+            { id: "cafe_0", name: "코스 1", color: "red", points: [[189, 296], [339, 410], [474, 468], [459, 548], [448, 611], [532, 653], [639, 692], [730, 747], [866, 804], [941, 825], [1053, 854], [1184, 848], [1337, 846], [1502, 833], [1710, 799], [1882, 809], [2060, 801], [2226, 788], [2331, 726], [2427, 694], [2544, 671], [2599, 703]] },
+            { id: "cafe_1", name: "코스 2", color: "blue", points: [[189, 296], [326, 408], [433, 457], [485, 496], [454, 562], [469, 637], [558, 603], [699, 603], [793, 624], [910, 635], [991, 611], [1053, 567], [1103, 616], [1191, 661], [1139, 721], [1079, 749], [1137, 775], [1204, 807], [1293, 809], [1491, 807], [1674, 807], [1854, 807], [2041, 804], [2211, 794], [2357, 721], [2498, 658], [2599, 703]] }
+          ],
+          forest: [
+            { id: "forest_0", name: "코스 1", color: "red", forestStartIndex: 23, points: [[189, 296], [362, 402], [474, 491], [446, 569], [469, 650], [566, 676], [670, 710], [772, 760], [892, 801], [1032, 846], [1173, 854], [1343, 851], [1559, 809], [1768, 807], [1960, 809], [2070, 796], [2206, 760], [2323, 734], [2430, 705], [2466, 692], [2445, 731], [2378, 762], [2380, 825], [2498, 807], [2565, 760], [2595, 873], [2534, 978], [2497, 1027], [2466, 1114], [2435, 1219], [2361, 1306], [2237, 1361], [2163, 1417], [2089, 1472]] }
+          ]
+        },
+        ticket: {
+          mono: [{ id: "mono_0", name: "코스 1", color: "red", points: [[2440, 1711], [2326, 1535]] }],
+          lake: [
+            { id: "lake_0", name: "코스 1", color: "red", points: [[2440, 1711], [2114, 1488], [1850, 1280], [1520, 1050], [1240, 890], [1075, 803], [1330, 680], [1575, 520]] },
+            { id: "lake_1", name: "코스 2", color: "blue", points: [[2440, 1711], [2326, 1535], [1550, 1150], [661, 649], [900, 740], [1075, 803], [1575, 520]] }
+          ],
+          cafe: [{ id: "cafe_0", name: "코스 1", color: "red", points: [[2440, 1711], [2114, 1488], [2499, 1034], [2599, 703]] }],
+          forest: [{ id: "forest_0", name: "코스 1", color: "red", forestStartIndex: 1, points: [[2440, 1711], [2114, 1488], [2499, 1034]] }]
+        },
+        info: {
+          mono: [{ id: "mono_0", name: "코스 1", color: "red", points: [[3171, 1493], [2750, 1530], [2326, 1535]] }],
+          lake: [{ id: "lake_0", name: "코스 1", color: "red", points: [[3171, 1493], [2114, 1488], [1850, 1280], [1520, 1050], [1075, 803], [1575, 520]] }],
+          cafe: [{ id: "cafe_0", name: "코스 1", color: "red", points: [[3171, 1493], [2499, 1034], [2599, 703]] }],
+          forest: [{ id: "forest_0", name: "코스 1", color: "red", forestStartIndex: 1, points: [[3171, 1493], [2499, 1034]] }]
+        }
+      };
+
+      const pathname = decodeURIComponent(window.location.pathname);
+      let defaultStart = 'astro';
+      if (pathname.includes('매표소')) defaultStart = 'ticket';
+      else if (pathname.includes('관광정보센터') || pathname.includes('정보센터')) defaultStart = 'info';
+      else if (pathname.includes('천문과학관')) defaultStart = 'astro';
+
+      const urlParams = new URLSearchParams(window.location.search);
+      let currentStartKey = urlParams.get('start') || defaultStart;
+      if (!START_PRESETS[currentStartKey]) currentStartKey = defaultStart;
+
+      function getStart() { return START_PRESETS[currentStartKey].pos; }
+      function getDestPos(destKey) {
+        if (DEST_PRESETS[currentStartKey] && DEST_PRESETS[currentStartKey][destKey]) return DEST_PRESETS[currentStartKey][destKey];
+        const routes = getDestRoutes(destKey);
+        return (routes[0]?.points?.length > 0) ? routes[0].points[routes[0].points.length - 1] : (ANCHORS[destKey] || [1500, 1000]);
+      }
+      function getDestRoutes(destKey) { return ALL_ROUTES[currentStartKey][destKey] || []; }
+
+      const svg = document.getElementById('mapSvg');
+      const routesLayer = document.getElementById('routesLayer');
+      const overlayLayer = document.getElementById('overlayLayer');
+      const arrowsLayer = document.getElementById('arrowsLayer');
+      const destPinsLayer = document.getElementById('destPins');
+      const editDotsLayer = document.getElementById('editDots');
+      const hintText = document.getElementById('hintText');
+      const routeLegend = document.getElementById('routeLegend');
+      const legendRedText = document.getElementById('legendRedText');
+      const legendBlue = document.getElementById('legendBlue');
+      const legendBlueText = document.getElementById('legendBlueText');
+      const legendGreen = document.getElementById('legendGreen');
+      const legendGreenText = document.getElementById('legendGreenText');
+      const modeToggleBtn = document.getElementById('modeToggle');
+      const editToolbar = document.getElementById('editToolbar');
+      const previewReset = document.getElementById('previewReset');
+      const exportBox = document.getElementById('exportBox');
+      const exportArea = document.getElementById('exportArea');
+      const toastMsg = document.getElementById('toastMsg');
+      const zoomBadge = document.getElementById('zoomBadge');
+      const mapZone = document.getElementById('mapZone');
+      const destBtns = [...document.querySelectorAll('.dest-btn')];
+      const startBtns = [...document.querySelectorAll('.start-btn')];
+
+      let editMode = false, editingDestKey = null, editingPathIndex = 0;
+      let activeDestKey = null;
+      let zoomAnim = null, animTimer = null;
+      let currentVB = { ...FULL_VB };
+
+      function createSvg(tag, attrs = {}, innerHTML = '') {
+        const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+        if (innerHTML) el.innerHTML = innerHTML;
+        return el;
+      }
+
+      let toastTimer = null;
+      function showToast(text) {
+        clearTimeout(toastTimer);
+        toastMsg.textContent = text;
+        toastMsg.classList.add('show');
+        toastTimer = setTimeout(() => { toastMsg.classList.remove('show'); }, 2600);
+      }
+
+      function animateViewBox(target, duration = 500) {
+        if (zoomAnim) cancelAnimationFrame(zoomAnim);
+        const start = { ...currentVB };
+        const startTime = performance.now();
+        function ease(t) { return t < .5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1; }
+        function step(now) {
+          const t = Math.min(1, (now - startTime) / duration);
+          const e = ease(t);
+          currentVB.x = start.x + (target.x - start.x) * e;
+          currentVB.y = start.y + (target.y - start.y) * e;
+          currentVB.w = start.w + (target.w - start.w) * e;
+          currentVB.h = start.h + (target.h - start.h) * e;
+          svg.setAttribute('viewBox', `${currentVB.x} ${currentVB.y} ${currentVB.w} ${currentVB.h}`);
+          if (t < 1) zoomAnim = requestAnimationFrame(step);
+          else zoomAnim = null;
+        }
+        zoomAnim = requestAnimationFrame(step);
+      }
+
+      function zoomToAllRoutes(destKey) {
+        const routes = getDestRoutes(destKey);
+        if (!routes.length) { zoomToFull(); return; }
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        routes.forEach(rt => rt.points.forEach(([x, y]) => { if (x < minX) minX = x; if (y < minY) minY = y; if (x > maxX) maxX = x; if (y > maxY) maxY = y; }));
+        const targetPos = getDestPos(destKey);
+        if (targetPos) { if (targetPos[0] < minX) minX = targetPos[0]; if (targetPos[1] < minY) minY = targetPos[1]; if (targetPos[0] > maxX) maxX = targetPos[0]; if (targetPos[1] > maxY) maxY = targetPos[1]; }
+        if (minX === Infinity) { zoomToFull(); return; }
+        const PADDING = 340;
+        let vx = minX - PADDING, vy = minY - PADDING, vw = (maxX - minX) + PADDING * 2, vh = (maxY - minY) + PADDING * 2;
+        const minDimW = 1650, minDimH = 1050;
+        if (vw < minDimW) { const d = minDimW - vw; vx -= d / 2; vw = minDimW; }
+        if (vh < minDimH) { const d = minDimH - vh; vy -= d / 2; vh = minDimH; }
+        const aspect = (mapZone.clientWidth && mapZone.clientHeight) ? (mapZone.clientWidth / mapZone.clientHeight) : (3337 / 2101);
+        const vbAspect = vw / vh;
+        if (vbAspect > aspect) vh = vw / aspect; else vw = vh * aspect;
+        if (vw > 3337) vw = 3337; if (vh > 2101) vh = 2101;
+        if (vx < 0) vx = 0; if (vy < 0) vy = 0;
+        if (vx + vw > 3337) vx = 3337 - vw; if (vy + vh > 2101) vy = 2101 - vh;
+        animateViewBox({ x: vx, y: vy, w: vw, h: vh }, 600);
+        zoomBadge.classList.add('show');
+      }
+
+      function zoomToFull() { animateViewBox({ ...FULL_VB }, 450); zoomBadge.classList.remove('show'); }
+
+      function manualZoom(factor) {
+        const cx = currentVB.x + currentVB.w / 2, cy = currentVB.y + currentVB.h / 2;
+        let newW = currentVB.w * factor, newH = currentVB.h * factor;
+        if (newW < 750) { newW = 750; newH = 750 * (2101 / 3337); }
+        if (newW > 3337) { zoomToFull(); return; }
+        let newX = cx - newW / 2, newY = cy - newH / 2;
+        if (newX < 0) newX = 0; if (newY < 0) newY = 0;
+        if (newX + newW > 3337) newX = 3337 - newW; if (newY + newH > 2101) newY = 2101 - newH;
+        animateViewBox({ x: newX, y: newY, w: newW, h: newH }, 220);
+        zoomBadge.classList.add('show');
+      }
+
+      let isPanning = false, hasDragged = false;
+      let panStartX = 0, panStartY = 0, panStartVB_X = 0, panStartVB_Y = 0;
+
+      mapZone.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.map-zoom-controls')) return;
+        isPanning = true; hasDragged = false;
+        panStartX = e.clientX; panStartY = e.clientY;
+        panStartVB_X = currentVB.x; panStartVB_Y = currentVB.y;
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isPanning) return;
+        const dist = Math.hypot(e.clientX - panStartX, e.clientY - panStartY);
+        if (dist > 4) { hasDragged = true; mapZone.classList.add('panning'); }
+        if (hasDragged) {
+          const scaleX = currentVB.w / mapZone.clientWidth;
+          const scaleY = currentVB.h / mapZone.clientHeight;
+          let nx = panStartVB_X - (e.clientX - panStartX) * scaleX;
+          let ny = panStartVB_Y - (e.clientY - panStartY) * scaleY;
+          if (nx < 0) nx = 0; if (ny < 0) ny = 0;
+          if (nx + currentVB.w > 3337) nx = 3337 - currentVB.w;
+          if (ny + currentVB.h > 2101) ny = 2101 - currentVB.h;
+          currentVB.x = nx; currentVB.y = ny;
+          svg.setAttribute('viewBox', `${nx} ${ny} ${currentVB.w} ${currentVB.h}`);
+          zoomBadge.classList.add('show');
+        }
+      });
+
+      window.addEventListener('pointerup', () => { isPanning = false; mapZone.classList.remove('panning'); });
+      window.addEventListener('pointercancel', () => { isPanning = false; mapZone.classList.remove('panning'); });
+
+      document.getElementById('zoomInBtn').addEventListener('click', (e) => { e.stopPropagation(); manualZoom(0.55); });
+      document.getElementById('zoomOutBtn').addEventListener('click', (e) => { e.stopPropagation(); manualZoom(1.82); });
+      document.getElementById('zoomResetBtn').addEventListener('click', (e) => { e.stopPropagation(); zoomToFull(); });
+
+      mapZone.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (e.deltaY < 0) manualZoom(0.7); else manualZoom(1.43);
+      }, { passive: false });
+
+      function updateStartPin() {
+        const [x, y] = getStart();
+        document.getElementById('startPin').setAttribute('transform', `translate(${x},${y})`);
+        startBtns.forEach(b => b.classList.toggle('active', b.dataset.start === currentStartKey));
+      }
+
+      function smoothPath(pts) {
+        if (pts.length < 2) return '';
+        if (pts.length === 2) return `M ${pts[0][0]},${pts[0][1]} L ${pts[1][0]},${pts[1][1]}`;
+        let d = `M ${pts[0][0]},${pts[0][1]} `;
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+          d += `C ${p1[0] + (p2[0] - p0[0]) / 6},${p1[1] + (p2[1] - p0[1]) / 6} ${p2[0] - (p3[0] - p1[0]) / 6},${p2[1] - (p3[1] - p1[1]) / 6} ${p2[0]},${p2[1]} `;
+        }
+        return d.trim();
+      }
+
+      function renderAllPathsForDest(destKey) {
+        routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; arrowsLayer.innerHTML = ''; destPinsLayer.innerHTML = '';
+        const routes = getDestRoutes(destKey);
+        if (!routes || routes.length === 0) return;
+        const targetPos = getDestPos(destKey);
+        let subPathIndex = 0;
+        routes.forEach((route) => {
+          let pts = route.points.map(p => p.slice());
+          if (pts.length === 0) return;
+          pts[0] = getStart().slice();
+          if (targetPos && pts.length > 1) pts[pts.length - 1] = targetPos.slice();
+          const fIdx = (typeof route.forestStartIndex === 'number') ? route.forestStartIndex : (destKey === 'forest' && pts.length >= 24 ? 23 : -1);
+          let segments = [];
+          if (destKey === 'forest' && fIdx > 0 && fIdx < pts.length) {
+            segments.push({ color: route.color || 'red', points: pts.slice(0, fIdx + 1) });
+            segments.push({ color: 'green', points: pts.slice(fIdx) });
+          } else {
+            segments.push({ color: destKey === 'forest' ? 'green' : (route.color || 'red'), points: pts });
+          }
+          segments.forEach((seg) => {
+            if (seg.points.length < 2) return;
+            const d = smoothPath(seg.points);
+            const pathId = `active-route-${subPathIndex}`;
+            const colorClass = seg.color === 'blue' ? 'path-blue' : (seg.color === 'green' ? 'path-green' : 'path-red');
+            const arrowClass = seg.color === 'blue' ? 'arrow-blue' : (seg.color === 'green' ? 'arrow-green' : 'arrow-red');
+            routesLayer.appendChild(createSvg('path', { id: pathId, class: `route-path ${colorClass}`, d: d }));
+            overlayLayer.appendChild(createSvg('path', { id: `active-overlay-${subPathIndex}`, class: 'route-overlay', d: d }));
+            const durSeconds = 2.6 + subPathIndex * 0.25;
+            const arrowGroup = createSvg('g', { id: `flow-arrow-${subPathIndex}`, class: `flow-arrow ${arrowClass}` }, `
+              <path d="M -26,-15 L 24,0 L -26,15 L -12,0 Z"></path>
+              <animateMotion dur="${durSeconds}s" repeatCount="indefinite" rotate="auto"><mpath href="#${pathId}"></mpath></animateMotion>
+              <animate attributeName="opacity" values="0; 0.2; 1; 1; 1; 0.3; 0" keyTimes="0; 0.06; 0.16; 0.5; 0.84; 0.94; 1" dur="${durSeconds}s" repeatCount="indefinite"></animate>
+            `);
+            arrowsLayer.appendChild(arrowGroup);
+            subPathIndex++;
+          });
+        });
+        if (targetPos) {
+          const isGreenDest = (destKey === 'forest');
+          if (isGreenDest) {
+            const firstRoute = routes[0];
+            const fIdx = (typeof firstRoute?.forestStartIndex === 'number') ? firstRoute.forestStartIndex : (firstRoute?.points?.length >= 24 ? 23 : -1);
+            if (fIdx > 0 && fIdx < firstRoute.points.length) {
+              const entryPos = firstRoute.points[fIdx];
+              destPinsLayer.appendChild(createSvg('g', { id: 'forest-entry-pin', class: 'pin pin-dest dest-green', transform: `translate(${entryPos[0]},${entryPos[1]})` }, `
+                <circle class="dest-glow-outer" r="32"></circle><circle class="dest-glow" r="26"></circle><circle class="dest-core" r="22"></circle><circle class="dest-center" r="8"></circle>
+                <text class="pin-label shadow" x="0" y="-38" text-anchor="middle">🌲 숲길 진입</text><text class="pin-label" x="0" y="-38" text-anchor="middle">🌲 숲길 진입</text>
+              `));
+            }
+          }
+          const finalPinLabel = isGreenDest ? '🚩 도착' : `🚩 ${ROUTE_LABELS[destKey] || '도착'}`;
+          destPinsLayer.appendChild(createSvg('g', { id: 'active-dest-pin', class: `pin pin-dest ${isGreenDest ? 'dest-green' : ''}`, transform: `translate(${targetPos[0]},${targetPos[1]})` }, `
+            <circle class="dest-glow-outer" r="36"></circle><circle class="dest-glow" r="32"></circle><circle class="dest-core" r="28"></circle><circle class="dest-center" r="10"></circle>
+            <text class="pin-label shadow" x="0" y="-45" text-anchor="middle">${finalPinLabel}</text><text class="pin-label" x="0" y="-45" text-anchor="middle">${finalPinLabel}</text>
+          `));
+        }
+      }
+
+      function resetPreview() {
+        clearTimeout(animTimer);
+        routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; arrowsLayer.innerHTML = ''; destPinsLayer.innerHTML = '';
+        destBtns.forEach(b => b.classList.remove('active')); activeDestKey = null;
+        routeLegend.classList.remove('show'); legendGreen.style.display = 'none'; zoomToFull();
+      }
+
+      function drawRoutePath(pathEl, overlayEl, arrowEl, maxDur = 1800, minDur = 700, onDone = null) {
+        if (!pathEl) { if (onDone) onDone(); return; }
+        const L = pathEl.getTotalLength();
+        pathEl.style.strokeDasharray = L; pathEl.style.strokeDashoffset = L;
+        pathEl.classList.add('visible'); pathEl.getBoundingClientRect();
+        const dur = Math.min(maxDur, Math.max(minDur, L * 1.0));
+        pathEl.style.transition = `stroke-dashoffset ${dur}ms cubic-bezier(.3,.6,.2,1)`;
+        requestAnimationFrame(() => { pathEl.style.strokeDashoffset = 0; });
+        setTimeout(() => {
+          pathEl.style.strokeDasharray = 'none'; pathEl.style.strokeDashoffset = '0';
+          if (overlayEl) overlayEl.classList.add('flowing');
+          if (arrowEl) arrowEl.style.visibility = 'visible';
+          if (onDone) onDone();
+        }, dur);
+      }
+
+      function playDestination(destKey) {
+        if (editMode) return;
+        clearTimeout(animTimer);
+        const routes = getDestRoutes(destKey);
+        if (!routes || routes.length === 0) { setHint(`경로가 없습니다.`); return; }
+        activeDestKey = destKey; renderAllPathsForDest(destKey); zoomToAllRoutes(destKey);
+        if (destKey === 'forest') {
+          routeLegend.classList.add('show'); legendRedText.textContent = '코스 1 (진입로)';
+          legendBlue.style.display = routes.length >= 2 ? 'flex' : 'none';
+          if (routes.length >= 2) legendBlueText.textContent = '코스 2 (진입로)';
+          legendGreen.style.display = 'flex'; legendGreenText.textContent = '🌲 힐링 숲길 구간';
+          setHint(`<b>${ROUTE_LABELS[destKey]}</b> 이동 경로입니다.`);
+        } else if (routes.length >= 2) {
+          routeLegend.classList.add('show'); legendRedText.textContent = routes[0]?.name || '코스 1';
+          legendBlue.style.display = 'flex'; legendBlueText.textContent = routes[1]?.name || '코스 2';
+          legendGreen.style.display = 'none'; setHint(`<b>${ROUTE_LABELS[destKey]}</b> 이동 경로입니다.`);
+        } else {
+          routeLegend.classList.add('show'); legendRedText.textContent = routes[0]?.name || '코스 1';
+          legendBlue.style.display = 'none'; legendGreen.style.display = 'none'; setHint(`<b>${ROUTE_LABELS[destKey]}</b> 이동 경로입니다.`);
+        }
+        if (destKey === 'forest') {
+          animTimer = setTimeout(() => {
+            const p0 = document.getElementById('active-route-0'), o0 = document.getElementById('active-overlay-0'), a0 = document.getElementById('flow-arrow-0');
+            const p1 = document.getElementById('active-route-1'), o1 = document.getElementById('active-overlay-1'), a1 = document.getElementById('flow-arrow-1');
+            drawRoutePath(p0, o0, a0, 1800, 700, () => {
+              document.getElementById('forest-entry-pin')?.classList.add('show');
+              drawRoutePath(p1, o1, a1, 1600, 600, () => { document.getElementById('active-dest-pin')?.classList.add('show'); });
+            });
+          }, 450);
+        } else {
+          animTimer = setTimeout(() => {
+            routesLayer.querySelectorAll('.route-path').forEach((path, idx) => {
+              drawRoutePath(path, document.getElementById(`active-overlay-${idx}`), document.getElementById(`flow-arrow-${idx}`), 2200, 700, () => { document.getElementById('active-dest-pin')?.classList.add('show'); });
+            });
+          }, 450);
+        }
+      }
+
+      destBtns.forEach(btn => btn.addEventListener('click', () => {
+        const k = btn.dataset.route;
+        if (editMode) enterEditRoute(k, 0);
+        else { resetPreview(); destBtns.forEach(b => b.classList.remove('active')); btn.classList.add('active'); playDestination(k); }
+      }));
+
+      document.getElementById('stopBtn').addEventListener('click', () => { resetPreview(); setHint('원하시는 목적지 버튼을 눌러주세요.'); });
+
+      function switchStart(key) { resetPreview(); currentStartKey = key; updateStartPin(); }
+      startBtns.forEach(btn => btn.addEventListener('click', () => {
+        const key = btn.dataset.start;
+        if (editMode) { currentStartKey = key; updateStartPin(); enterEditRoute(editingDestKey, editingPathIndex); }
+        else switchStart(key);
+      }));
+
+      function setHint(h) { hintText.innerHTML = h; }
+
+      function enterEditRoute(destKey, pathIndex) {
+        if (!destKey) return;
+        editingDestKey = destKey; editingPathIndex = pathIndex;
+        destBtns.forEach(b => b.classList.toggle('editing', b.dataset.route === destKey));
+        renderAllPathsForDest(destKey);
+        const routeObj = getDestRoutes(destKey)[pathIndex];
+        setHint(`<b>${ROUTE_LABELS[destKey]} (${routeObj?.name || '코스'})</b> 수정 모드`);
+        redrawEditGuide(); renderEditPathButtons();
+      }
+
+      function renderEditPathButtons() {
+        if (!editingDestKey) return;
+        const routes = getDestRoutes(editingDestKey);
+        document.querySelectorAll('.path-tab').forEach(el => el.remove());
+        routes.forEach((rt, idx) => {
+          const b = document.createElement('button');
+          b.className = 'path-tab' + (idx === editingPathIndex ? ' active' : '');
+          b.textContent = `${rt.name} 수정`; b.onclick = () => enterEditRoute(editingDestKey, idx);
+          editToolbar.insertBefore(b, document.getElementById('addPathBtn'));
+        });
+      }
+
+      function redrawEditGuide() {
+        editDotsLayer.innerHTML = '';
+        if (!editingDestKey) return;
+        const currentRoute = getDestRoutes(editingDestKey)[editingPathIndex];
+        const pts = currentRoute?.points; if (!pts) return;
+        const fIdx = (typeof currentRoute.forestStartIndex === 'number') ? currentRoute.forestStartIndex : (editingDestKey === 'forest' && pts.length >= 24 ? 23 : -1);
+        if (pts.length > 1) {
+          if (fIdx > 0 && fIdx < pts.length) {
+            editDotsLayer.appendChild(createSvg('polyline', { class: 'guide-line', points: pts.slice(0, fIdx + 1).map(p => p.join(',')).join(' ') }));
+            editDotsLayer.appendChild(createSvg('polyline', { class: 'guide-line forest-guide', points: pts.slice(fIdx).map(p => p.join(',')).join(' ') }));
+          } else {
+            editDotsLayer.appendChild(createSvg('polyline', { class: `guide-line ${editingDestKey === 'forest' ? 'forest-guide' : ''}`, points: pts.map(p => p.join(',')).join(' ') }));
+          }
+        }
+        pts.forEach((p, i) => {
+          const isForestDot = (fIdx >= 0 && i >= fIdx);
+          editDotsLayer.appendChild(createSvg('g', { transform: `translate(${p[0]},${p[1]})` }, `
+            <circle class="edit-dot ${isForestDot ? 'forest-entry' : ''}" r="18"></circle><text class="edit-dot-num" y="1">${i}</text>
+          `));
+        });
+      }
+
+      svg.addEventListener('click', (evt) => {
+        if (!editMode || hasDragged) return;
+        const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+        const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+        if (editingDestKey) { getDestRoutes(editingDestKey)[editingPathIndex].points.push([Math.round(p.x), Math.round(p.y)]); redrawEditGuide(); renderAllPathsForDest(editingDestKey); }
+      });
+
+      document.getElementById('setForestStartBtn').addEventListener('click', () => {
+        if (!editingDestKey) return;
+        const currentRoute = getDestRoutes(editingDestKey)[editingPathIndex];
+        const pts = currentRoute.points;
+        if (pts.length < 2) { showToast('⚠️ 점을 2개 이상 찍은 후 지정해 주세요.'); return; }
+        currentRoute.forestStartIndex = pts.length - 1; redrawEditGuide(); renderAllPathsForDest(editingDestKey);
+        showToast('🌲 숲길 시작점 지정 완료!');
+      });
+
+      document.getElementById('undoPoint').addEventListener('click', () => {
+        if (!editingDestKey) return;
+        const currentRoute = getDestRoutes(editingDestKey)[editingPathIndex];
+        if (currentRoute.points.length > 1) { currentRoute.points.pop(); if (currentRoute.forestStartIndex >= currentRoute.points.length) delete currentRoute.forestStartIndex; }
+        redrawEditGuide(); renderAllPathsForDest(editingDestKey);
+      });
+
+      document.getElementById('clearRoute').addEventListener('click', () => {
+        if (!editingDestKey) return;
+        const currentRoute = getDestRoutes(editingDestKey)[editingPathIndex];
+        currentRoute.points = [getStart().slice()]; delete currentRoute.forestStartIndex;
+        redrawEditGuide(); renderAllPathsForDest(editingDestKey);
+      });
+
+      document.getElementById('addPathBtn').addEventListener('click', () => {
+        if (!editingDestKey) return;
+        const routes = getDestRoutes(editingDestKey);
+        routes.push({ id: `${editingDestKey}_${routes.length}`, name: `코스 ${routes.length + 1}`, color: routes.length % 2 === 0 ? 'red' : 'blue', points: [getStart().slice()] });
+        enterEditRoute(editingDestKey, routes.length - 1);
+      });
+
+      function getExportJsonString() { return JSON.stringify({ startPresets: START_PRESETS, destPresets: DEST_PRESETS, currentStart: currentStartKey, ALL_ROUTES }, null, 2); }
+
+      document.getElementById('exportJson').addEventListener('click', () => {
+        exportBox.classList.toggle('show');
+        if (exportBox.classList.contains('show')) { exportArea.value = getExportJsonString(); exportArea.select(); }
+      });
+
+      document.getElementById('copyJsonBtn').addEventListener('click', () => {
+        navigator.clipboard.writeText(getExportJsonString()).then(() => showToast('📋 클립보드 복사 완료!'));
+      });
+
+      document.getElementById('downloadJsonBtn').addEventListener('click', () => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([getExportJsonString()], { type: 'application/json' }));
+        a.download = '포천아트밸리_경로데이터.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast('💾 "포천아트밸리_경로데이터.json" 다운로드 완료!');
+      });
+
+      document.getElementById('closeExportBtn').addEventListener('click', () => {
+        exportBox.classList.remove('show');
+      });
+
+      modeToggleBtn.addEventListener('click', () => {
+        editMode = !editMode;
+        modeToggleBtn.classList.toggle('on', editMode);
+        modeToggleBtn.textContent = editMode ? '✅ 제작 모드 ON' : '🖊 경로 제작 모드';
+        editToolbar.classList.toggle('show', editMode);
+        previewReset.style.display = editMode ? 'none' : 'flex';
+        exportBox.classList.remove('show');
+
+        if (editMode) {
+          resetPreview();
+          setHint(`[관리자] 목적지를 누르면 경로를 편집할 수 있습니다.`);
+        } else {
+          editingDestKey = null; editDotsLayer.innerHTML = '';
+          destBtns.forEach(b => b.classList.remove('editing'));
+          zoomToFull(); routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; arrowsLayer.innerHTML = '';
+          setHint('원하시는 목적지 버튼을 눌러주세요.');
+        }
+      });
+
+      // ── 초기화 ──
+      updateStartPin();
+
+      /* ── 키오스크 하드닝 ── */
+      document.addEventListener('gesturestart', e => e.preventDefault());
+      document.addEventListener('contextmenu', e => e.preventDefault());
+      document.addEventListener('dragstart', e => e.preventDefault());
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', e => {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) e.preventDefault();
+        lastTouchEnd = now;
+      }, { passive: false });
+
+      let secretTaps = 0, secretTimer = null;
+      document.getElementById('secretZone').addEventListener('pointerdown', () => {
+        secretTaps++; clearTimeout(secretTimer);
+        secretTimer = setTimeout(() => { secretTaps = 0; }, 2000);
+        if (secretTaps >= 5) {
+          secretTaps = 0;
+          document.querySelector('.admin-bar').classList.add('show');
+          document.getElementById('secretZone').style.display = 'none';
+        }
+      });
+
+      /* ── 무인 자동 순환(1분 주기) 및 20초 유휴 초기화 복귀 ── */
+      const IDLE_RESET_MS = 20000;  // 경로 표시 후 20초 뒤 전체 지도(초기화)로 복귀
+      const AUTO_CYCLE_MS = 60000;  // 무조작 1분(60초)마다 다음 목적지 자동 실행
+      const AUTO_DEST_KEYS = ['lake', 'cafe', 'mono', 'forest'];
+      let autoIndex = 0;
+      let idleResetTimer = null;
+      let autoCycleTimer = null;
+
+      // 20초 동안 추가 조작 없으면 전체 지도로 자동 복귀
+      function armIdleReset() {
+        clearTimeout(idleResetTimer);
+        if (editMode) return;
+        idleResetTimer = setTimeout(() => {
+          resetPreview();
+          setHint('원하시는 목적지 버튼을 눌러주세요.');
+        }, IDLE_RESET_MS);
+      }
+
+      // 무인 자동 다음 목적지 실행 (1분마다)
+      function triggerAutoNext() {
+        if (editMode) return;
+        const destKey = AUTO_DEST_KEYS[autoIndex];
+        autoIndex = (autoIndex + 1) % AUTO_DEST_KEYS.length;
+
+        // 버튼 누른 것과 동일하게 UI 활성화 및 경로 안내 실행
+        resetPreview();
+        const targetBtn = destBtns.find(b => b.dataset.route === destKey);
+        if (targetBtn) targetBtn.classList.add('active');
+        playDestination(destKey);
+        armIdleReset(); // 20초 후 자동으로 전체화면 복귀
+
+        // 다음 1분 후 또 다른 목적지 실행 예약
+        clearTimeout(autoCycleTimer);
+        autoCycleTimer = setTimeout(triggerAutoNext, AUTO_CYCLE_MS);
+      }
+
+      // 사용자가 터치하거나 조작할 때 타이머 리셋
+      function onUserActivity() {
+        clearTimeout(autoCycleTimer);
+        if (editMode) return;
+        armIdleReset();
+        autoCycleTimer = setTimeout(triggerAutoNext, AUTO_CYCLE_MS);
+      }
+
+      // 사용자가 목적지 버튼 직접 클릭 시 인덱스 동기화
+      destBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const k = btn.dataset.route;
+          const idx = AUTO_DEST_KEYS.indexOf(k);
+          if (idx !== -1) autoIndex = (idx + 1) % AUTO_DEST_KEYS.length;
+        });
+      });
+
+      // 전체보기(초기화) 버튼 클릭 시
+      document.getElementById('stopBtn').addEventListener('click', () => {
+        clearTimeout(idleResetTimer);
+        clearTimeout(autoCycleTimer);
+        autoCycleTimer = setTimeout(triggerAutoNext, AUTO_CYCLE_MS);
+      });
+
+      // 터치/클릭 등 모든 화면 조작 시 타이머 갱신
+      document.addEventListener('pointerdown', onUserActivity, { passive: true });
+
+      // 앱 시작 시 1분 후 첫 자동 순환 예약
+      autoCycleTimer = setTimeout(triggerAutoNext, AUTO_CYCLE_MS);
+
+      document.getElementById('closeAdminBtn').addEventListener('click', () => {
+        document.querySelector('.admin-bar').classList.remove('show');
+        document.getElementById('secretZone').style.display = 'block';
+        if (editMode) document.getElementById('modeToggle').click();
+      });
+
+      // ── 스마트폰 QR 코드 동적 렌더링 ──
+      function initQrCode() {
+        let targetUrl = '';
+        if (window.location.protocol.startsWith('http') && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+          const path = window.location.pathname;
+          const basePath = path.substring(0, path.lastIndexOf('/') + 1);
+          targetUrl = window.location.origin + basePath + 'qr.html';
+        } else {
+          targetUrl = 'https://kiosk-map.cje0173.workers.dev/qr.html';
+        }
+
+        const headerQrCodeEl = document.getElementById('headerQrCode');
+        if (typeof QRCode !== 'undefined' && headerQrCodeEl) {
+          headerQrCodeEl.innerHTML = '';
+          new QRCode(headerQrCodeEl, {
+            text: targetUrl,
+            width: 56,
+            height: 56,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        }
+      }
+
+      setTimeout(initQrCode, 50);
+    })();
+  </script>
+</body>
+
+</html>
