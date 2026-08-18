@@ -694,11 +694,7 @@
         return best;
       }
 
-      // ── WebP 고화질 원본 Fallback ──
-      const bgImg = document.getElementById('bgImage');
-      bgImg.addEventListener('error', () => {
-        bgImg.setAttribute('href', '아트밸리_전경도_안내_v2.webp');
-      }, { once: true });
+
 
       // ── 구글 지도 & 폰 실측 GPS 매핑 ──
       const POI_MASTER = {
