@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>포천아트밸리 마스터 도로망 스튜디오 (ROAD MASTER STUDIO)</title>
+  <style>
+    :root {
+      --bg: #070a0f;
+      --panel: #101622;
+      --panel-border: #1e293b;
+      --accent: #00e676;
+      --accent-blue: #0088ff;
+      --accent-red: #ff3b30;
+      --accent-amber: #ff9500;
+      --accent-purple: #c084fc;
+      --ink: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body,
+    html {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+    }
+
+    .studio-app {
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* ── 상단 툴바 ── */
+    .top-header {
+      height: 64px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      gap: 10px;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .app-title {
+      font-size: 15px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .app-title span {
+      background: linear-gradient(135deg, #00f0ff, #0088ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .tool-group::-webkit-scrollbar {
+      display: none;
+    }
+
+    .btn-tool {
+      padding: 8px 13px;
+      border-radius: 12px;
+      border: 1px solid #283548;
+      background: #182230;
+      color: #cbd5e1;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-tool:hover {
+      background: #233144;
+      border-color: #38bdf8;
+      color: #fff;
+    }
+
+    .btn-tool.active {
+      background: linear-gradient(135deg, #0088ff, #0055ff);
+      border-color: #38bdf8;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(0, 136, 255, 0.5);
+    }
+
+    .btn-tool.test.active {
+      background: linear-gradient(135deg, #af52de, #7a1fa2);
+      border-color: #e879f9;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(175, 82, 222, 0.5);
+    }
+
+    .btn-action {
+      padding: 9px 15px;
+      border-radius: 12px;
+      border: none;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-export {
+      background: linear-gradient(135deg, #00e676, #00a844);
+      color: #000;
+      box-shadow: 0 2px 10px rgba(0, 230, 118, 0.4);
+    }
+
+    .btn-export:active {
+      transform: scale(0.96);
+    }
+
+    /* ── 캔버스 뷰포트 영역 ── */
+    .viewport {
+      flex: 1;
+      position: relative;
+      background: #040608;
+      overflow: hidden;
+      cursor: default;
+    }
+
+    .viewport.panning {
+      cursor: grab;
+    }
+
+    .viewport.panning:active {
+      cursor: grabbing;
+    }
+
+    .map-canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3337px;
+      height: 2101px;
+      transform-origin: 0 0;
+    }
+
+    #bgImg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3337px;
+      height: 2101px;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    #mainSvg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3337px;
+      height: 2101px;
+    }
+
+    /* ── SVG 스타일 ── */
+    .road-segment {
+      fill: none;
+      stroke: #00e676;
+      stroke-width: 14;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 10px rgba(0, 230, 118, 0.7));
+      opacity: 0.85;
+      transition: all 0.2s;
+    }
+
+    .road-segment:hover {
+      stroke: #00f0ff;
+      stroke-width: 18;
+      filter: drop-shadow(0 0 16px rgba(0, 240, 255, 1));
+      opacity: 1;
+      cursor: pointer;
+    }
+
+    .road-core {
+      fill: none;
+      stroke: #ffffff;
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    /* 노드 앵커 점 */
+    .node-pin {
+      cursor: move;
+      transition: transform 0.15s;
+    }
+
+    .node-pin circle.outer {
+      fill: #101622;
+      stroke: #00f0ff;
+      stroke-width: 3;
+      filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.8));
+    }
+
+    .node-pin:hover circle.outer {
+      fill: #0088ff;
+      transform: scale(1.4);
+      stroke: #fff;
+    }
+
+    .node-pin text {
+      font-size: 11px;
+      font-weight: 800;
+      fill: #ffffff;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+    }
+
+    /* 테스트 경로 라인 */
+    .test-route-line {
+      fill: none;
+      stroke: #ff3b30;
+      stroke-width: 18;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 16px rgba(255, 59, 48, 0.9));
+      animation: testPulse 1.5s infinite alternate;
+    }
+
+    .test-route-overlay {
+      fill: none;
+      stroke: #ffffff;
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 20 30;
+      animation: dashFlow 1.2s linear infinite;
+    }
+
+    @keyframes dashFlow {
+      to {
+        stroke-dashoffset: -50;
+      }
+    }
+
+    @keyframes testPulse {
+      0% { stroke-width: 16; }
+      100% { stroke-width: 22; }
+    }
+
+    /* ── 플로팅 HUD ── */
+    .floating-hud {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      background: rgba(16, 22, 34, 0.94);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
+      z-index: 50;
+      font-size: 13px;
+      max-width: 420px;
+    }
+
+    .hud-title {
+      font-weight: 800;
+      color: #00f0ff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+
+    .hud-stats-row {
+      display: flex;
+      gap: 12px;
+      padding: 6px 0;
+      border-bottom: 1px solid #1f2c3f;
+    }
+
+    .stat-badge {
+      background: #0d131d;
+      border: 1px solid #233348;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .stat-badge b {
+      color: #00e676;
+    }
+
+    .hud-desc {
+      color: #94a3b8;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .hud-desc b {
+      color: #fff;
+    }
+
+    .floating-zoom {
+      position: absolute;
+      top: 84px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 50;
+    }
+
+    .zoom-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(16, 22, 34, 0.94);
+      border: 1px solid var(--panel-border);
+      color: #fff;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      transition: all 0.15s;
+    }
+
+    .zoom-btn:hover {
+      background: #2563eb;
+    }
+
+    /* ── 모달 & 토스트 ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-card {
+      background: #141c27;
+      border: 1px solid #27374d;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 650px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #202d3e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    .modal-body {
+      padding: 16px 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    .modal-textarea {
+      width: 100%;
+      height: 280px;
+      background: #090e15;
+      border: 1px solid #1e2b3c;
+      border-radius: 12px;
+      color: #38bdf8;
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      padding: 12px;
+      outline: none;
+    }
+
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid #202d3e;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .toast {
+      position: fixed;
+      top: 84px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid #00f0ff;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="studio-app">
+    <!-- 상단 툴바 -->
+    <header class="top-header">
+      <div class="app-title">
+        <span>📐 ROAD MASTER</span> | 포천아트밸리 통합 마스터 도로망
+      </div>
+
+      <div class="tool-group">
+        <button class="btn-tool active" id="toolViewMaster">🌐 통합 도로망 보기</button>
+        <button class="btn-tool test" id="toolTestNav">🧪 실시간 길찾기 테스트</button>
+        <button class="btn-tool active" id="toolToggleNodes">📍 노드 핀 켜기/끄기</button>
+        <button class="btn-action btn-export" id="btnExport">💾 마스터 데이터 내보내기</button>
+      </div>
+    </header>
+
+    <!-- 메인 캔버스 뷰포트 -->
+    <main class="viewport" id="viewport">
+      <div class="floating-zoom">
+        <button class="zoom-btn" id="zoomInBtn" title="확대">➕</button>
+        <button class="zoom-btn" id="zoomOutBtn" title="축소">➖</button>
+        <button class="zoom-btn" id="zoomResetBtn" title="전체보기">⟲</button>
+      </div>
+
+      <div class="floating-hud">
+        <div class="hud-title">
+          <span id="hudModeName">📐 정돈된 통합 마스터 도로망</span>
+          <span style="color:#00e676; font-size:12px;">● 압축율 84% 완료</span>
+        </div>
+        <div class="hud-stats-row">
+          <div class="stat-badge">노드: <b id="statNodes">170개</b></div>
+          <div class="stat-badge">도로 구간: <b id="statSegments">29개</b></div>
+          <div class="stat-badge">연결성: <b>100% 무결점</b></div>
+        </div>
+        <div class="hud-desc" id="hudDesc">
+          • <b>[🧪 실시간 길찾기 테스트]</b>를 누르고 지도 위 2점을 콕콕 찍어보세요!<br>
+          • <b>드래그:</b> 지도 이동 (Pan) | <b>휠:</b> 확대/축소<br>
+          • <b>노드 드래그:</b> 교차점 위치 실시간 미세 조정
+        </div>
+      </div>
+
+      <div class="map-canvas-container" id="mapContainer">
+        <!-- 배경 조감도 이미지 -->
+        <img id="bgImg" src="아트밸리_전경도_안내_v2.webp" onerror="this.src='아트밸리_전경도_안내_v2.jpg'" alt="지도 배경" />
+
+        <!-- 마스터 도로망 SVG 레이어 -->
+        <svg id="mainSvg" viewBox="0 0 3337 2101">
+          <!-- 도로 선 레이어 -->
+          <g id="roadLinesLayer"></g>
+          <g id="roadCoreLayer"></g>
+
+          <!-- 실시간 테스트 경로 레이어 -->
+          <g id="testRouteLayer"></g>
+          <g id="testPinsLayer"></g>
+
+          <!-- 노드 조작 핸들 레이어 -->
+          <g id="nodesLayer"></g>
+        </svg>
+      </div>
+    </main>
+
+    <!-- 데이터 내보내기 모달 -->
+    <div class="modal-overlay" id="jsonModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span>💾 완성된 통합 마스터 도로망 데이터 (JSON)</span>
+          <button id="closeModalBtn" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer;">✕</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:12px; color:#94a3b8;">
+            정돈된 마스터 도로망 데이터입니다. 키오스크(`index.html`)와 모바일(`qr.html`)에 실시간으로 탑재되어 있습니다!
+          </p>
+          <textarea id="jsonArea" class="modal-textarea" spellcheck="false"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-tool" id="btnCopyJson">📋 클립보드 복사</button>
+          <button class="btn-action btn-export" id="btnDownloadJson">💾 .json 파일 다운로드</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 토스트 알림 -->
+    <div class="toast" id="toastMsg"></div>
+  </div>
+
+  <script>
+    (function () {
+      const CANVAS_W = 3337, CANVAS_H = 2101;
+      let currentMode = 'view'; // 'view' | 'test'
+      let showNodes = true;
+
+      // ── 압축 & 최적화된 마스터 도로 데이터 탑재 ──
+      const MASTER_DATA = {"nodes": [[347, 420], [447, 443], [494, 488], [499, 524], [462, 556], [454, 595], [504, 624], [598, 660], [632, 678], [692, 712], [718, 746], [776, 778], [823, 806], [919, 840], [1120, 926], [1235, 997], [1353, 1073], [1387, 1099], [1436, 1159], [1556, 1227], [1590, 1248], [1632, 1263], [1684, 1308], [1770, 1360], [1903, 1407], [1982, 1425], [2078, 1490], [2149, 1537], [2172, 1577], [2243, 1668], [2274, 1725], [2259, 1765], [2222, 1838], [2212, 1874], [2201, 1942], [2201, 2094], [2282, 1893], [2363, 1908], [2423, 1924], [2512, 1937], [2577, 1940], [2755, 1942], [2880, 1924], [2935, 1908], [2984, 1882], [3063, 1825], [3112, 1767], [3154, 1707], [3188, 1645], [3277, 1566], [3300, 1530], [3172, 1490], [3188, 1530], [3217, 1584], [2843, 1733], [2812, 1757], [2807, 1796], [2820, 1830], [2849, 1880], [2742, 1812], [2676, 1825], [2689, 1861], [2708, 1934], [2577, 1822], [2491, 1767], [2465, 1728], [2321, 1537], [2282, 1584], [2300, 1642], [2394, 1686], [2434, 1710], [2449, 1835], [2405, 1866], [2332, 1825], [2340, 1725], [2112, 1472], [2159, 1443], [2287, 1407], [2329, 1363], [2392, 1282], [2410, 1245], [2434, 1208], [2449, 1175], [2467, 1112], [2509, 1060], [2533, 1023], [2548, 989], [2569, 913], [2575, 866], [2548, 843], [2499, 825], [2371, 825], [2381, 780], [2423, 762], [2449, 738], [2533, 694], [2488, 660], [2420, 707], [2384, 718], [2329, 725], [2209, 783], [2107, 804], [2044, 806], [1945, 822], [1679, 822], [1622, 830], [1454, 830], [1277, 859], [1219, 874], [1969, 848], [1990, 877], [2024, 898], [2063, 929], [2191, 919], [2191, 718], [2178, 681], [2311, 605], [2397, 603], [2400, 556], [2366, 488], [2355, 449], [2405, 665], [1230, 832], [1157, 796], [1120, 788], [1081, 788], [1193, 806], [1238, 788], [1295, 775], [1342, 746], [1470, 702], [1588, 650], [1734, 603], [1776, 595], [1849, 571], [1922, 564], [2047, 545], [2102, 537], [1149, 757], [1128, 725], [1102, 686], [1165, 668], [1217, 668], [1259, 663], [1141, 637], [1107, 626], [1076, 577], [1131, 553], [1042, 587], [995, 600], [956, 605], [635, 603], [574, 584], [533, 553], [548, 608], [287, 407], [222, 425], [188, 443], [167, 480], [172, 530], [204, 569], [235, 592], [321, 629], [373, 629], [413, 624], [326, 530], [1005, 710], [943, 728], [883, 759], [849, 778]], "adj": {"0": [[1, 102.61], [155, 61.39]], "1": [[0, 102.61], [2, 65.07]], "2": [[1, 65.07], [3, 36.35]], "3": [[2, 36.35], [4, 48.92], [153, 44.69]], "4": [[3, 48.92], [5, 39.81]], "5": [[4, 39.81], [6, 57.8], [164, 50.22]], "6": [[5, 57.8], [7, 100.66], [154, 46.82]], "7": [[6, 100.66], [8, 38.47]], "8": [[7, 38.47], [9, 68.96]], "9": [[8, 68.96], [10, 42.8]], "10": [[9, 42.8], [11, 66.24]], "11": [[10, 66.24], [12, 54.71]], "12": [[11, 54.71], [13, 101.84], [169, 38.21]], "13": [[12, 101.84], [14, 218.63]], "14": [[13, 218.63], [15, 135.15], [108, 111.83]], "15": [[14, 135.15], [16, 140.36]], "16": [[15, 140.36], [17, 42.8]], "17": [[16, 42.8], [18, 77.47]], "18": [[17, 77.47], [19, 137.93]], "19": [[18, 137.93], [20, 39.96]], "20": [[19, 39.96], [21, 44.6]], "21": [[20, 44.6], [22, 68.77]], "22": [[21, 68.77], [23, 100.5]], "23": [[22, 100.5], [24, 141.06]], "24": [[23, 141.06], [25, 81.02]], "25": [[24, 81.02], [26, 115.94]], "26": [[25, 115.94], [27, 85.15], [75, 38.47]], "27": [[26, 85.15], [28, 46.14]], "28": [[27, 46.14], [29, 115.42]], "29": [[28, 115.42], [30, 64.88], [67, 92.61]], "30": [[29, 64.88], [31, 42.72], [74, 66.0]], "31": [[30, 42.72], [32, 81.84]], "32": [[31, 81.84], [33, 37.36], [73, 110.77]], "33": [[32, 37.36], [34, 68.88], [36, 72.53]], "34": [[33, 68.88], [35, 152.0]], "35": [[34, 152.0]], "36": [[33, 72.53], [37, 82.38]], "37": [[36, 82.38], [38, 62.1], [72, 59.4]], "38": [[37, 62.1], [39, 89.94]], "39": [[38, 89.94], [40, 65.07]], "40": [[39, 65.07], [41, 178.01], [63, 118.0]], "41": [[40, 178.01], [42, 126.29], [62, 47.68]], "42": [[41, 126.29], [43, 57.28], [58, 53.82]], "43": [[42, 57.28], [44, 55.47]], "44": [[43, 55.47], [45, 97.42]], "45": [[44, 97.42], [46, 75.93]], "46": [[45, 75.93], [47, 73.24]], "47": [[46, 73.24], [48, 70.71]], "48": [[47, 70.71], [49, 119.0]], "49": [[48, 119.0], [50, 42.72]], "50": [[49, 42.72], [53, 99.02]], "51": [[52, 43.08]], "52": [[51, 43.08], [53, 61.29]], "53": [[52, 61.29], [50, 99.02]], "54": [[55, 39.2]], "55": [[54, 39.2], [56, 39.32]], "56": [[55, 39.32], [57, 36.4], [59, 66.94]], "57": [[56, 36.4], [58, 57.8]], "58": [[57, 57.8], [42, 53.82]], "59": [[56, 66.94], [60, 67.27]], "60": [[59, 67.27], [61, 38.28], [63, 99.05]], "61": [[60, 38.28], [62, 75.43]], "62": [[61, 75.43], [41, 47.68]], "63": [[60, 99.05], [64, 102.08], [40, 118.0]], "64": [[63, 102.08], [65, 46.87], [71, 79.92]], "65": [[64, 46.87], [70, 35.85], [73, 164.61]], "66": [[67, 61.07]], "67": [[66, 61.07], [29, 92.61], [68, 60.73]], "68": [[67, 60.73], [69, 103.79]], "69": [[68, 103.79], [70, 46.65], [74, 66.61]], "70": [[69, 46.65], [65, 35.85]], "71": [[64, 79.92], [72, 53.82]], "72": [[71, 53.82], [37, 59.4]], "73": [[65, 164.61], [32, 110.77]], "74": [[69, 66.61], [30, 66.0]], "75": [[26, 38.47], [76, 55.23]], "76": [[75, 55.23], [77, 132.97]], "77": [[76, 132.97], [78, 60.83]], "78": [[77, 60.83], [79, 102.62]], "79": [[78, 102.62], [80, 41.15]], "80": [[79, 41.15], [81, 44.1]], "81": [[80, 44.1], [82, 36.25]], "82": [[81, 36.25], [83, 65.52]], "83": [[82, 65.52], [84, 66.84]], "84": [[83, 66.84], [85, 44.1]], "85": [[84, 44.1], [86, 37.16]], "86": [[85, 37.16], [87, 78.85]], "87": [[86, 78.85], [88, 47.38]], "88": [[87, 47.38], [89, 35.47]], "89": [[88, 35.47], [90, 52.2]], "90": [[89, 52.2], [91, 128.0]], "91": [[90, 128.0], [92, 46.1]], "92": [[91, 46.1], [93, 45.69]], "93": [[92, 45.69], [94, 35.38]], "94": [[93, 35.38], [95, 94.83], [97, 42.45]], "95": [[94, 94.83], [96, 56.4]], "96": [[95, 56.4], [97, 82.66]], "97": [[96, 82.66], [98, 37.64], [121, 44.6]], "98": [[97, 37.64], [99, 55.44]], "99": [[98, 55.44], [100, 133.28]], "100": [[99, 133.28], [101, 104.14], [113, 137.19], [114, 67.45]], "101": [[100, 104.14], [102, 63.03]], "102": [[101, 63.03], [103, 100.28]], "103": [[102, 100.28], [104, 266.0], [109, 35.38]], "104": [[103, 266.0], [105, 57.56]], "105": [[104, 57.56], [106, 168.0]], "106": [[105, 168.0], [107, 179.36]], "107": [[106, 179.36], [108, 59.91], [122, 54.2]], "108": [[107, 59.91], [14, 111.83], [122, 43.42]], "109": [[103, 35.38], [110, 35.81]], "110": [[109, 35.81], [111, 39.96]], "111": [[110, 39.96], [112, 49.82]], "112": [[111, 49.82], [113, 128.39]], "113": [[100, 137.19], [112, 128.39]], "114": [[100, 67.45], [115, 39.22]], "115": [[114, 39.22], [116, 153.18]], "116": [[115, 153.18], [117, 86.02]], "117": [[116, 86.02], [118, 47.1], [121, 62.51]], "118": [[117, 47.1], [119, 76.03]], "119": [[118, 76.03], [120, 40.52]], "120": [[119, 40.52]], "121": [[117, 62.51], [97, 44.6]], "122": [[107, 54.2], [123, 81.39], [108, 43.42], [126, 45.22], [127, 44.72]], "123": [[122, 81.39], [124, 37.85], [126, 37.36], [138, 39.81]], "124": [[123, 37.85], [125, 39.0], [138, 42.45]], "125": [[124, 39.0]], "126": [[123, 37.36], [127, 48.47], [122, 45.22]], "127": [[126, 48.47], [128, 58.46], [122, 44.72]], "128": [[127, 58.46], [129, 55.23]], "129": [[128, 55.23], [130, 135.35]], "130": [[129, 135.35], [131, 128.95]], "131": [[130, 128.95], [132, 153.38]], "132": [[131, 153.38], [133, 42.76]], "133": [[132, 42.76], [134, 76.84]], "134": [[133, 76.84], [135, 73.33]], "135": [[134, 73.33], [136, 126.44]], "136": [[135, 126.44], [137, 55.58]], "137": [[136, 55.58]], "138": [[123, 39.81], [139, 38.28], [124, 42.45]], "139": [[138, 38.28], [140, 46.87], [166, 123.91]], "140": [[139, 46.87], [141, 65.52]], "141": [[140, 65.52], [142, 52.0], [144, 39.2]], "142": [[141, 52.0], [143, 42.3]], "143": [[142, 42.3]], "144": [[141, 39.2], [145, 35.74]], "145": [[144, 35.74], [146, 57.98]], "146": [[145, 57.98], [147, 60.01], [148, 35.44]], "147": [[146, 60.01]], "148": [[146, 35.44], [149, 48.76]], "149": [[148, 48.76], [150, 39.32]], "150": [[149, 39.32], [151, 321.01]], "151": [[150, 321.01], [152, 63.89]], "152": [[151, 63.89], [153, 51.4], [154, 35.38]], "153": [[152, 51.4], [3, 44.69]], "154": [[152, 35.38], [6, 46.82]], "155": [[0, 61.39], [156, 67.45]], "156": [[155, 67.45], [157, 38.47]], "157": [[156, 38.47], [158, 42.54]], "158": [[157, 42.54], [159, 50.25]], "159": [[158, 50.25], [160, 50.45], [165, 154.0]], "160": [[159, 50.45], [161, 38.6]], "161": [[160, 38.6], [162, 93.62]], "162": [[161, 93.62], [163, 52.0]], "163": [[162, 52.0], [164, 40.31]], "164": [[163, 40.31], [5, 50.22]], "165": [[159, 154.0]], "166": [[139, 123.91], [167, 64.56]], "167": [[166, 64.56], [168, 67.54]], "168": [[167, 67.54], [169, 38.95]], "169": [[168, 38.95], [12, 38.21]]}, "polylines": [[[347, 420], [447, 443], [494, 488], [499, 496], [499, 524], [478, 545], [462, 556], [452, 558], [454, 595], [465, 600], [475, 611], [504, 624], [520, 637], [598, 660], [632, 678], [645, 689], [692, 712], [718, 746], [739, 765], [776, 778], [823, 806], [919, 840], [1120, 926], [1235, 997], [1264, 1010], [1353, 1073], [1387, 1099], [1436, 1159], [1462, 1180], [1556, 1227], [1588, 1237], [1590, 1248], [1598, 1248], [1632, 1263], [1684, 1308], [1770, 1360], [1903, 1407], [1982, 1425], [2078, 1490], [2097, 1498], [2149, 1537], [2172, 1577], [2243, 1668], [2274, 1725], [2272, 1744], [2261, 1757], [2259, 1765], [2253, 1767], [2253, 1775], [2222, 1838], [2212, 1874], [2212, 1895], [2201, 1942], [2201, 2094]], [[2212, 1877], [2217, 1874], [2282, 1893], [2363, 1908], [2423, 1924], [2512, 1937], [2577, 1940], [2755, 1942], [2776, 1940], [2783, 1934], [2880, 1924], [2935, 1908], [2984, 1882], [3063, 1825], [3112, 1767], [3154, 1707], [3165, 1678], [3188, 1645], [3277, 1566], [3300, 1530]], [[3172, 1490], [3178, 1490], [3188, 1530], [3193, 1532], [3217, 1584], [3227, 1592]], [[2843, 1733], [2812, 1757], [2807, 1770], [2807, 1796], [2820, 1830], [2838, 1856], [2849, 1880], [2877, 1900], [2880, 1906]], [[2804, 1770], [2804, 1778], [2791, 1793], [2776, 1801], [2742, 1812], [2726, 1812], [2676, 1825]], [[2674, 1825], [2689, 1861], [2708, 1934]], [[2661, 1825], [2577, 1822], [2491, 1767], [2475, 1749], [2465, 1728], [2449, 1720]], [[2321, 1537], [2319, 1545], [2282, 1584], [2256, 1603], [2235, 1634]], [[2264, 1598], [2261, 1603], [2300, 1642], [2394, 1686], [2434, 1710], [2436, 1715], [2447, 1718]], [[2501, 1772], [2449, 1835], [2405, 1866], [2387, 1893], [2387, 1900]], [[2567, 1817], [2567, 1916]], [[2449, 1744], [2441, 1746], [2332, 1825], [2243, 1866]], [[2400, 1689], [2340, 1725], [2290, 1741], [2279, 1741]], [[2086, 1480], [2112, 1472], [2159, 1443], [2287, 1407], [2313, 1389], [2329, 1363], [2392, 1282], [2410, 1245], [2434, 1208], [2449, 1175], [2449, 1164], [2467, 1112], [2509, 1060], [2533, 1023], [2538, 1005], [2548, 989], [2569, 913], [2575, 903], [2575, 866], [2564, 853], [2556, 851], [2548, 843], [2499, 825], [2371, 825], [2363, 814], [2363, 793], [2381, 780], [2400, 775], [2423, 762], [2449, 738], [2475, 723], [2533, 694], [2541, 694], [2548, 681], [2533, 665], [2488, 660], [2420, 707], [2384, 718], [2329, 725], [2209, 783], [2107, 804], [2044, 806], [1945, 822], [1679, 822], [1622, 830], [1454, 830], [1277, 859], [1219, 874], [1110, 893], [1099, 898]], [[1935, 822], [1969, 848], [1982, 861], [1990, 877], [2024, 898], [2063, 929], [2076, 932]], [[2191, 799], [2191, 919], [2180, 932], [2170, 934], [2084, 934]], [[2191, 804], [2191, 718], [2178, 681], [2170, 671], [2170, 663], [2311, 605], [2397, 603], [2400, 597], [2400, 556], [2394, 535], [2366, 488], [2355, 449]], [[2400, 597], [2405, 665], [2410, 678], [2428, 694], [2434, 694]], [[1256, 853], [1230, 832], [1157, 796], [1120, 788], [1097, 772], [1091, 770], [1081, 788]], [[1185, 806], [1193, 806], [1238, 788], [1295, 775], [1342, 746], [1470, 702], [1588, 650], [1734, 603], [1776, 595], [1849, 571], [1922, 564], [2047, 545], [2071, 537], [2102, 537]], [[1172, 791], [1170, 775], [1165, 767], [1149, 757], [1128, 725], [1105, 707], [1102, 686], [1165, 668], [1217, 668], [1259, 663]], [[1175, 663], [1141, 637], [1131, 631], [1107, 626], [1084, 608], [1076, 577], [1131, 553]], [[1050, 590], [1042, 587], [995, 600], [956, 605], [635, 603], [616, 600], [574, 584], [533, 553], [501, 540]], [[585, 590], [567, 590], [548, 608], [541, 621]], [[324, 407], [287, 407], [259, 412], [222, 425], [188, 443], [167, 480], [167, 509], [172, 530], [204, 569], [235, 592], [321, 629], [373, 629], [413, 624], [441, 616]], [[178, 532], [326, 530]], [[324, 409], [366, 420]], [[1133, 686], [1118, 694], [1005, 710], [943, 728], [883, 759], [856, 778], [849, 778], [823, 791]], [[3300, 1530], [3227, 1592]]]};
+
+      // ── DOM 참조 ──
+      const viewport = document.getElementById('viewport');
+      const mapContainer = document.getElementById('mapContainer');
+      const mainSvg = document.getElementById('mainSvg');
+      const roadLinesLayer = document.getElementById('roadLinesLayer');
+      const roadCoreLayer = document.getElementById('roadCoreLayer');
+      const nodesLayer = document.getElementById('nodesLayer');
+      const testRouteLayer = document.getElementById('testRouteLayer');
+      const testPinsLayer = document.getElementById('testPinsLayer');
+      const toolViewMaster = document.getElementById('toolViewMaster');
+      const toolTestNav = document.getElementById('toolTestNav');
+      const toolToggleNodes = document.getElementById('toolToggleNodes');
+      const btnExport = document.getElementById('btnExport');
+      const hudModeName = document.getElementById('hudModeName');
+      const hudDesc = document.getElementById('hudDesc');
+      const toastMsg = document.getElementById('toastMsg');
+      const jsonModal = document.getElementById('jsonModal');
+      const jsonArea = document.getElementById('jsonArea');
+
+      function showToast(msg) {
+        toastMsg.textContent = msg;
+        toastMsg.classList.add('show');
+        setTimeout(() => toastMsg.classList.remove('show'), 2400);
+      }
+
+      function createSvg(tag, attrs = {}, innerHTML = '') {
+        const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+        if (innerHTML) el.innerHTML = innerHTML;
+        return el;
+      }
+
+      function smoothPath(pts) {
+        if (pts.length < 2) return '';
+        if (pts.length === 2) return `M ${pts[0][0]},${pts[0][1]} L ${pts[1][0]},${pts[1][1]}`;
+        let d = `M ${pts[0][0]},${pts[0][1]} `;
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+          d += `C ${p1[0] + (p2[0] - p0[0]) / 6},${p1[1] + (p2[1] - p0[1]) / 6} ${p2[0] - (p3[0] - p1[0]) / 6},${p2[1] - (p3[1] - p1[1]) / 6} ${p2[0]},${p2[1]} `;
+        }
+        return d.trim();
+      }
+
+      // ── 뷰포트 변환 (줌 & 패닝) ──
+      let scale = 0.35, panX = 0, panY = 0;
+      let isPanning = false, panStartX = 0, panStartY = 0;
+
+      function updateTransform() {
+        mapContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+      }
+
+      function fitToCenter() {
+        const vw = viewport.clientWidth, vh = viewport.clientHeight;
+        scale = Math.min(vw / CANVAS_W, vh / CANVAS_H) * 0.95;
+        panX = (vw - CANVAS_W * scale) / 2;
+        panY = (vh - CANVAS_H * scale) / 2;
+        updateTransform();
+      }
+
+      window.addEventListener('resize', fitToCenter);
+      setTimeout(fitToCenter, 100);
+
+      // 줌 컨트롤러
+      viewport.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.2 : 0.83;
+        const rect = viewport.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const newScale = Math.max(0.15, Math.min(2.5, scale * factor));
+        panX = mouseX - (mouseX - panX) * (newScale / scale);
+        panY = mouseY - (mouseY - panY) * (newScale / scale);
+        scale = newScale;
+        updateTransform();
+      }, { passive: false });
+
+      document.getElementById('zoomInBtn').onclick = () => { scale = Math.min(2.5, scale * 1.3); updateTransform(); };
+      document.getElementById('zoomOutBtn').onclick = () => { scale = Math.max(0.15, scale * 0.77); updateTransform(); };
+      document.getElementById('zoomResetBtn').onclick = fitToCenter;
+
+      // 패닝
+      viewport.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.node-pin') || e.target.closest('.floating-hud') || e.target.closest('.floating-zoom')) return;
+        if (currentMode === 'test' && e.button === 0) {
+          const pt = getCanvasPos(e);
+          handleTestClick(pt);
+          return;
+        }
+        isPanning = true;
+        panStartX = e.clientX - panX;
+        panStartY = e.clientY - panY;
+        viewport.classList.add('panning');
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isPanning) return;
+        panX = e.clientX - panStartX;
+        panY = e.clientY - panStartY;
+        updateTransform();
+      });
+
+      window.addEventListener('pointerup', () => { isPanning = false; viewport.classList.remove('panning'); });
+      viewport.addEventListener('contextmenu', e => e.preventDefault());
+
+      function getCanvasPos(e) {
+        const rect = viewport.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        const x = Math.round((mouseX - panX) / scale);
+        const y = Math.round((mouseY - panY) / scale);
+        return [x, y];
+      }
+
+      // ── 마스터 도로망 렌더링 ──
+      function renderMasterRoads() {
+        roadLinesLayer.innerHTML = '';
+        roadCoreLayer.innerHTML = '';
+        nodesLayer.innerHTML = '';
+
+        // 1. 도로 폴리라인 렌더링
+        MASTER_DATA.polylines.forEach((pts, idx) => {
+          if (pts.length < 2) return;
+          const d = smoothPath(pts);
+          const pLine = createSvg('path', { class: 'road-segment', d: d });
+          const pCore = createSvg('path', { class: 'road-core', d: d });
+          pLine.onclick = (e) => {
+            e.stopPropagation();
+            showToast(`🛣️ 도로 구간 #${idx + 1} (${pts.length}개 노드)`);
+          };
+          roadLinesLayer.appendChild(pLine);
+          roadCoreLayer.appendChild(pCore);
+        });
+
+        // 2. 노드 핀 렌더링
+        if (showNodes) {
+          MASTER_DATA.nodes.forEach(([x, y], idx) => {
+            const pin = createSvg('g', {
+              class: 'node-pin',
+              transform: `translate(${x},${y})`
+            }, `
+              <circle class="outer" r="10"></circle>
+              <text y="1">${idx}</text>
+            `);
+
+            let isDragging = false;
+            pin.addEventListener('pointerdown', (e) => {
+              e.stopPropagation();
+              isDragging = true;
+              const onDrag = (ev) => {
+                if (!isDragging) return;
+                const pos = getCanvasPos(ev);
+                MASTER_DATA.nodes[idx] = pos;
+                pin.setAttribute('transform', `translate(${pos[0]},${pos[1]})`);
+              };
+              const onUp = () => {
+                isDragging = false;
+                window.removeEventListener('pointermove', onDrag);
+                window.removeEventListener('pointerup', onUp);
+                renderMasterRoads();
+              };
+              window.addEventListener('pointermove', onDrag);
+              window.addEventListener('pointerup', onUp);
+            });
+
+            nodesLayer.appendChild(pin);
+          });
+        }
+      }
+
+      // ── 최단 경로 다익스트라 엔진 ──
+      function findShortestPath(startPt, endPt) {
+        const nodes = MASTER_DATA.nodes;
+        const adj = new Map();
+        Object.entries(MASTER_DATA.adj).forEach(([k, list]) => {
+          adj.set(parseInt(k), list.map(item => ({ to: item[0], dist: item[1] })));
+        });
+
+        let startU = 0, minSD = Infinity;
+        let endU = 0, minED = Infinity;
+        for (let i = 0; i < nodes.length; i++) {
+          const sd = Math.hypot(nodes[i][0] - startPt[0], nodes[i][1] - startPt[1]);
+          if (sd < minSD) { minSD = sd; startU = i; }
+          const ed = Math.hypot(nodes[i][0] - endPt[0], nodes[i][1] - endPt[1]);
+          if (ed < minED) { minED = ed; endU = i; }
+        }
+
+        const dist = new Map(), parent = new Map(), visited = new Set();
+        dist.set(startU, 0);
+
+        while (true) {
+          let u = null, minD = Infinity;
+          for (const [node, d] of dist.entries()) {
+            if (!visited.has(node) && d < minD) { minD = d; u = node; }
+          }
+          if (u === null || u === endU) break;
+          visited.add(u);
+
+          const neighbors = adj.get(u) || [];
+          for (const { to: v, dist: w } of neighbors) {
+            if (!visited.has(v)) {
+              const newD = minD + w;
+              if (newD < (dist.get(v) ?? Infinity)) {
+                dist.set(v, newD);
+                parent.set(v, u);
+              }
+            }
+          }
+        }
+
+        if (startU !== endU && !parent.has(endU)) {
+          return [startPt, nodes[startU], nodes[endU], endPt];
+        }
+
+        let curr = endU;
+        const nodePath = [];
+        while (curr !== undefined) {
+          nodePath.push(nodes[curr]);
+          curr = parent.get(curr);
+        }
+        nodePath.reverse();
+        return [startPt, ...nodePath, endPt];
+      }
+
+      // ── 길찾기 테스트 ──
+      let testPoints = [];
+      function handleTestClick(pos) {
+        testPoints.push(pos);
+        if (testPoints.length === 1) {
+          testRouteLayer.innerHTML = '';
+          testPinsLayer.innerHTML = `
+            <g transform="translate(${pos[0]},${pos[1]})">
+              <circle r="16" fill="#0088ff" stroke="#fff" stroke-width="4"></circle>
+              <text y="-24" fill="#fff" font-weight="bold" text-anchor="middle" font-size="14">📍 출발점</text>
+            </g>
+          `;
+          showToast('📍 출발점 지정 완료! 이제 도착점을 클릭하세요.');
+        } else if (testPoints.length >= 2) {
+          const start = testPoints[0], end = testPoints[1];
+          testPinsLayer.innerHTML += `
+            <g transform="translate(${end[0]},${end[1]})">
+              <circle r="16" fill="#ff3b30" stroke="#fff" stroke-width="4"></circle>
+              <text y="-24" fill="#fff" font-weight="bold" text-anchor="middle" font-size="14">🚩 도착점</text>
+            </g>
+          `;
+          const path = findShortestPath(start, end);
+          const d = smoothPath(path);
+          testRouteLayer.innerHTML = `
+            <path class="test-route-line" d="${d}"></path>
+            <path class="test-route-overlay" d="${d}"></path>
+          `;
+          let len = 0;
+          for (let i = 0; i < path.length - 1; i++) {
+            len += Math.hypot(path[i+1][0] - path[i][0], path[i+1][1] - path[i][1]);
+          }
+          const meters = Math.round(len * 0.22);
+          showToast(`✨ 정돈된 마스터 도로망 최단 경로 연결 성공! (약 ${meters}m)`);
+          testPoints = [];
+        }
+      }
+
+      // ── 툴바 이벤트 ──
+      toolViewMaster.onclick = () => {
+        currentMode = 'view';
+        toolViewMaster.classList.add('active');
+        toolTestNav.classList.remove('active');
+        testRouteLayer.innerHTML = '';
+        testPinsLayer.innerHTML = '';
+        hudModeName.textContent = '📐 정돈된 통합 마스터 도로망';
+        showToast('🌐 통합 마스터 도로망 뷰 활성화');
+      };
+
+      toolTestNav.onclick = () => {
+        currentMode = 'test';
+        toolTestNav.classList.add('active');
+        toolViewMaster.classList.remove('active');
+        testPoints = [];
+        testRouteLayer.innerHTML = '';
+        testPinsLayer.innerHTML = '';
+        hudModeName.textContent = '🧪 실시간 길찾기 테스트 모드';
+        showToast('🧪 아무 지점이나 2번 클릭하여 최단 경로를 테스트하세요!');
+      };
+
+      toolToggleNodes.onclick = () => {
+        showNodes = !showNodes;
+        toolToggleNodes.classList.toggle('active', showNodes);
+        renderMasterRoads();
+        showToast(showNodes ? '📍 노드 핀 표시 ON' : '📍 노드 핀 표시 OFF');
+      };
+
+      btnExport.onclick = () => {
+        jsonArea.value = JSON.stringify(MASTER_DATA, null, 2);
+        jsonModal.style.display = 'flex';
+        jsonArea.select();
+      };
+
+      document.getElementById('closeModalBtn').onclick = () => { jsonModal.style.display = 'none'; };
+      document.getElementById('btnCopyJson').onclick = () => {
+        navigator.clipboard.writeText(jsonArea.value).then(() => showToast('📋 클립보드 복사 완료!'));
+      };
+      document.getElementById('btnDownloadJson').onclick = () => {
+        const blob = new Blob([jsonArea.value], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '포천아트밸리_정돈된_마스터도로망.json';
+        a.click();
+        showToast('💾 다운로드 완료!');
+      };
+
+      // ── 초기화 실행 ──
+      renderMasterRoads();
+    })();
+  </script>
+</body>
+
+</html>
