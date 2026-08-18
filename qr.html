@@ -852,7 +852,9 @@
       }
 
       // ── 동적 경로 렌더링 (단일/복수 코스 & 힐링숲 2색 구간 완벽 지원) ──
-      function renderDynamicRoute(destObj) {
+      let userInteractedWithMap = false;
+
+      function renderDynamicRoute(destObj, shouldFocus = false) {
         activeDestObj = destObj;
         routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; arrowsLayer.innerHTML = ''; destPinsLayer.innerHTML = '';
 
@@ -968,12 +970,15 @@
         // 안내 종료 버튼 노출
         document.getElementById('resetNavRow')?.classList.add('show');
 
-        // 경로가 한눈에 보이도록 스마트 줌 포커스
-        focusBounds(allFocusPoints);
+        // 사용자가 직접 확대한 상태가 아닐 때(또는 목적지 최초 선택 시)만 스마트 줌 포커스
+        if (shouldFocus || !userInteractedWithMap) {
+          focusBounds(allFocusPoints);
+        }
       }
 
       function clearNavigation() {
         activeDestObj = null;
+        userInteractedWithMap = false;
         routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; arrowsLayer.innerHTML = ''; destPinsLayer.innerHTML = '';
         navBanner.style.display = 'none';
         document.getElementById('resetNavRow')?.classList.remove('show');
@@ -1057,7 +1062,11 @@
       window.addEventListener('mousemove', (e) => {
         if (!isPanning) return;
         const dist = Math.hypot(e.clientX - panStartX, e.clientY - panStartY);
-        if (dist > 4) { hasDragged = true; mapZone.classList.add('panning'); }
+        if (dist > 4) {
+          hasDragged = true;
+          userInteractedWithMap = true; // 사용자가 직접 지도 조작함
+          mapZone.classList.add('panning');
+        }
         if (hasDragged) {
           const scaleX = currentVB.w / mapZone.clientWidth;
           const scaleY = currentVB.h / mapZone.clientHeight;
@@ -1076,6 +1085,7 @@
       // PC 마우스 휠 줌
       mapZone.addEventListener('wheel', (e) => {
         e.preventDefault();
+        userInteractedWithMap = true; // 사용자가 직접 줌 조작함
         const factor = e.deltaY > 0 ? 1.15 : 0.85;
         let newW = currentVB.w * factor, newH = currentVB.h * factor;
         if (newW < 500) return;
@@ -1101,6 +1111,7 @@
           panStartVB_X = currentVB.x; panStartVB_Y = currentVB.y;
         } else if (e.touches.length === 2) {
           isPanning = false;
+          userInteractedWithMap = true; // 핀치 줌 시작 시 줌 고정 플래그
           const t1 = e.touches[0], t2 = e.touches[1];
           initialPinchDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
           initialPinchVB = { ...currentVB };
@@ -1111,7 +1122,11 @@
         if (e.touches.length === 1 && isPanning) {
           e.preventDefault();
           const dist = Math.hypot(e.touches[0].clientX - panStartX, e.touches[0].clientY - panStartY);
-          if (dist > 4) { hasDragged = true; mapZone.classList.add('panning'); }
+          if (dist > 4) {
+            hasDragged = true;
+            userInteractedWithMap = true; // 사용자가 직접 지도 드래그함
+            mapZone.classList.add('panning');
+          }
           const scaleX = currentVB.w / mapZone.clientWidth;
           const scaleY = currentVB.h / mapZone.clientHeight;
           let nx = panStartVB_X - (e.touches[0].clientX - panStartX) * scaleX;
@@ -1123,6 +1138,7 @@
           svg.setAttribute('viewBox', `${nx} ${ny} ${currentVB.w} ${currentVB.h}`);
         } else if (e.touches.length === 2 && initialPinchDist && initialPinchVB) {
           e.preventDefault();
+          userInteractedWithMap = true;
           const t1 = e.touches[0], t2 = e.touches[1];
           const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
           const factor = initialPinchDist / Math.max(10, currentDist);
@@ -1157,6 +1173,7 @@
           // 스마트폰 더블 탭 줌 토글 (톡톡 터치 시 줌인/줌아웃)
           const now = performance.now();
           if (now - lastTouchEndTime < 300 && !hasDragged) {
+            userInteractedWithMap = true;
             if (currentVB.w < 2200) zoomToFull();
             else zoomToMyPos();
           }
@@ -1179,7 +1196,8 @@
           chip.onclick = () => {
             document.querySelectorAll('.dest-chip').forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
-            renderDynamicRoute(d);
+            userInteractedWithMap = false; // 새로운 목적지 선택 시 스마트 줌 포커스 실행
+            renderDynamicRoute(d, true);
           };
           destChipsList.appendChild(chip);
         });
