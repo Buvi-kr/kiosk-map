@@ -197,11 +197,11 @@
       display: block;
     }
 
-    /* ── 지도 좌상단 고정 초소형 2줄 내비게이션 캡슐 ── */
+    /* ── 지도 좌하단 고정 초소형 2줄 내비게이션 캡슐 ── */
     .nav-guide-banner {
       position: absolute;
       left: 8px;
-      top: 8px;
+      bottom: 8px;
       background: rgba(13, 19, 28, 0.94);
       border: 1px solid rgba(0, 240, 255, 0.8);
       border-radius: 12px;
@@ -217,7 +217,7 @@
     }
 
     @keyframes bannerPop {
-      0% { transform: translateY(-8px); opacity: 0; }
+      0% { transform: translateY(8px); opacity: 0; }
       100% { transform: translateY(0); opacity: 1; }
     }
 
