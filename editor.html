@@ -811,6 +811,7 @@
       let leafletMap = null;
       let tempSatMarker = null;
       let satAnchorMarkersGroup = null;
+      let satRoadsLayerGroup = null;
       function initLeafletMap() {
         if (leafletMap) {
           setTimeout(() => leafletMap.invalidateSize(), 200);
@@ -818,8 +819,19 @@
         }
         leafletMap = L.map('leafletMap', { zoomControl: true, attributionControl: false }).setView([37.9238, 127.2405], 17);
         const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(leafletMap);
-        L.control.layers({ "🛰️ 고화질 위성 지도": satLayer }, null, { position: 'topright' }).addTo(leafletMap);
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+
+        satRoadsLayerGroup = L.layerGroup().addTo(leafletMap);
         satAnchorMarkersGroup = L.layerGroup().addTo(leafletMap);
+
+        L.control.layers({
+          "🛰️ 고화질 위성 지도": satLayer,
+          "🗺️ OSM 일반 지도": osmLayer
+        }, {
+          "🛣️ 1:1 도로망 오버레이": satRoadsLayerGroup,
+          "📍 24대 GPS 앵커": satAnchorMarkersGroup
+        }, { position: 'topright' }).addTo(leafletMap);
+
         leafletMap.on('click', (e) => {
           const lat = e.latlng.lat.toFixed(6);
           const lng = e.latlng.lng.toFixed(6);
@@ -835,6 +847,62 @@
           showToast(`🛰️ 위성 지도 좌표 캡처! [${lat}, ${lng}]`);
         });
         renderLeafletAnchorMarkers();
+        renderSatelliteRoadNetwork();
+      }
+
+      // ── 조감도 SVG [X, Y] ➔ 실제 위성 GPS [lat, lng] 1:1 역변환기 ──
+      function svgToGps(pos) {
+        if (!gpsAnchors || gpsAnchors.length === 0) return [37.9238, 127.2405];
+        let sorted = gpsAnchors.map(a => ({
+          a,
+          dist: Math.hypot(a.svg[0] - pos[0], a.svg[1] - pos[1])
+        })).sort((a, b) => a.dist - b.dist);
+
+        if (sorted[0].dist < 1) return [sorted[0].a.lat, sorted[0].a.lng];
+
+        const top3 = sorted.slice(0, 3);
+        const w0 = 1 / Math.pow(top3[0].dist, 2.0);
+        const w1 = 1 / Math.pow(top3[1].dist, 2.0);
+        const w2 = 1 / Math.pow(top3[2].dist, 2.0);
+        const totalW = w0 + w1 + w2;
+
+        const lat = (top3[0].a.lat * w0 + top3[1].a.lat * w1 + top3[2].a.lat * w2) / totalW;
+        const lng = (top3[0].a.lng * w0 + top3[1].a.lng * w1 + top3[2].a.lng * w2) / totalW;
+        return [parseFloat(lat.toFixed(6)), parseFloat(lng.toFixed(6))];
+      }
+
+      // ── 우측 위성 지도 위에 1:1 도로망 & DFS 노선 오버레이 렌더링 ──
+      function renderSatelliteRoadNetwork() {
+        if (!satRoadsLayerGroup || !leafletMap) return;
+        satRoadsLayerGroup.clearLayers();
+
+        // 1. 위성 지도 위에 초록색 도로 폴리라인 렌더링
+        MASTER_DATA.polylines.forEach((line, lIdx) => {
+          const latlngs = line.map(pt => svgToGps(pt));
+          const polyline = L.polyline(latlngs, {
+            color: '#00e676',
+            weight: 6,
+            opacity: 0.85,
+            lineCap: 'round',
+            lineJoin: 'round'
+          });
+          polyline.bindTooltip(`🛣️ 도로 노선 #${lIdx + 1}`, { sticky: true });
+          satRoadsLayerGroup.addLayer(polyline);
+        });
+
+        // 2. 위성 지도 위에 170개 도로 노드 핀 렌더링 (진입광장부터 순차적 번호)
+        MASTER_DATA.nodes.forEach((pos, nIdx) => {
+          const gps = svgToGps(pos);
+          const marker = L.circleMarker(gps, {
+            radius: 4.5,
+            fillColor: '#00e676',
+            color: '#ffffff',
+            weight: 1.5,
+            fillOpacity: 0.9
+          });
+          marker.bindTooltip(`<b>노드 #${nIdx}</b><br>SVG: [${pos[0]}, ${pos[1]}]<br>GPS: ${gps[0]}, ${gps[1]}`, { direction: 'top' });
+          satRoadsLayerGroup.addLayer(marker);
+        });
       }
       function renderLeafletAnchorMarkers() {
         if (!satAnchorMarkersGroup) return;
@@ -1160,6 +1228,7 @@
       function renderGpsAnchors() {
         renderSvgOnlyGpsAnchors();
         renderLeafletAnchorMarkers();
+        renderSatelliteRoadNetwork();
       }
 
       function selectAnchor(idx, shouldFly = true) {
