@@ -875,20 +875,28 @@
                 const newLatLng = e.target.getLatLng();
                 node.lat = parseFloat(newLatLng.lat.toFixed(6));
                 node.lng = parseFloat(newLatLng.lng.toFixed(6));
-                node.svg = gpsToSvg(node.lat, node.lng);
 
-                // 좌측 조감도 및 우측 폴리라인 실시간 업데이트
-                renderExtractedRoads(true);
+                // 우측 위성 폴리라인만 실시간 업데이트 (좌측 조감도 핀은 조감도 위에 고정 유지!)
+                satRoadPolylineGroup.clearLayers();
+                generatedRoads.polylines.forEach((lineNodes) => {
+                  const latlngs = lineNodes.map(n => [n.lat, n.lng]);
+                  const poly = L.polyline(latlngs, {
+                    color: '#00e676',
+                    weight: 6,
+                    opacity: 0.9,
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                  });
+                  satRoadPolylineGroup.addLayer(poly);
+                });
               });
 
               marker.on('dragend', (e) => {
                 const finalLatLng = e.target.getLatLng();
                 node.lat = parseFloat(finalLatLng.lat.toFixed(6));
                 node.lng = parseFloat(finalLatLng.lng.toFixed(6));
-                node.svg = gpsToSvg(node.lat, node.lng);
 
-                showToast(`🎯 #${node.id}번 도로 핀 위성 위치 [${node.lat}, ${node.lng}] 영구 고정 완료!`);
-                renderExtractedRoads(false);
+                showToast(`🎯 #${node.id}번 핀 위성 GPS 위치 [${node.lat}, ${node.lng}] 매핑 완료! (조감도 핀은 제자리 고정)`);
               });
 
               satRoadMarkersGroup.addLayer(marker);
