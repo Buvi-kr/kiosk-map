@@ -1128,7 +1128,7 @@
       const POI_MASTER = {
         astro: { name: '천문과학관', svg: [283, 403], lat: 37.924769, lng: 127.243186 },
         sanmaru: { name: '산마루공연장', svg: [238, 625], lat: 37.925086, lng: 127.242402 },
-        monoUpper: { name: '모노레일 하차장(상행)', svg: [662, 657], lat: 37.924572, lng: 127.241796 },
+        monoUpper: { name: '모노레일 상부승강장(상행)', svg: [662, 657], lat: 37.924572, lng: 127.241796 },
         monoDown: { name: '모노레일 하차장(하행)', svg: [1073, 806], lat: 37.924333, lng: 127.24096 },
         lake: { name: '천주호 전망대', svg: [1245, 670], lat: 37.92389, lng: 127.241511 },
         skyGarden: { name: '소원의 하늘정원', svg: [2109, 515], lat: 37.923164, lng: 127.240777 },
@@ -1137,8 +1137,8 @@
         sculpture: { name: '조각공원', svg: [2220, 950], lat: 37.923258, lng: 127.239815 },
         forest: { name: '힐링숲 산책로', svg: [2538, 708], lat: 37.922492, lng: 127.239929 },
         gate: { name: '검표소', svg: [2100, 1516], lat: 37.923398, lng: 127.238089 },
-        monoLower: { name: '모노레일 하부탑승장', svg: [2178, 1904], lat: 37.9237, lng: 127.23691 },
-        ticket: { name: '매표소/돌문화전시관', svg: [2262, 1784], lat: 37.923482, lng: 127.237285 },
+        monoLower: { name: '모노레일 하부탑승장', svg: [2296, 1580], lat: 37.92316, lng: 127.237656 },
+        ticket: { name: '매표소/돌문화전시관', svg: [2418, 1756], lat: 37.92317, lng: 127.23727 },
         artMuseum: { name: '김광우미술관', svg: [2834, 1754], lat: 37.92286, lng: 127.236835 },
         info: { name: '포천관광정보센터/청년여행LAB', svg: [3172, 1506], lat: 37.922362, lng: 127.236968 }
       };
@@ -1149,16 +1149,16 @@
       // ── 편의시설 실측 지도 아이콘 100% 일치 좌표 매핑 ──
       const AMENITIES = {
         toilets: [
-          { name: '천문과학관 화장실', pos: [283, 403], lat: 37.9248, lng: 127.2432 },
           { name: '천주호 화장실', pos: [832, 768], lat: 37.9244, lng: 127.2413 },
-          { name: '매표소 화장실', pos: [2262, 1784], lat: 37.9234, lng: 127.2372 },
+          { name: '천문과학관 화장실', pos: [283, 403], lat: 37.9248, lng: 127.2432 },
+          { name: '매표소 화장실', pos: [2418, 1756], lat: 37.92317, lng: 127.23727 },
           { name: '정보센터 화장실', pos: [3172, 1506], lat: 37.9223, lng: 127.2370 }
         ],
         shops: [
-          { name: '천문과학관/산마루 매점', pos: [104, 451], lat: 37.9250, lng: 127.2431 },
-          { name: '천주호 매점', pos: [1036, 730], lat: 37.9242, lng: 127.2412 },
           { name: '전망카페', pos: [2538, 708], lat: 37.9225, lng: 127.2399 },
-          { name: '입구 매점/스낵', pos: [2262, 1784], lat: 37.9234, lng: 127.2372 }
+          { name: '천주호 매점', pos: [1036, 730], lat: 37.9242, lng: 127.2412 },
+          { name: '천문과학관/산마루 매점', pos: [104, 451], lat: 37.9250, lng: 127.2431 },
+          { name: '입구', pos: [2262, 1784], lat: 37.923482, lng: 127.237285 }
         ]
       };
 
@@ -1175,22 +1175,22 @@
         { id: 'lakeStage', cat: 'spot', label: '호수공연장', icon: '🎪', color: 'cyan', pos: [2344, 444] },
         { id: 'artMuseum', cat: 'spot', label: '김광우미술관', icon: '🎨', color: 'cyan', pos: [2834, 1754] },
 
-        // 🚻 편의시설 (amenity)
-        { id: 'nearest_toilet', cat: 'amenity', label: '⚡가까운 화장실', icon: '🚻', color: 'amber', isDynamic: true, type: 'toilet' },
-        { id: 't_astro', cat: 'amenity', label: '천문과학관 화장실', icon: '🚻', color: 'cyan', pos: [283, 403] },
-        { id: 't_lake', cat: 'amenity', label: '천주호 화장실', icon: '🚻', color: 'cyan', pos: [834, 764] },
-        { id: 't_ticket', cat: 'amenity', label: '매표소 화장실', icon: '🚻', color: 'red', pos: [2262, 1784] },
-        { id: 't_info', cat: 'amenity', label: '정보센터 화장실', icon: '🚻', color: 'cyan', pos: [3172, 1506] },
-        { id: 'nearest_shop', cat: 'amenity', label: '⚡가까운 매점/카페', icon: '🥤', color: 'amber', isDynamic: true, type: 'shop' },
-        { id: 's_astro', cat: 'amenity', label: '천문과학관/산마루 매점', icon: '🥤', color: 'cyan', pos: [104, 451] },
-        { id: 's_lake', cat: 'amenity', label: '천주호 매점', icon: '🥤', color: 'cyan', pos: [1036, 730] },
-        { id: 's_cafe', cat: 'amenity', label: '전망카페', icon: '☕', color: 'amber', pos: [2538, 708] },
-        { id: 's_ticket', cat: 'amenity', label: '입구 매점/스낵', icon: '🥪', color: 'red', pos: [2262, 1784] },
+        // 🚻 편의시설 (amenity) - 좌/우 2열 페어링
+        { id: 'nearest_toilet', cat: 'amenity', subType: 'toilet', label: '⚡가까운 화장실', icon: '🚻', color: 'amber', isDynamic: true, type: 'toilet' },
+        { id: 'nearest_shop', cat: 'amenity', subType: 'shop', label: '⚡가까운 매점/카페', icon: '🥤', color: 'amber', isDynamic: true, type: 'shop' },
+        { id: 't_lake', cat: 'amenity', subType: 'toilet', label: '천주호 화장실', icon: '🚻', color: 'cyan', pos: [832, 768] },
+        { id: 's_cafe', cat: 'amenity', subType: 'shop', label: '전망카페', icon: '☕', color: 'amber', pos: [2538, 708] },
+        { id: 't_astro', cat: 'amenity', subType: 'toilet', label: '천문과학관 화장실', icon: '🚻', color: 'cyan', pos: [283, 403] },
+        { id: 's_lake', cat: 'amenity', subType: 'shop', label: '천주호 매점', icon: '🥤', color: 'cyan', pos: [1036, 730] },
+        { id: 't_ticket', cat: 'amenity', subType: 'toilet', label: '매표소 화장실', icon: '🚻', color: 'red', pos: [2418, 1756] },
+        { id: 's_astro', cat: 'amenity', subType: 'shop', label: '산마루 매점', icon: '🥤', color: 'cyan', pos: [104, 451] },
+        { id: 't_info', cat: 'amenity', subType: 'toilet', label: '정보센터 화장실', icon: '🚻', color: 'cyan', pos: [3172, 1506] },
+        { id: 's_ticket', cat: 'amenity', subType: 'shop', label: '입구', icon: '🥪', color: 'red', pos: [2262, 1784] },
 
         // 🚡 교통/매표 (transit)
         { id: 'mono_down', cat: 'transit', label: '모노레일 하차장(하행)', icon: '🚡', color: 'cyan', pos: [1073, 806] },
-        { id: 'mono_up', cat: 'transit', label: '모노레일 하부탑승장', icon: '🚡', color: 'red', pos: [2178, 1904] },
-        { id: 'ticket', cat: 'transit', label: '매표소/돌문화전시관', icon: '🎫', color: 'red', pos: [2262, 1784] },
+        { id: 'mono_up', cat: 'transit', label: '모노레일 하부탑승장', icon: '🚡', color: 'red', pos: [2296, 1580] },
+        { id: 'ticket', cat: 'transit', label: '매표소/돌문화전시관', icon: '🎫', color: 'red', pos: [2418, 1756] },
         { id: 'info', cat: 'transit', label: '포천관광정보센터/청년여행LAB', icon: 'ℹ️', color: 'cyan', pos: [3172, 1506] },
         { id: 'gate', cat: 'transit', label: '검표소', icon: '🚧', color: 'amber', pos: [2100, 1516] }
       ];
