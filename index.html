@@ -61,10 +61,10 @@
     }
 
     .kiosk-frame {
-      width: 100%;
-      max-width: 560px;
-      height: 100%;
-      max-height: 100dvh;
+      width: 100vw;
+      max-width: 680px;
+      height: 100vh;
+      height: 100dvh;
       background: var(--panel-bg);
       overflow: hidden;
       display: flex;
@@ -74,18 +74,10 @@
       box-shadow: none;
     }
 
-    @media (min-width: 600px) and (min-height: 750px) {
-      .kiosk-frame {
-        height: min(100vh - 20px, 960px);
-        border-radius: 20px;
-        box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .8), 0 0 0 1px #232b37;
-      }
-    }
-
     /* ① 상단 제목 영역 */
     .header-zone {
       flex: none;
-      padding: 10px 20px;
+      padding: clamp(10px, 1.4vh, 16px) 16px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -93,23 +85,23 @@
       background: linear-gradient(180deg, #141a24, #0f131a);
       border-bottom: 1px solid #1f2735;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-      min-height: 76px;
+      min-height: clamp(54px, 6.5vh, 72px);
     }
 
     .header-logo {
       position: absolute;
-      left: 14px;
+      left: 16px;
       top: 50%;
       transform: translateY(-50%);
-      height: 24px;
-      max-width: 60px;
+      height: clamp(24px, 3.2vh, 34px);
+      max-width: 80px;
       object-fit: contain;
-      opacity: 0.85;
+      opacity: 0.9;
       filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
     }
 
     .main-title {
-      font-size: 26px;
+      font-size: clamp(21px, 2.8vh, 28px);
       font-weight: 900;
       letter-spacing: -0.03em;
       margin: 0;
@@ -130,30 +122,87 @@
       -webkit-text-fill-color: transparent;
     }
 
-    /* ── 우측 대형 QR 코드 박스 ── */
-    .header-qr-box {
-      position: absolute;
-      right: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 62px;
-      height: 62px;
+    /* ── 하단 초대형 QR 스마트 가이드 배너 ── */
+    .kiosk-qr-banner {
+      display: flex;
+      align-items: center;
+      gap: clamp(12px, 2vw, 18px);
+      padding: clamp(10px, 1.4vh, 16px) clamp(12px, 2vw, 18px);
+      background: linear-gradient(135deg, #182230 0%, #101620 100%);
+      border: 2px solid #33445c;
+      border-radius: clamp(14px, 1.8vh, 20px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      flex: 1 1 auto;
+      min-height: clamp(100px, 14vh, 145px);
+      margin-top: clamp(4px, 0.8vh, 8px);
+    }
+
+    .qr-code-wrapper {
+      flex: none;
+      width: clamp(96px, 13vh, 130px);
+      height: clamp(96px, 13vh, 130px);
       background: #ffffff;
-      border-radius: 8px;
-      padding: 3px;
-      box-shadow: 0 0 16px rgba(0, 230, 118, 0.5), 0 4px 12px rgba(0, 0, 0, 0.5);
-      border: 2px solid #00e676;
+      border-radius: clamp(10px, 1.4vh, 16px);
+      padding: 5px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+      border: 2px solid #e2e8f0;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
     }
 
-    .header-qr-box img,
-    .header-qr-box canvas {
-      width: 56px !important;
-      height: 56px !important;
+    .qr-code-wrapper img,
+    .qr-code-wrapper canvas {
+      width: 100% !important;
+      height: 100% !important;
       display: block;
+      object-fit: contain;
+    }
+
+    .qr-info-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: clamp(3px, 0.6vh, 6px);
+      min-width: 0;
+    }
+
+    .qr-badge {
+      align-self: flex-start;
+      font-size: clamp(11px, 1.4vh, 13px);
+      font-weight: 800;
+      color: #00e676;
+      background: rgba(0, 230, 118, 0.15);
+      border: 1px solid rgba(0, 230, 118, 0.45);
+      padding: 2px clamp(6px, 1vw, 10px);
+      border-radius: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    .qr-title {
+      font-size: clamp(17px, 2.3vh, 23px);
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.25;
+      letter-spacing: -0.03em;
+    }
+
+    .qr-title b {
+      color: #ffd400;
+      background: linear-gradient(180deg, #fff380 20%, #ffb800 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .qr-desc {
+      font-size: clamp(12px, 1.5vh, 15px);
+      font-weight: 600;
+      color: #a0aec0;
+      line-height: 1.35;
+      letter-spacing: -0.02em;
     }
 
     /* ── 지도 영역 (3337 x 2101 고화질 비율) ── */
@@ -461,22 +510,25 @@
     /* ── 조작 영역 ── */
     .control-zone {
       background: linear-gradient(180deg, var(--panel-bg2), #0c0f14);
-      padding: 14px 14px 10px;
+      padding: clamp(8px, 1.2vh, 14px) clamp(10px, 1.8vw, 16px) clamp(8px, 1.2vh, 12px);
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      overflow-y: auto;
-      overflow-x: hidden;
+      gap: clamp(4px, 0.8vh, 8px);
+      overflow: hidden;
       flex: 1 1 0;
+      min-height: 0;
     }
 
     .hint {
-      font-size: 16px;
+      font-size: clamp(14px, 1.8vh, 17px);
       color: var(--muted);
-      line-height: 1.45;
-      min-height: 44px;
-      margin-bottom: 2px;
+      line-height: 1.3;
+      min-height: clamp(24px, 3vh, 36px);
+      margin-bottom: 0px;
       text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .hint b {
@@ -490,9 +542,9 @@
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
-      padding: 6px 12px;
+      padding: 3px 10px;
       background: rgba(0, 0, 0, 0.45);
-      border-radius: 12px;
+      border-radius: 10px;
       border: 1px solid #2c3646;
     }
 
@@ -504,13 +556,13 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 14px;
+      font-size: clamp(12px, 1.4vh, 14px);
       font-weight: 700;
     }
 
     .legend-dot {
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       display: inline-block;
     }
@@ -533,21 +585,22 @@
     .btn-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: clamp(6px, 1vh, 10px);
+      flex-shrink: 0;
     }
 
     .dest-btn {
       background: #19202a;
       border: 1.5px solid #2d3848;
       color: var(--ink);
-      border-radius: 14px;
-      padding: 16px 10px;
-      font-size: 18px;
+      border-radius: clamp(10px, 1.4vh, 14px);
+      padding: clamp(10px, 1.5vh, 16px) 8px;
+      font-size: clamp(15px, 2vh, 19px);
       font-weight: 700;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 6px;
+      gap: clamp(2px, 0.5vh, 5px);
       cursor: pointer;
       position: relative;
       overflow: hidden;
@@ -555,12 +608,31 @@
     }
 
     .dest-btn .ico {
-      font-size: 28px;
+      font-size: clamp(20px, 2.6vh, 26px);
       transition: transform .15s;
     }
 
     .dest-btn:active {
       transform: scale(.96);
+    }
+
+    .reset-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    .reset-row button {
+      flex: 1;
+      background: #1a2028;
+      border: 1px solid #2c3646;
+      color: var(--muted);
+      border-radius: clamp(8px, 1.2vh, 12px);
+      padding: clamp(7px, 1vh, 11px) 8px;
+      font-size: clamp(12px, 1.5vh, 14px);
+      font-weight: 700;
+      cursor: pointer;
     }
 
     /* 목적지별 고유 테마 컬러 & 은은한 서브 글로우 */
@@ -619,24 +691,6 @@
     .dest-btn.editing {
       border-color: #ffd400 !important;
       box-shadow: 0 0 0 1px #ffd400 inset !important;
-    }
-
-    .reset-row {
-      display: flex;
-      gap: 6px;
-      margin-top: 2px;
-    }
-
-    .reset-row button {
-      flex: 1;
-      background: #1a2028;
-      border: 1px solid #2c3646;
-      color: var(--muted);
-      border-radius: 12px;
-      padding: 12px 10px;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
     }
 
     /* ── 관리자 바 & 내보내기 ── */
@@ -863,9 +917,6 @@
     <div class="header-zone">
       <img src="logo.png" onerror="this.src='천문과학관_로고.png'; this.onerror=function(){this.style.display='none';};" alt="로고" class="header-logo">
       <h1 class="main-title"><span class="point-text">아트밸리</span> 길찾기</h1>
-      <div class="header-qr-box" id="headerQrBox" title="스마트폰으로 스캔하여 실시간 모바일 가이드 열기">
-        <div id="headerQrCode"></div>
-      </div>
     </div>
 
     <!-- ② 고화질 지도 영역 (3337 x 2101) -->
@@ -930,6 +981,18 @@
       </div>
 
       <div class="reset-row" id="previewReset"><button id="stopBtn">⟲ 처음으로 / 전체 지도 보기</button></div>
+
+      <!-- 스마트폰 모바일 가이드 대형 QR 배너 -->
+      <div class="kiosk-qr-banner" id="kioskQrBanner">
+        <div class="qr-code-wrapper" title="스마트폰 카메라로 스캔하여 실시간 모바일 가이드 열기">
+          <div id="kioskQrCode"></div>
+        </div>
+        <div class="qr-info-content">
+          <div class="qr-badge">📱 모바일 실시간 가이드</div>
+          <div class="qr-title">내 폰으로 <b>스마트 지도 & GPS 길찾기</b></div>
+          <div class="qr-desc">카메라로 QR을 비추면 실시간 내 위치와 편의시설이 내 폰에 바로 열립니다.</div>
+        </div>
+      </div>
 
       <div class="edit-toolbar" id="editToolbar">
         <button id="addPathBtn">+ 경로 추가</button>
@@ -1447,12 +1510,15 @@
         exportBox.classList.remove('show');
       });
 
+      const kioskQrBanner = document.getElementById('kioskQrBanner');
+
       modeToggleBtn.addEventListener('click', () => {
         editMode = !editMode;
         modeToggleBtn.classList.toggle('on', editMode);
         modeToggleBtn.textContent = editMode ? '✅ 제작 모드 ON' : '🖊 경로 제작 모드';
         editToolbar.classList.toggle('show', editMode);
         previewReset.style.display = editMode ? 'none' : 'flex';
+        if (kioskQrBanner) kioskQrBanner.style.display = editMode ? 'none' : 'flex';
         exportBox.classList.remove('show');
 
         if (editMode) {
@@ -1574,13 +1640,13 @@
           targetUrl = 'https://kiosk-map.cje0173.workers.dev/qr.html';
         }
 
-        const headerQrCodeEl = document.getElementById('headerQrCode');
-        if (typeof QRCode !== 'undefined' && headerQrCodeEl) {
-          headerQrCodeEl.innerHTML = '';
-          new QRCode(headerQrCodeEl, {
+        const kioskQrCodeEl = document.getElementById('kioskQrCode');
+        if (typeof QRCode !== 'undefined' && kioskQrCodeEl) {
+          kioskQrCodeEl.innerHTML = '';
+          new QRCode(kioskQrCodeEl, {
             text: targetUrl,
-            width: 56,
-            height: 56,
+            width: 108,
+            height: 108,
             colorDark: '#000000',
             colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.M
