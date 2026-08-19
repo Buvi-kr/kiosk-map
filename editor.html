@@ -871,39 +871,45 @@
         return [parseFloat(lat.toFixed(6)), parseFloat(lng.toFixed(6))];
       }
 
+      let isGroupDragEnabled = true; // 뭉탱이 탄성 드래그 모드 기본 ON
+      let groupDragRadiusMeters = 100; // 영향 반경 100미터
+
       // ── 우측 위성 지도 위에 1:1 도로망 & DFS 노선 오버레이 렌더링 ──
       function renderSatelliteRoadNetwork() {
         if (!satRoadsLayerGroup || !leafletMap) return;
         satRoadsLayerGroup.clearLayers();
 
-        // 1. 위성 지도 위에 초록색 도로 폴리라인 렌더링
+        // 1. 위성 지도 위에 초록색 도로 폴리라인 렌더링 (마우스 간섭 차단: interactive: false)
         MASTER_DATA.polylines.forEach((line, lIdx) => {
           const latlngs = line.map(pt => svgToGps(pt));
           const polyline = L.polyline(latlngs, {
             color: '#00e676',
-            weight: 6,
-            opacity: 0.85,
+            weight: 5,
+            opacity: 0.8,
             lineCap: 'round',
-            lineJoin: 'round'
+            lineJoin: 'round',
+            interactive: false
           });
-          polyline.bindTooltip(`🛣️ 도로 노선 #${lIdx + 1}`, { sticky: true });
           satRoadsLayerGroup.addLayer(polyline);
         });
 
-        // 2. 위성 지도 위에 170개 도로 노드 핀 렌더링 (진입광장부터 순차적 번호)
+        // 2. 위성 지도 위에 170개 도로 노드 핀 렌더링 (마우스 간섭 차단: interactive: false)
         MASTER_DATA.nodes.forEach((pos, nIdx) => {
           const gps = svgToGps(pos);
           const marker = L.circleMarker(gps, {
-            radius: 4.5,
+            radius: 3.5,
             fillColor: '#00e676',
             color: '#ffffff',
-            weight: 1.5,
-            fillOpacity: 0.9
+            weight: 1.2,
+            fillOpacity: 0.9,
+            interactive: false
           });
-          marker.bindTooltip(`<b>노드 #${nIdx}</b><br>SVG: [${pos[0]}, ${pos[1]}]<br>GPS: ${gps[0]}, ${gps[1]}`, { direction: 'top' });
           satRoadsLayerGroup.addLayer(marker);
         });
       }
+
+      let dragStartAnchorsState = null;
+
       function renderLeafletAnchorMarkers() {
         if (!satAnchorMarkersGroup) return;
         satAnchorMarkersGroup.clearLayers();
@@ -914,19 +920,20 @@
             className: 'custom-sat-draggable-pin',
             html: `
               <div style="display:flex; flex-direction:column; align-items:center; cursor:grab; pointer-events:auto;">
-                <div style="background:${pinColor}; width:20px; height:20px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 0 12px ${pinColor};"></div>
+                <div style="background:${pinColor}; width:22px; height:22px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 0 14px ${pinColor}; transition:transform 0.1s;"></div>
                 <div style="background:rgba(15,23,42,0.95); color:#ffffff; font-size:11px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid ${pinColor}; white-space:nowrap; margin-top:2px; pointer-events:none;">
                   ${a.name}
                 </div>
               </div>
             `,
-            iconSize: [80, 44],
-            iconAnchor: [40, 10]
+            iconSize: [80, 46],
+            iconAnchor: [40, 11]
           });
 
           const marker = L.marker([a.lat, a.lng], {
             icon: customIcon,
             draggable: true,
+            zIndexOffset: isSelected ? 2000 : 1000,
             autoPan: true
           });
 
@@ -938,27 +945,51 @@
           marker.on('dragstart', (e) => {
             L.DomEvent.stopPropagation(e);
             selectedAnchorIdx = idx;
+            // 드래그 시작 시점의 모든 앵커 위치 스냅샷
+            dragStartAnchorsState = gpsAnchors.map(anc => ({ lat: anc.lat, lng: anc.lng }));
           });
 
           marker.on('drag', (e) => {
             const newPos = e.target.getLatLng();
-            const lat = parseFloat(newPos.lat.toFixed(6));
-            const lng = parseFloat(newPos.lng.toFixed(6));
-            gpsAnchors[idx].lat = lat;
-            gpsAnchors[idx].lng = lng;
+            const startOrigin = dragStartAnchorsState[idx];
+            const dLat = newPos.lat - startOrigin.lat;
+            const dLng = newPos.lng - startOrigin.lng;
+
+            if (isGroupDragEnabled) {
+              // 🧲 뭉탱이 탄성 드래그: 주변 앵커들도 거리에 따라 부드럽게 함께 슬쩍슬쩍 이동!
+              gpsAnchors.forEach((anc, aIdx) => {
+                if (aIdx === idx) {
+                  anc.lat = parseFloat(newPos.lat.toFixed(6));
+                  anc.lng = parseFloat(newPos.lng.toFixed(6));
+                } else {
+                  const initPos = dragStartAnchorsState[aIdx];
+                  // 미터 단위 거리 계산
+                  const distMeters = Math.hypot((initPos.lat - startOrigin.lat) * 111000, (initPos.lng - startOrigin.lng) * 88000);
+                  if (distMeters < groupDragRadiusMeters) {
+                    const factor = Math.pow(1 - distMeters / groupDragRadiusMeters, 2.0); // 2차 감쇠 탄성
+                    anc.lat = parseFloat((initPos.lat + dLat * factor).toFixed(6));
+                    anc.lng = parseFloat((initPos.lng + dLng * factor).toFixed(6));
+                  }
+                }
+              });
+            } else {
+              gpsAnchors[idx].lat = parseFloat(newPos.lat.toFixed(6));
+              gpsAnchors[idx].lng = parseFloat(newPos.lng.toFixed(6));
+            }
 
             const ancLatInput = document.getElementById('ancLatInput');
             const ancLngInput = document.getElementById('ancLngInput');
-            if (ancLatInput) ancLatInput.value = lat;
-            if (ancLngInput) ancLngInput.value = lng;
-            if (satCoordDisplay) satCoordDisplay.textContent = `lat: ${lat}, lng: ${lng}`;
+            if (ancLatInput) ancLatInput.value = gpsAnchors[idx].lat;
+            if (ancLngInput) ancLngInput.value = gpsAnchors[idx].lng;
+            if (satCoordDisplay) satCoordDisplay.textContent = `lat: ${gpsAnchors[idx].lat}, lng: ${gpsAnchors[idx].lng}`;
 
-            // 좌측 들로네 삼각망만 실시간 갱신 (Leaflet 레이어 재생성 방지!)
+            // 좌측 들로네 삼각망 & 우측 위성 도로망 실시간 재계산
             renderSvgOnlyGpsAnchors();
+            renderSatelliteRoadNetwork();
           });
 
           marker.on('dragend', () => {
-            showToast(`🎯 '${a.name}' 위성 GPS 위치 조정 완료! [${gpsAnchors[idx].lat}, ${gpsAnchors[idx].lng}]`);
+            showToast(`🎯 '${a.name}' 및 주변 일대 위치 조정 완료!`);
             renderGpsAnchors();
           });
 
@@ -1281,6 +1312,19 @@
               </div>
             </div>
 
+            <!-- 🧲 뭉탱이 탄성 이동 토글 버튼 -->
+            <div style="background:rgba(255,255,255,0.06); padding:8px; border-radius:8px; margin-top:8px; border:1px solid rgba(255,255,255,0.1);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <span style="font-size:12px; font-weight:800; color:#00e676;">🧲 뭉탱이 탄성 당기기</span>
+                <button id="btnToggleGroupDrag" class="btn-tool" style="padding:2px 8px; font-size:11px; background:${isGroupDragEnabled ? '#00e676' : '#64748b'}; color:#0f172a; font-weight:800;">
+                  ${isGroupDragEnabled ? '● 켜짐 (ON)' : '○ 꺼짐 (OFF)'}
+                </button>
+              </div>
+              <div style="font-size:11px; color:#94a3b8; line-height:1.3;">
+                핀 하나를 잡고 당기면 주변 도로/앵커들도 거리에 맞게 부드럽게 함께 딸려옵니다!
+              </div>
+            </div>
+
             <!-- 24개 GPS 앵커 JSON 복사 버튼 (눈에 확 띄게 주황색) -->
             <button class="btn-action btn-export" id="btnCopyAnchorsJson" style="width:100%; margin-top:8px; background:linear-gradient(135deg,#ff9500,#ea580c); color:#ffffff; font-weight:800; box-shadow:0 4px 14px rgba(255,149,0,0.4);">
               📋 24개 GPS 앵커 JSON 복사 (QR적용용)
@@ -1291,6 +1335,11 @@
               🚀 170개 도로 핀 전체 GPS 자동 매핑
             </button>
           `;
+          document.getElementById('btnToggleGroupDrag').onclick = () => {
+            isGroupDragEnabled = !isGroupDragEnabled;
+            renderHudForMode();
+            showToast(isGroupDragEnabled ? '🧲 뭉탱이 탄성 이동 모드 [켜짐]' : '🎯 단독 개별 이동 모드 [켜짐]');
+          };
           document.getElementById('btnSaveAnchor').onclick = () => {
             const name = document.getElementById('ancNameInput').value;
             const lat = parseFloat(document.getElementById('ancLatInput').value);
