@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>포천아트밸리 1:1 도로 직접 매핑 스튜디오 (STUDIO)</title>
+  <title>포천아트밸리 차세대 스마트 브러시 도로 스튜디오 (STUDIO)</title>
   <!-- Leaflet GIS Map CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -67,7 +67,7 @@
     }
 
     .app-title span {
-      background: linear-gradient(135deg, #00f0ff, #0088ff);
+      background: linear-gradient(135deg, #00f0ff, #00e676);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -80,12 +80,12 @@
     }
 
     .btn-tool {
-      padding: 8px 14px;
+      padding: 7px 13px;
       border-radius: 10px;
       border: 1px solid #283548;
       background: #182230;
       color: #cbd5e1;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
@@ -106,9 +106,9 @@
     }
 
     .btn-action {
-      padding: 8px 16px;
+      padding: 8px 15px;
       border-radius: 10px;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 800;
       cursor: pointer;
       border: none;
@@ -134,11 +134,15 @@
       position: relative;
       overflow: hidden;
       background: #0b111c;
-      cursor: crosshair;
+      cursor: default;
     }
 
     .left-viewport-pane.panning {
       cursor: grab;
+    }
+
+    .left-viewport-pane.drawing {
+      cursor: crosshair;
     }
 
     /* 우측: 실제 위성 지도 */
@@ -182,7 +186,7 @@
       height: 100%;
     }
 
-    /* ── 조감도 캔버스 SVG ── */
+    /* ── 조감도 캔버스 컨테이너 ── */
     .map-canvas-container {
       position: absolute;
       top: 0;
@@ -199,46 +203,68 @@
       pointer-events: none;
     }
 
+    #brushCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3337px;
+      height: 2101px;
+      pointer-events: none;
+      z-index: 2;
+    }
+
     #mainSvg {
       position: absolute;
       top: 0;
       left: 0;
       width: 3337px;
       height: 2101px;
+      z-index: 3;
     }
 
-    /* 도로 선 스타일 */
-    .drawn-road-line {
+    /* 생성된 도로망 스타일 */
+    .extracted-road-line {
       fill: none;
       stroke: #00e676;
-      stroke-width: 10;
+      stroke-width: 9;
       stroke-linecap: round;
       stroke-linejoin: round;
-      filter: drop-shadow(0 0 8px rgba(0, 230, 118, 0.7));
+      filter: drop-shadow(0 0 8px rgba(0, 230, 118, 0.8));
     }
 
-    .drawn-road-core {
+    .extracted-road-core {
       fill: none;
       stroke: #ffffff;
-      stroke-width: 4;
+      stroke-width: 3.5;
       stroke-linecap: round;
       stroke-linejoin: round;
     }
 
-    .drawn-road-point {
+    .extracted-node-handle {
       cursor: pointer;
     }
 
-    .drawn-road-point text {
+    .extracted-node-handle circle.outer {
+      fill: #00e676;
+      opacity: 0.35;
+    }
+
+    .extracted-node-handle circle.core {
+      fill: #00e676;
+      stroke: #ffffff;
+      stroke-width: 2;
+    }
+
+    .extracted-node-handle text {
       fill: #ffffff;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 800;
       text-anchor: middle;
       text-shadow: 0 2px 4px #000;
       pointer-events: none;
     }
 
-    /* 24대 핵심 앵커 핀 (주황/노랑) */
+    /* 24대 핵심 앵커 핀 */
     .gps-anchor-pin {
       cursor: grab;
     }
@@ -259,10 +285,9 @@
       pointer-events: none;
     }
 
-    /* 들로네 삼각망 선 */
     .delaunay-edge {
       fill: none;
-      stroke: rgba(255, 149, 0, 0.35);
+      stroke: rgba(255, 149, 0, 0.3);
       stroke-width: 1.5;
       stroke-dasharray: 4, 4;
     }
@@ -272,7 +297,7 @@
       position: absolute;
       bottom: 20px;
       left: 20px;
-      width: 380px;
+      width: 400px;
       background: rgba(16, 22, 34, 0.96);
       backdrop-filter: blur(14px);
       border: 1px solid var(--panel-border);
@@ -288,8 +313,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
-      color: #00e676;
+      margin-bottom: 10px;
     }
 
     .form-btn-row {
@@ -378,21 +402,23 @@
     <!-- 상단 툴바 -->
     <header class="top-header">
       <div class="app-title">
-        <span>📍 24개 앵커 조율 & 1:1 도로 스튜디오</span>
+        <span>🖌️ 도로 형광펜 브러시 스튜디오</span>
       </div>
 
       <div class="tool-group">
-        <button class="btn-tool active" id="btnModeAnchors" style="border-color:#ff9500; color:#ff9500; background:rgba(255,149,0,0.15); font-weight:800;">📍 24개 앵커 정밀 조율</button>
-        <button class="btn-tool" id="btnModeRoads" style="border-color:#00e676; color:#00e676;">🛣️ 1:1 도로 콕콕 찍기</button>
-        <button class="btn-action btn-export" id="btnCopyAnchorsJson" style="background:linear-gradient(135deg,#ff9500,#ea580c); color:#ffffff; font-weight:800;">📋 24개 앵커 JSON 복사 (QR용)</button>
-        <button class="btn-action btn-export" id="btnExportJson">💾 도로망 JSON 내보내기</button>
+        <button class="btn-tool active" id="btnToolBrush" style="border-color:#00e676; color:#00e676; background:rgba(0,230,118,0.15);">🖌️ 길 칠하기 (브러시)</button>
+        <button class="btn-tool" id="btnToolEraser">🧹 지우개</button>
+        <button class="btn-tool" id="btnToolPan">✋ 지도 이동 (Pan)</button>
+        <button class="btn-tool" id="btnToggleAnchors">📍 24개 앵커 표시</button>
+        <button class="btn-action btn-export" id="btnGenerateRoads" style="background:linear-gradient(135deg,#00e676,#059669); color:#0f172a; font-weight:800;">⚡ 도로망 자동 생성 & 위성 투영</button>
+        <button class="btn-action btn-export" id="btnExportJson">💾 JSON 추출</button>
       </div>
     </header>
 
     <!-- 스플릿 듀얼 바디 -->
     <div class="studio-body" id="studioBody">
       <!-- 좌측: 조감도 뷰포트 -->
-      <main class="left-viewport-pane" id="viewport">
+      <main class="left-viewport-pane drawing" id="viewport">
         <div class="floating-zoom">
           <button class="zoom-btn" id="zoomInBtn" title="확대">➕</button>
           <button class="zoom-btn" id="zoomOutBtn" title="축소">➖</button>
@@ -402,41 +428,46 @@
         <!-- 플로팅 컨트롤러 패널 -->
         <div class="floating-hud" id="floatingHud">
           <div class="hud-title">
-            <span id="hudStepTitle">📍 24대 핵심 GPS 앵커 조율</span>
-            <span id="hudPointCount" style="color:#ff9500; font-size:13px;">● 24개 앵커</span>
+            <span id="hudToolTitle" style="color:#00e676;">🖌️ 형광펜 브러시 모드</span>
+            <span id="hudStatus" style="font-size:12px; color:#cbd5e1;">● 드로잉 중</span>
           </div>
 
-          <div id="hudBodyText" style="font-size:12px; color:#cbd5e1; line-height:1.4; margin-bottom:10px;">
-            • <strong>좌측 조감도 주황색 핀</strong> 또는 <strong>우측 위성 지도 핀</strong>을 마우스로 잡고 끌어 원하는 위치로 이동하세요!
+          <div style="font-size:12px; color:#cbd5e1; line-height:1.4; margin-bottom:8px;">
+            1. 조감도 길 위를 <strong>마우스로 쓱쓱 색칠</strong>하세요 (갈림길/삼거리도 자유롭게 칠하기!)<br>
+            2. 상단 <strong>[⚡ 도로망 자동 생성]</strong>을 누르면 1초 만에 위성 지도에 1:1로 착 연결됩니다!<br>
+            3. 우측 위성 지도에서 <strong>초록색 핀을 살짝 잡아끌어 위성 길에 미세조정</strong>하면 끝!
           </div>
 
-          <div id="anchorDetailCard" style="background:rgba(255,149,0,0.1); border:1px solid rgba(255,149,0,0.3); padding:10px; border-radius:8px; margin-bottom:8px;">
-            <div style="font-size:11px; color:#94a3b8;">선택된 앵커:</div>
-            <div id="hudSelectedAnchorName" style="font-size:14px; font-weight:bold; color:#ff9500; margin-top:2px;">
-              핀을 클릭하세요
+          <!-- 브러시 굵기 조절 -->
+          <div style="background:rgba(255,255,255,0.05); padding:8px 12px; border-radius:8px; display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <span style="font-size:12px; font-weight:bold;">🖌️ 브러시 굵기:</span>
+            <div style="display:flex; gap:6px;">
+              <button class="btn-tool" id="btnSizeSm" style="padding:3px 8px; font-size:11px;">보통 (16px)</button>
+              <button class="btn-tool active" id="btnSizeMd" style="padding:3px 8px; font-size:11px;">굵게 (28px)</button>
+              <button class="btn-tool" id="btnSizeLg" style="padding:3px 8px; font-size:11px;">광장 (48px)</button>
             </div>
-            <div id="hudCurrentCoord" style="font-size:11px; color:#cbd5e1; margin-top:4px; font-family:monospace;">
-              SVG: -- / GPS: --
-            </div>
           </div>
 
-          <div id="roadControlRow" style="display:none;" class="form-btn-row">
-            <button class="btn-tool" id="btnUndoLastPoint" style="flex:1;">↩️ 마지막 점 취소</button>
-            <button class="btn-tool" id="btnResetAll" style="flex:1; color:#ef4444; border-color:#ef4444;">🗑️ 전체 초기화</button>
+          <div class="form-btn-row">
+            <button class="btn-tool" id="btnClearBrush" style="flex:1; color:#ef4444; border-color:#ef4444;">🗑️ 칠한 길 전체 지우기</button>
+            <button class="btn-action btn-export" id="btnQuickGenerate" style="flex:1.4; font-weight:800;">⚡ 도로망 1초 생성</button>
           </div>
         </div>
 
         <div class="map-canvas-container" id="mapContainer">
           <img id="bgImg" src="아트밸리_전경도_안내_v2_mobile.webp" alt="지도 배경" />
+          
+          <!-- 브러시 드로잉용 캔버스 (3337 x 2101) -->
+          <canvas id="brushCanvas" width="3337" height="2101"></canvas>
 
           <svg id="mainSvg" viewBox="0 0 3337 2101">
             <!-- 24대 핵심 앵커 들로네 레이어 -->
             <g id="delaunayLayer"></g>
             <g id="gpsAnchorsLayer"></g>
 
-            <!-- 사장님이 직접 콕콕 찍을 신규 도로 레이어 -->
-            <g id="newRoadLinesLayer"></g>
-            <g id="newRoadNodesLayer"></g>
+            <!-- 자동 추출된 도로망 SVG 레이어 -->
+            <g id="extractedRoadLinesLayer"></g>
+            <g id="extractedRoadNodesLayer"></g>
           </svg>
         </div>
       </main>
@@ -447,7 +478,7 @@
       <!-- 우측: 실제 위성 지도 (Leaflet) -->
       <section class="right-satellite-pane" id="rightSatellitePane">
         <div class="satellite-hud-banner">
-          <div>🛰️ <strong>실제 위성 지도</strong> — 조감도에 찍은 점과 1:1로 일치하는 실제 위성 도로를 클릭하세요!</div>
+          <div>🛰️ <strong>실제 위성 지도</strong> — 칠해진 도로 핀을 잡고 끌어 실제 위성 길 위에 미세조정하세요!</div>
           <div id="satCoordDisplay" style="font-family:monospace; font-weight:bold; color:#38bdf8; font-size:12px;">lat: --, lng: --</div>
         </div>
         <div id="leafletMap"></div>
@@ -457,7 +488,7 @@
     <!-- JSON 내보내기 모달 -->
     <div class="modal-backdrop" id="jsonModal">
       <div class="modal-card">
-        <div style="font-size:16px; font-weight:800; color:#00e676; margin-bottom:12px;">💾 1:1 신규 도로망 데이터 추출</div>
+        <div style="font-size:16px; font-weight:800; color:#00e676; margin-bottom:12px;">💾 1:1 완제품 도로망 데이터 추출</div>
         <textarea id="jsonArea" style="flex:1; width:100%; min-height:300px; background:#070a0f; color:#00e676; font-family:monospace; font-size:12px; border:1px solid #1e293b; border-radius:8px; padding:12px; resize:none;" readonly></textarea>
         <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
           <button class="btn-tool" id="closeModalBtn">닫기</button>
@@ -502,24 +533,29 @@
         { name: "제1주차장/정문", svg: [3300, 1530], lat: 37.922014, lng: 127.236958 }
       ];
 
-      // ── 2. 신규 1:1 도로 데이터 (Zero-base 시작) ──
-      // 각 아이템: { id: 0, svg: [x, y], lat: 37.xxx, lng: 127.xxx }
-      let customRoadNodes = [];
+      // ── 2. 브러시로 칠해져 자동 생성된 도로망 데이터 ──
+      let generatedRoads = {
+        nodes: [],     // [ [x, y], ... ]
+        polylines: []  // [ [ [x,y], [x,y]... ], ... ]
+      };
 
+      let brushStrokes = []; // 칠해진 브러시 스트로크 목록 [ [ [x,y], ... ], ... ]
+      let currentStroke = [];
+
+      let currentMode = 'brush'; // 'brush' | 'eraser' | 'pan'
+      let brushRadius = 28; // 16, 28, 48
       let showAnchors = true;
-      let pendingSvgPoint = null; // 좌측에서 찍은 SVG 점 대기
 
       const viewport = document.getElementById('viewport');
       const mapContainer = document.getElementById('mapContainer');
+      const brushCanvas = document.getElementById('brushCanvas');
+      const ctx = brushCanvas.getContext('2d');
       const toastMsg = document.getElementById('toastMsg');
-      const hudStepTitle = document.getElementById('hudStepTitle');
-      const hudPointCount = document.getElementById('hudPointCount');
-      const hudCurrentCoord = document.getElementById('hudCurrentCoord');
 
       const delaunayLayer = document.getElementById('delaunayLayer');
       const gpsAnchorsLayer = document.getElementById('gpsAnchorsLayer');
-      const newRoadLinesLayer = document.getElementById('newRoadLinesLayer');
-      const newRoadNodesLayer = document.getElementById('newRoadNodesLayer');
+      const extractedRoadLinesLayer = document.getElementById('extractedRoadLinesLayer');
+      const extractedRoadNodesLayer = document.getElementById('extractedRoadNodesLayer');
 
       const splitDivider = document.getElementById('splitDivider');
       const rightSatellitePane = document.getElementById('rightSatellitePane');
@@ -543,10 +579,49 @@
         return el;
       }
 
-      let currentEditorMode = 'anchors'; // 'anchors' (24개 앵커 조율) | 'roads' (도로 콕콕 찍기)
-      let selectedAnchorIdx = -1;
+      // ── 3. 조감도 SVG [X, Y] ➔ 실제 위성 GPS [lat, lng] 1:1 삼각망 변환기 ──
+      function svgToGps(pos) {
+        if (!gpsAnchors || gpsAnchors.length === 0) return [37.9238, 127.2405];
+        let sorted = gpsAnchors.map(a => ({
+          a,
+          dist: Math.hypot(a.svg[0] - pos[0], a.svg[1] - pos[1])
+        })).sort((a, b) => a.dist - b.dist);
 
-      // ── 3. 우측 Leaflet 위성 지도 초기화 ──
+        if (sorted[0].dist < 1) return [sorted[0].a.lat, sorted[0].a.lng];
+
+        const top3 = sorted.slice(0, 3);
+        const w0 = 1 / (Math.pow(top3[0].dist, 2.0) + 1e-4);
+        const w1 = 1 / (Math.pow(top3[1].dist, 2.0) + 1e-4);
+        const w2 = 1 / (Math.pow(top3[2].dist, 2.0) + 1e-4);
+        const totalW = w0 + w1 + w2;
+
+        const lat = (top3[0].a.lat * w0 + top3[1].a.lat * w1 + top3[2].a.lat * w2) / totalW;
+        const lng = (top3[0].a.lng * w0 + top3[1].a.lng * w1 + top3[2].a.lng * w2) / totalW;
+        return [parseFloat(lat.toFixed(6)), parseFloat(lng.toFixed(6))];
+      }
+
+      // ── 실제 위성 GPS [lat, lng] ➔ 조감도 SVG [X, Y] 1:1 역변환기 ──
+      function gpsToSvg(lat, lng) {
+        if (!gpsAnchors || gpsAnchors.length === 0) return [1668, 1050];
+        let sorted = gpsAnchors.map(a => ({
+          a,
+          dist: Math.hypot((a.lat - lat) * 111000, (a.lng - lng) * 88000)
+        })).sort((a, b) => a.dist - b.dist);
+
+        if (sorted[0].dist < 0.5) return [sorted[0].a.svg[0], sorted[0].a.svg[1]];
+
+        const top3 = sorted.slice(0, 3);
+        const w0 = 1 / (Math.pow(top3[0].dist, 2.0) + 1e-4);
+        const w1 = 1 / (Math.pow(top3[1].dist, 2.0) + 1e-4);
+        const w2 = 1 / (Math.pow(top3[2].dist, 2.0) + 1e-4);
+        const totalW = w0 + w1 + w2;
+
+        const sx = (top3[0].a.svg[0] * w0 + top3[1].a.svg[0] * w1 + top3[2].a.svg[0] * w2) / totalW;
+        const sy = (top3[0].a.svg[1] * w0 + top3[1].a.svg[1] * w1 + top3[2].a.svg[1] * w2) / totalW;
+        return [Math.round(sx), Math.round(sy)];
+      }
+
+      // ── 4. 우측 Leaflet 위성 지도 초기화 ──
       function initLeafletMap() {
         if (leafletMap) return;
         leafletMap = L.map('leafletMap', { zoomControl: true, attributionControl: false }).setView([37.9235, 127.2395], 17);
@@ -556,309 +631,215 @@
         satRoadPolylineGroup = L.layerGroup().addTo(leafletMap);
         satRoadMarkersGroup = L.layerGroup().addTo(leafletMap);
 
-        // 위성 지도 클릭 이벤트
-        leafletMap.on('click', (e) => {
-          const lat = parseFloat(e.latlng.lat.toFixed(6));
-          const lng = parseFloat(e.latlng.lng.toFixed(6));
-          satCoordDisplay.textContent = `lat: ${lat}, lng: ${lng}`;
-
-          if (currentEditorMode === 'roads') {
-            if (!pendingSvgPoint) {
-              showToast('⚠️ 먼저 좌측 조감도에서 대응하는 도로 위치를 클릭해 주세요!');
-              return;
-            }
-            const nodeIdx = customRoadNodes.length;
-            customRoadNodes.push({
-              id: nodeIdx,
-              svg: pendingSvgPoint,
-              lat: lat,
-              lng: lng
-            });
-            showToast(`🎉 #${nodeIdx}번 도로 1:1 매칭 완료!`);
-            pendingSvgPoint = null;
-            updateHudUI();
-            renderNewRoads();
-          }
+        leafletMap.on('mousemove', (e) => {
+          satCoordDisplay.textContent = `lat: ${e.latlng.lat.toFixed(6)}, lng: ${e.latlng.lng.toFixed(6)}`;
         });
 
         renderSatelliteAnchors();
       }
 
-      // 들로네 삼각망 계산기
-      function buildDelaunayTriangles(pts) {
-        if (pts.length < 3) return [];
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        pts.forEach(p => { if (p.lng < minX) minX = p.lng; if (p.lng > maxX) maxX = p.lng; if (p.lat < minY) minY = p.lat; if (p.lat > maxY) maxY = p.lat; });
-        const dx = (maxX - minX) || 0.01, dy = (maxY - minY) || 0.01;
-        const deltaMax = Math.max(dx, dy) * 50;
-        const midX = (minX + maxX) / 2, midY = (minY + maxY) / 2;
-        const stA = { lng: midX - deltaMax, lat: midY - deltaMax, idx: -1 };
-        const stB = { lng: midX, lat: midY + deltaMax, idx: -2 };
-        const stC = { lng: midX + deltaMax, lat: midY - deltaMax, idx: -3 };
-        let triangles = [{ a: stA, b: stB, c: stC }];
-        function circumcircle(a, b, c) {
-          const ax = a.lng * 88000, ay = a.lat * 111000;
-          const bx = b.lng * 88000, by = b.lat * 111000;
-          const cx = c.lng * 88000, cy = c.lat * 111000;
-          const d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
-          if (Math.abs(d) < 1e-9) return { x: ax, y: ay, rSq: Infinity };
-          const ax2 = ax * ax + ay * ay;
-          const bx2 = bx * bx + by * by;
-          const cx2 = cx * cx + cy * cy;
-          const ox = (ax2 * (by - cy) + bx2 * (cy - ay) + cx2 * (ay - by)) / d;
-          const oy = (ax2 * (cx - bx) + bx2 * (ax - cx) + cx2 * (bx - ax)) / d;
-          const rSq = (ax - ox) * (ax - ox) + (ay - oy) * (ay - oy);
-          return { x: ox, y: oy, rSq };
-        }
-        pts.forEach((p, pIdx) => {
-          const node = { lng: p.lng, lat: p.lat, idx: pIdx };
-          const px = p.lng * 88000, py = p.lat * 111000;
-          let badTriangles = [];
-          triangles.forEach(t => {
-            const cc = circumcircle(t.a, t.b, t.c);
-            const distSq = (px - cc.x) * (px - cc.x) + (py - cc.y) * (py - cc.y);
-            if (distSq <= cc.rSq + 1e-4) badTriangles.push(t);
-          });
-          let polygon = [];
-          badTriangles.forEach(t => {
-            const edges = [{ p1: t.a, p2: t.b }, { p1: t.b, p2: t.c }, { p1: t.c, p2: t.a }];
-            edges.forEach(edge => {
-              let isShared = false;
-              badTriangles.forEach(other => {
-                if (other === t) return;
-                const oEdges = [{ p1: other.a, p2: other.b }, { p1: other.b, p2: other.c }, { p1: other.c, p2: other.a }];
-                if (oEdges.some(oe => (oe.p1.idx === edge.p1.idx && oe.p2.idx === edge.p2.idx) || (oe.p1.idx === edge.p2.idx && oe.p2.idx === edge.p1.idx))) isShared = true;
-              });
-              if (!isShared) polygon.push(edge);
-            });
-          });
-          triangles = triangles.filter(t => !badTriangles.includes(t));
-          polygon.forEach(edge => { triangles.push({ a: edge.p1, b: edge.p2, c: node }); });
-        });
-        return triangles.filter(t => t.a.idx >= 0 && t.b.idx >= 0 && t.c.idx >= 0).map(t => [t.a.idx, t.b.idx, t.c.idx]);
-      }
-
-      // ── 24대 핵심 앵커 우측 위성 렌더링 (드래그 조율 가능!) ──
       function renderSatelliteAnchors() {
         if (!satAnchorGroup) return;
         satAnchorGroup.clearLayers();
         if (!showAnchors) return;
 
-        gpsAnchors.forEach((a, idx) => {
-          const isSelected = (idx === selectedAnchorIdx);
-          const pinColor = isSelected ? '#ff3b30' : '#ff9500';
-
+        gpsAnchors.forEach((a) => {
           const customIcon = L.divIcon({
             className: 'custom-sat-anchor',
             html: `
-              <div style="display:flex; flex-direction:column; align-items:center; cursor:grab; pointer-events:auto;">
-                <div style="background:${pinColor}; width:20px; height:20px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 0 12px ${pinColor};"></div>
-                <div style="background:rgba(15,23,42,0.95); color:#ffffff; font-size:11px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid ${pinColor}; white-space:nowrap; margin-top:2px; pointer-events:none;">
+              <div style="display:flex; flex-direction:column; align-items:center; pointer-events:none;">
+                <div style="background:#ff9500; width:16px; height:16px; border-radius:50%; border:2px solid #ffffff; box-shadow:0 0 10px #ff9500;"></div>
+                <div style="background:rgba(15,23,42,0.95); color:#ffffff; font-size:10px; font-weight:800; padding:1px 5px; border-radius:3px; border:1px solid #ff9500; white-space:nowrap; margin-top:2px;">
                   ${a.name}
                 </div>
               </div>
             `,
-            iconSize: [80, 44],
-            iconAnchor: [40, 10]
+            iconSize: [80, 36],
+            iconAnchor: [40, 8]
           });
-
-          const marker = L.marker([a.lat, a.lng], {
-            icon: customIcon,
-            draggable: true,
-            zIndexOffset: isSelected ? 2000 : 1000,
-            autoPan: true
-          });
-
-          marker.on('click', (e) => {
-            L.DomEvent.stopPropagation(e);
-            selectAnchor(idx);
-          });
-
-          marker.on('drag', (e) => {
-            const newPos = e.target.getLatLng();
-            gpsAnchors[idx].lat = parseFloat(newPos.lat.toFixed(6));
-            gpsAnchors[idx].lng = parseFloat(newPos.lng.toFixed(6));
-            if (satCoordDisplay) satCoordDisplay.textContent = `lat: ${gpsAnchors[idx].lat}, lng: ${gpsAnchors[idx].lng}`;
-            renderLeftAnchors();
-            updateHudUI();
-          });
-
-          marker.on('dragend', () => {
-            showToast(`🎯 '${a.name}' 위성 위치 조율 완료! [${gpsAnchors[idx].lat}, ${gpsAnchors[idx].lng}]`);
-            renderLeftAnchors();
-            renderSatelliteAnchors();
-          });
-
-          satAnchorGroup.addLayer(marker);
+          L.marker([a.lat, a.lng], { icon: customIcon, interactive: false }).addTo(satAnchorGroup);
         });
       }
 
-      // ── 4. 좌측 조감도 앵커 & 들로네 렌더링 (드래그 조율 가능!) ──
       function renderLeftAnchors() {
         gpsAnchorsLayer.innerHTML = '';
         delaunayLayer.innerHTML = '';
         if (!showAnchors) return;
 
-        const triangles = buildDelaunayTriangles(gpsAnchors);
-        triangles.forEach(([i1, i2, i3]) => {
-          const p1 = gpsAnchors[i1].svg, p2 = gpsAnchors[i2].svg, p3 = gpsAnchors[i3].svg;
-          const d = `M ${p1[0]},${p1[1]} L ${p2[0]},${p2[1]} L ${p3[0]},${p3[1]} Z`;
-          delaunayLayer.appendChild(createSvg('path', { class: 'delaunay-edge', d }));
-        });
-
-        gpsAnchors.forEach((a, idx) => {
-          const isSelected = (idx === selectedAnchorIdx);
+        gpsAnchors.forEach((a) => {
           const pin = createSvg('g', { class: 'gps-anchor-pin', transform: `translate(${a.svg[0]},${a.svg[1]})` }, `
-            <circle class="outer" r="${isSelected ? 15 : 11}" style="fill:${isSelected ? '#ff3b30' : '#ff9500'}"></circle>
+            <circle class="outer" r="11"></circle>
             <circle r="4" fill="#ffffff"></circle>
             <text y="-16">${a.name}</text>
           `);
-
-          let isDragging = false;
-          pin.addEventListener('pointerdown', (e) => {
-            e.stopPropagation();
-            isDragging = true;
-            selectAnchor(idx);
-
-            const onDrag = (ev) => {
-              if (!isDragging) return;
-              const pos = getCanvasPos(ev);
-              gpsAnchors[idx].svg = pos;
-              pin.setAttribute('transform', `translate(${pos[0]},${pos[1]})`);
-              renderLeftAnchors();
-              updateHudUI();
-            };
-
-            const onUp = () => {
-              isDragging = false;
-              window.removeEventListener('pointermove', onDrag);
-              window.removeEventListener('pointerup', onUp);
-              showToast(`🎯 '${a.name}' 조감도 위치 조율 완료! [${gpsAnchors[idx].svg[0]}, ${gpsAnchors[idx].svg[1]}]`);
-              renderLeftAnchors();
-            };
-
-            window.addEventListener('pointermove', onDrag);
-            window.addEventListener('pointerup', onUp);
-          });
-
           gpsAnchorsLayer.appendChild(pin);
         });
       }
 
-      function selectAnchor(idx) {
-        selectedAnchorIdx = idx;
-        const a = gpsAnchors[idx];
-        if (satCoordDisplay) satCoordDisplay.textContent = `lat: ${a.lat}, lng: ${a.lng}`;
-        if (leafletMap) { leafletMap.flyTo([a.lat, a.lng], 18, { duration: 0.6 }); }
-        showToast(`📍 앵커 선택: ${a.name}`);
-        renderLeftAnchors();
-        renderSatelliteAnchors();
-        updateHudUI();
+      // ── 5. 캔버스 브러시 드로잉 엔진 ──
+      function redrawBrushCanvas() {
+        ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        brushStrokes.forEach(stroke => {
+          if (stroke.points.length < 2) return;
+          ctx.beginPath();
+          ctx.moveTo(stroke.points[0][0], stroke.points[0][1]);
+          for (let i = 1; i < stroke.points.length; i++) {
+            ctx.lineTo(stroke.points[i][0], stroke.points[i][1]);
+          }
+          if (stroke.isEraser) {
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.lineWidth = stroke.radius * 2;
+            ctx.stroke();
+          } else {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.strokeStyle = 'rgba(0, 230, 118, 0.65)';
+            ctx.lineWidth = stroke.radius;
+            ctx.stroke();
+          }
+        });
+        ctx.globalCompositeOperation = 'source-over';
       }
 
-      // ── 5. 신규 도로 렌더링 (좌측 조감도 & 우측 위성 실시간 동기화) ──
-      function renderNewRoads() {
-        // 좌측 조감도 렌더링
-        newRoadLinesLayer.innerHTML = '';
-        newRoadNodesLayer.innerHTML = '';
+      // ── 6. 칠해진 형광 브러시로부터 도로망 자동 생성 (Centerline Extraction) ──
+      function generateRoadNetworkFromBrush() {
+        const positiveStrokes = brushStrokes.filter(s => !s.isEraser && s.points.length >= 2);
+        if (positiveStrokes.length === 0) {
+          showToast('⚠️ 먼저 조감도 위에 초록색 브러시로 길을 칠해 주세요!');
+          return;
+        }
 
-        if (customRoadNodes.length > 1) {
-          let d = `M ${customRoadNodes[0].svg[0]},${customRoadNodes[0].svg[1]}`;
-          for (let i = 1; i < customRoadNodes.length; i++) {
-            d += ` L ${customRoadNodes[i].svg[0]},${customRoadNodes[i].svg[1]}`;
+        generatedRoads.nodes = [];
+        generatedRoads.polylines = [];
+
+        positiveStrokes.forEach((stroke) => {
+          // 스트로크 점들을 일정 간격(약 45px)으로 샘플링하여 부드러운 노드들로 정돈
+          let sampled = [stroke.points[0]];
+          let lastPt = stroke.points[0];
+
+          for (let i = 1; i < stroke.points.length; i++) {
+            const pt = stroke.points[i];
+            const dist = Math.hypot(pt[0] - lastPt[0], pt[1] - lastPt[1]);
+            if (dist >= 45 || i === stroke.points.length - 1) {
+              sampled.push(pt);
+              lastPt = pt;
+            }
           }
-          newRoadLinesLayer.appendChild(createSvg('path', { class: 'drawn-road-line', d }));
-          newRoadLinesLayer.appendChild(createSvg('path', { class: 'drawn-road-core', d }));
-        }
 
-        // 임시 대기 점 표시
-        if (pendingSvgPoint) {
-          const pendingPin = createSvg('g', { transform: `translate(${pendingSvgPoint[0]},${pendingSvgPoint[1]})` }, `
-            <circle r="14" fill="#ff3b30" opacity="0.4"></circle>
-            <circle r="7" fill="#ff3b30" stroke="#ffffff" stroke-width="2"></circle>
-            <text y="-14" fill="#ff3b30" font-size="12" font-weight="bold">우측 위성 클릭 대기중...</text>
-          `);
-          newRoadNodesLayer.appendChild(pendingPin);
-        }
-
-        customRoadNodes.forEach((node, idx) => {
-          const pin = createSvg('g', { class: 'drawn-road-point', transform: `translate(${node.svg[0]},${node.svg[1]})` }, `
-            <circle r="14" fill="#00e676" opacity="0.35"></circle>
-            <circle r="7" fill="#00e676" stroke="#ffffff" stroke-width="2"></circle>
-            <text y="4">${idx}</text>
-          `);
-          newRoadNodesLayer.appendChild(pin);
+          if (sampled.length >= 2) {
+            generatedRoads.polylines.push(sampled);
+            sampled.forEach(pt => {
+              // 중복 근접 점 병합
+              const existing = generatedRoads.nodes.find(n => Math.hypot(n[0] - pt[0], n[1] - pt[1]) < 25);
+              if (!existing) {
+                generatedRoads.nodes.push(pt);
+              }
+            });
+          }
         });
 
-        // 우측 위성 지도 렌더링
+        renderExtractedRoads();
+        showToast(`🎉 칠해진 길에서 총 ${generatedRoads.nodes.length}개 도로 노드 및 ${generatedRoads.polylines.length}개 구간 자동 생성 완료!`);
+      }
+
+      // ── 7. 자동 생성된 도로망 좌측 SVG 및 우측 위성 렌더링 (위성에서 드래그 가능!) ──
+      function renderExtractedRoads(skipMarkers = false) {
+        // 좌측 조감도 렌더링
+        extractedRoadLinesLayer.innerHTML = '';
+        extractedRoadNodesLayer.innerHTML = '';
+
+        generatedRoads.polylines.forEach((line) => {
+          if (line.length < 2) return;
+          let d = `M ${line[0][0]},${line[0][1]}`;
+          for (let i = 1; i < line.length; i++) {
+            d += ` L ${line[i][0]},${line[i][1]}`;
+          }
+          extractedRoadLinesLayer.appendChild(createSvg('path', { class: 'extracted-road-line', d }));
+          extractedRoadLinesLayer.appendChild(createSvg('path', { class: 'extracted-road-core', d }));
+        });
+
+        generatedRoads.nodes.forEach((pos, idx) => {
+          const pin = createSvg('g', { class: 'extracted-node-handle', transform: `translate(${pos[0]},${pos[1]})` }, `
+            <circle class="outer" r="13"></circle>
+            <circle class="core" r="6"></circle>
+            <text y="4">${idx}</text>
+          `);
+          extractedRoadNodesLayer.appendChild(pin);
+        });
+
+        // 우측 위성 지도 렌더링 (초록색 핀 드래그로 실제 위성 길에 미세조정 가능!)
         if (satRoadPolylineGroup && satRoadMarkersGroup) {
           satRoadPolylineGroup.clearLayers();
-          satRoadMarkersGroup.clearLayers();
+          if (!skipMarkers) satRoadMarkersGroup.clearLayers();
 
-          if (customRoadNodes.length > 1) {
-            const latlngs = customRoadNodes.map(n => [n.lat, n.lng]);
-            const poly = L.polyline(latlngs, { color: '#00e676', weight: 6, opacity: 0.9 });
-            satRoadPolylineGroup.addLayer(poly);
-          }
-
-          customRoadNodes.forEach((node, idx) => {
-            const marker = L.circleMarker([node.lat, node.lng], {
-              radius: 5.5,
-              fillColor: '#00e676',
-              color: '#ffffff',
-              weight: 2,
-              fillOpacity: 1
+          generatedRoads.polylines.forEach((line) => {
+            const latlngs = line.map(pt => svgToGps(pt));
+            const poly = L.polyline(latlngs, {
+              color: '#00e676',
+              weight: 6,
+              opacity: 0.9,
+              lineCap: 'round',
+              lineJoin: 'round'
             });
-            marker.bindTooltip(`<b>#${idx}번 도로</b><br>SVG: [${node.svg[0]}, ${node.svg[1]}]<br>GPS: ${node.lat}, ${node.lng}`, { direction: 'top' });
-            satRoadMarkersGroup.addLayer(marker);
+            satRoadPolylineGroup.addLayer(poly);
           });
+
+          if (!skipMarkers) {
+            generatedRoads.nodes.forEach((pos, idx) => {
+              const gps = svgToGps(pos);
+
+              const roadIcon = L.divIcon({
+                className: 'custom-sat-road-pin',
+                html: `
+                  <div style="display:flex; flex-direction:column; align-items:center; cursor:grab; pointer-events:auto;">
+                    <div style="background:#00e676; width:16px; height:16px; border-radius:50%; border:2px solid #ffffff; box-shadow:0 0 10px #00e676;"></div>
+                    <div style="background:rgba(15,23,42,0.9); color:#00e676; font-size:10px; font-weight:800; padding:1px 4px; border-radius:3px; border:1px solid #00e676; white-space:nowrap; margin-top:2px;">
+                      #${idx}
+                    </div>
+                  </div>
+                `,
+                iconSize: [40, 32],
+                iconAnchor: [20, 8]
+              });
+
+              const marker = L.marker(gps, {
+                icon: roadIcon,
+                draggable: true,
+                autoPan: true
+              });
+
+              marker.on('drag', (e) => {
+                const newLatLng = e.target.getLatLng();
+                const newSvg = gpsToSvg(newLatLng.lat, newLatLng.lng);
+                // 노드 좌표 및 폴리라인 동기화
+                generatedRoads.nodes[idx] = newSvg;
+                generatedRoads.polylines.forEach(line => {
+                  line.forEach((p, pIdx) => {
+                    if (Math.hypot(p[0] - pos[0], p[1] - pos[1]) < 10) {
+                      line[pIdx] = newSvg;
+                    }
+                  });
+                });
+                renderExtractedRoads(true);
+              });
+
+              marker.on('dragend', () => {
+                showToast(`🎯 #${idx}번 도로 핀 위성 위치 미세조정 완료!`);
+                renderExtractedRoads(false);
+              });
+
+              satRoadMarkersGroup.addLayer(marker);
+            });
+          }
         }
       }
 
-      function updateHudUI() {
-        const anchorDetailCard = document.getElementById('anchorDetailCard');
-        const roadControlRow = document.getElementById('roadControlRow');
-        const hudSelectedAnchorName = document.getElementById('hudSelectedAnchorName');
-
-        if (currentEditorMode === 'anchors') {
-          hudStepTitle.textContent = '📍 24대 핵심 GPS 앵커 조율';
-          hudStepTitle.style.color = '#ff9500';
-          hudPointCount.textContent = `● 24개 앵커`;
-          hudPointCount.style.color = '#ff9500';
-          if (anchorDetailCard) anchorDetailCard.style.display = 'block';
-          if (roadControlRow) roadControlRow.style.display = 'none';
-
-          if (selectedAnchorIdx >= 0) {
-            const a = gpsAnchors[selectedAnchorIdx];
-            hudSelectedAnchorName.textContent = `#${selectedAnchorIdx + 1}. ${a.name}`;
-            hudCurrentCoord.textContent = `SVG: [${a.svg[0]}, ${a.svg[1]}] | GPS: [${a.lat}, ${a.lng}]`;
-          } else {
-            hudSelectedAnchorName.textContent = '핀을 클릭하거나 드래그하세요';
-            hudCurrentCoord.textContent = 'SVG: -- | GPS: --';
-          }
-        } else {
-          // 'roads' 모드
-          if (anchorDetailCard) anchorDetailCard.style.display = 'none';
-          if (roadControlRow) roadControlRow.style.display = 'flex';
-          hudPointCount.textContent = `● 총 ${customRoadNodes.length}개 구간`;
-          hudPointCount.style.color = '#00e676';
-
-          if (pendingSvgPoint) {
-            hudStepTitle.textContent = '👉 [2단계] 우측 위성 지도에서 동일 위치 클릭!';
-            hudStepTitle.style.color = '#38bdf8';
-            hudCurrentCoord.textContent = `조감도: [${pendingSvgPoint[0]}, ${pendingSvgPoint[1]}] ➔ 위성: 대기 중...`;
-          } else {
-            hudStepTitle.textContent = '👉 [1단계] 좌측 조감도에서 다음 도로 클릭';
-            hudStepTitle.style.color = '#00e676';
-            hudCurrentCoord.textContent = `조감도: 다음 점 대기 중...`;
-          }
-        }
-      }
-
-      // ── 6. 좌측 뷰포트 조작 (Pan & Zoom) ──
+      // ── 8. 조감도 뷰포트 드로잉 & 팬/줌 조작 ──
       let scale = 0.5, panX = 0, panY = 0;
-      let isPanning = false, startX = 0, startY = 0;
-      let hasCanvasMoved = false, dragStartX = 0, dragStartY = 0;
+      let isInteracting = false, startX = 0, startY = 0;
+      let isDrawing = false;
 
       function updateTransform() {
         mapContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
@@ -888,51 +869,55 @@
 
       viewport.addEventListener('pointerdown', (e) => {
         if (e.target.closest('.floating-hud') || e.target.closest('.floating-zoom')) return;
-        if (e.target.closest('.gps-anchor-pin')) return; // 앵커 핀 드래그 방해 방지
 
-        if (e.button === 0) {
-          isPanning = true;
-          hasCanvasMoved = false;
+        if (currentMode === 'brush' || currentMode === 'eraser') {
+          isDrawing = true;
+          const pt = getCanvasPos(e);
+          currentStroke = [pt];
+          brushStrokes.push({
+            points: currentStroke,
+            radius: brushRadius,
+            isEraser: (currentMode === 'eraser')
+          });
+          redrawBrushCanvas();
+        } else if (currentMode === 'pan' || e.button === 1 || e.shiftKey) {
+          isInteracting = true;
           startX = e.clientX - panX;
           startY = e.clientY - panY;
-          dragStartX = e.clientX;
-          dragStartY = e.clientY;
           viewport.classList.add('panning');
         }
       });
 
       window.addEventListener('pointermove', (e) => {
-        if (!isPanning) return;
-        if (Math.hypot(e.clientX - dragStartX, e.clientY - dragStartY) > 5) {
-          hasCanvasMoved = true;
-        }
-        panX = e.clientX - startX;
-        panY = e.clientY - startY;
-        updateTransform();
-      });
-
-      window.addEventListener('pointerup', (e) => {
-        if (isPanning) {
-          isPanning = false;
-          viewport.classList.remove('panning');
-
-          // 도로 모드일 때 제자리 클릭 시 조감도 도로 점 찍기!
-          if (currentEditorMode === 'roads' && !hasCanvasMoved && (e.target.id === 'bgImg' || e.target.id === 'mainSvg' || e.target.closest('#mainSvg'))) {
-            const pt = getCanvasPos(e);
-            pendingSvgPoint = pt;
-            showToast(`🎯 조감도 #${customRoadNodes.length}번 도로 점 선택 [${pt[0]}, ${pt[1]}] ➔ 이제 우측 위성 지도를 클릭하세요!`);
-            updateHudUI();
-            renderNewRoads();
+        if (isDrawing) {
+          const pt = getCanvasPos(e);
+          const lastPt = currentStroke[currentStroke.length - 1];
+          if (!lastPt || Math.hypot(pt[0] - lastPt[0], pt[1] - lastPt[1]) >= 8) {
+            currentStroke.push(pt);
+            redrawBrushCanvas();
           }
+        } else if (isInteracting) {
+          panX = e.clientX - startX;
+          panY = e.clientY - startY;
+          updateTransform();
         }
       });
 
-      // ── 7. 분할 바 조절 ──
-      let isResizing = false;
-      splitDivider.addEventListener('mousedown', () => {
-        isResizing = true;
-        splitDivider.classList.add('dragging');
+      window.addEventListener('pointerup', () => {
+        if (isDrawing) {
+          isDrawing = false;
+          // 실시간으로 도로망 자동 반영
+          generateRoadNetworkFromBrush();
+        }
+        if (isInteracting) {
+          isInteracting = false;
+          viewport.classList.remove('panning');
+        }
       });
+
+      // ── 9. 분할 바 조절 ──
+      let isResizing = false;
+      splitDivider.addEventListener('mousedown', () => { isResizing = true; splitDivider.classList.add('dragging'); });
       window.addEventListener('mousemove', (e) => {
         if (!isResizing) return;
         const containerWidth = document.getElementById('studioBody').offsetWidth;
@@ -943,84 +928,101 @@
         }
       });
       window.addEventListener('mouseup', () => {
-        if (isResizing) {
-          isResizing = false;
-          splitDivider.classList.remove('dragging');
-          if (leafletMap) leafletMap.invalidateSize();
-        }
+        if (isResizing) { isResizing = false; splitDivider.classList.remove('dragging'); if (leafletMap) leafletMap.invalidateSize(); }
       });
 
-      // ── 8. 모드 전환 및 버튼 이벤트 ──
-      const btnModeAnchors = document.getElementById('btnModeAnchors');
-      const btnModeRoads = document.getElementById('btnModeRoads');
+      // ── 10. 상단 툴바 & 컨트롤러 버튼 이벤트 ──
+      const btnToolBrush = document.getElementById('btnToolBrush');
+      const btnToolEraser = document.getElementById('btnToolEraser');
+      const btnToolPan = document.getElementById('btnToolPan');
+      const hudToolTitle = document.getElementById('hudToolTitle');
 
-      btnModeAnchors.onclick = () => {
-        currentEditorMode = 'anchors';
-        btnModeAnchors.classList.add('active');
-        btnModeRoads.classList.remove('active');
-        btnModeAnchors.style.background = 'rgba(255,149,0,0.15)';
-        btnModeRoads.style.background = 'transparent';
-        updateHudUI();
-        showToast('📍 [24개 앵커 정밀 조율 모드] 좌/우 지도의 핀을 드래그하세요!');
-      };
+      function setMode(mode) {
+        currentMode = mode;
+        [btnToolBrush, btnToolEraser, btnToolPan].forEach(b => b.classList.remove('active'));
+        viewport.classList.remove('drawing', 'panning');
 
-      btnModeRoads.onclick = () => {
-        currentEditorMode = 'roads';
-        btnModeRoads.classList.add('active');
-        btnModeAnchors.classList.remove('active');
-        btnModeRoads.style.background = 'rgba(0,230,118,0.15)';
-        btnModeAnchors.style.background = 'transparent';
-        updateHudUI();
-        showToast('🛣️ [1:1 도로 콕콕 찍기 모드] 조감도를 먼저 클릭하세요!');
-      };
-
-      document.getElementById('btnCopyAnchorsJson').onclick = () => {
-        const code = JSON.stringify(gpsAnchors, null, 2);
-        navigator.clipboard.writeText(code).then(() => {
-          showToast(`📋 총 ${gpsAnchors.length}개 GPS 앵커 JSON 복사 완료! (QR에 즉시 적용 가능)`);
-        });
-        document.getElementById('jsonArea').value = code;
-        document.getElementById('jsonModal').style.display = 'flex';
-      };
-
-      document.getElementById('btnUndoLastPoint').onclick = () => {
-        if (pendingSvgPoint) {
-          pendingSvgPoint = null;
-          showToast('↩️ 조감도 선택 대기 취소');
-        } else if (customRoadNodes.length > 0) {
-          const popped = customRoadNodes.pop();
-          showToast(`↩️ #${popped.id}번 도로 점 취소됨`);
+        if (mode === 'brush') {
+          btnToolBrush.classList.add('active');
+          viewport.classList.add('drawing');
+          hudToolTitle.textContent = '🖌️ 형광펜 브러시 모드';
+          hudToolTitle.style.color = '#00e676';
+          showToast('🖌️ 길 위를 마우스로 쓱쓱 색칠하세요!');
+        } else if (mode === 'eraser') {
+          btnToolEraser.classList.add('active');
+          viewport.classList.add('drawing');
+          hudToolTitle.textContent = '🧹 지우개 모드';
+          hudToolTitle.style.color = '#ff9500';
+          showToast('🧹 잘못 칠한 길을 쓱쓱 지우세요!');
+        } else if (mode === 'pan') {
+          btnToolPan.classList.add('active');
+          viewport.classList.add('panning');
+          hudToolTitle.textContent = '✋ 지도 이동 모드';
+          hudToolTitle.style.color = '#38bdf8';
+          showToast('✋ 지도를 자유롭게 이동/확대하세요!');
         }
-        updateHudUI();
-        renderNewRoads();
+      }
+
+      btnToolBrush.onclick = () => setMode('brush');
+      btnToolEraser.onclick = () => setMode('eraser');
+      btnToolPan.onclick = () => setMode('pan');
+
+      document.getElementById('btnSizeSm').onclick = (e) => {
+        brushRadius = 16;
+        document.querySelectorAll('#btnSizeSm, #btnSizeMd, #btnSizeLg').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        showToast('🖌️ 브러시 굵기: 보통 (16px)');
+      };
+      document.getElementById('btnSizeMd').onclick = (e) => {
+        brushRadius = 28;
+        document.querySelectorAll('#btnSizeSm, #btnSizeMd, #btnSizeLg').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        showToast('🖌️ 브러시 굵기: 굵게 (28px)');
+      };
+      document.getElementById('btnSizeLg').onclick = (e) => {
+        brushRadius = 48;
+        document.querySelectorAll('#btnSizeSm, #btnSizeMd, #btnSizeLg').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        showToast('🖌️ 브러시 굵기: 광장 (48px)');
       };
 
-      document.getElementById('btnResetAll').onclick = () => {
-        customRoadNodes = [];
-        pendingSvgPoint = null;
-        updateHudUI();
-        renderNewRoads();
-        showToast('🗑️ 모든 도로 점이 초기화되었습니다. 새로 찍으세요!');
+      document.getElementById('btnClearBrush').onclick = () => {
+        brushStrokes = [];
+        redrawBrushCanvas();
+        generatedRoads = { nodes: [], polylines: [] };
+        renderExtractedRoads();
+        showToast('🗑️ 칠한 도로가 전체 초기화되었습니다.');
+      };
+
+      document.getElementById('btnGenerateRoads').onclick = generateRoadNetworkFromBrush;
+      document.getElementById('btnQuickGenerate').onclick = generateRoadNetworkFromBrush;
+
+      document.getElementById('btnToggleAnchors').onclick = () => {
+        showAnchors = !showAnchors;
+        document.getElementById('btnToggleAnchors').classList.toggle('active', showAnchors);
+        renderLeftAnchors();
+        renderSatelliteAnchors();
+        showToast(showAnchors ? '📍 24개 앵커 표시 ON' : '📍 24개 앵커 숨김 OFF');
       };
 
       document.getElementById('btnExportJson').onclick = () => {
         const exportData = {
-          total: customRoadNodes.length,
-          nodes: customRoadNodes.map(n => n.svg),
-          gps_nodes: customRoadNodes.map(n => ({ id: n.id, svg: n.svg, lat: n.lat, lng: n.lng })),
-          polylines: [customRoadNodes.map(n => n.svg)]
+          total_nodes: generatedRoads.nodes.length,
+          nodes: generatedRoads.nodes,
+          polylines: generatedRoads.polylines,
+          gps_nodes: generatedRoads.nodes.map((pos, idx) => {
+            const gps = svgToGps(pos);
+            return { id: idx, svg: pos, lat: gps[0], lng: gps[1] };
+          })
         };
         document.getElementById('jsonArea').value = JSON.stringify(exportData, null, 2);
         document.getElementById('jsonModal').style.display = 'flex';
       };
 
-      document.getElementById('closeModalBtn').onclick = () => {
-        document.getElementById('jsonModal').style.display = 'none';
-      };
-
+      document.getElementById('closeModalBtn').onclick = () => { document.getElementById('jsonModal').style.display = 'none'; };
       document.getElementById('btnCopyJson').onclick = () => {
         navigator.clipboard.writeText(document.getElementById('jsonArea').value).then(() => {
-          showToast('📋 신규 1:1 도로 데이터가 클립보드에 복사되었습니다!');
+          showToast('📋 1:1 완제품 도로 데이터가 클립보드에 복사되었습니다!');
         });
       };
 
@@ -1037,8 +1039,7 @@
       // ── 초기화 실행 ──
       initLeafletMap();
       renderLeftAnchors();
-      updateHudUI();
-      renderNewRoads();
+      redrawBrushCanvas();
     })();
   </script>
 </body>
