@@ -407,10 +407,10 @@
 
       <div class="tool-group">
         <button class="btn-tool active" id="btnToolBrush" style="border-color:#00e676; color:#00e676; background:rgba(0,230,118,0.15);">🖌️ 길 칠하기 (브러시)</button>
+        <button class="btn-tool" id="btnToolMovePin" style="border-color:#38bdf8; color:#38bdf8;">📍 핀 이동/미세조정</button>
         <button class="btn-tool" id="btnToolEraser">🧹 지우개</button>
         <button class="btn-tool" id="btnToolPan">✋ 지도 이동 (Pan)</button>
-        <button class="btn-tool" id="btnToggleAnchors">📍 24개 앵커 표시</button>
-        <button class="btn-action btn-export" id="btnGenerateRoads" style="background:linear-gradient(135deg,#00e676,#059669); color:#0f172a; font-weight:800;">⚡ 도로망 자동 생성 & 위성 투영</button>
+        <button class="btn-tool" id="btnToggleAnchors">📍 24개 앵커 숨김</button>
         <button class="btn-action btn-export" id="btnExportJson">💾 JSON 추출</button>
       </div>
     </header>
@@ -668,7 +668,7 @@
         if (!showAnchors) return;
 
         gpsAnchors.forEach((a) => {
-          const pin = createSvg('g', { class: 'gps-anchor-pin', transform: `translate(${a.svg[0]},${a.svg[1]})` }, `
+          const pin = createSvg('g', { class: 'gps-anchor-pin', style: 'pointer-events:none;', transform: `translate(${a.svg[0]},${a.svg[1]})` }, `
             <circle class="outer" r="11"></circle>
             <circle r="4" fill="#ffffff"></circle>
             <text y="-16">${a.name}</text>
@@ -704,36 +704,24 @@
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // ── Douglas-Peucker 다각형/곡선 간소화 알고리즘 (핵심 시작점/끝점/꺾임점만 추출) ──
-      function simplifyPolyline(pts, tolerance = 60) {
-        if (pts.length <= 2) return pts;
-        let maxDist = 0, index = 0;
-        const p1 = pts[0], p2 = pts[pts.length - 1];
-        const lineLen = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+      // ── 도로 곡선 완벽 보존 알고리즘 (곡선 커브길을 뚫지 않고 칠한 대로 부드럽게 유지) ──
+      function smoothAndSampleCurve(pts, maxSegmentLen = 40) {
+        if (pts.length < 2) return pts;
+        let result = [pts[0]];
+        let lastPt = pts[0];
 
-        for (let i = 1; i < pts.length - 1; i++) {
-          let dist = 0;
-          if (lineLen < 1e-6) {
-            dist = Math.hypot(pts[i][0] - p1[0], pts[i][1] - p1[1]);
-          } else {
-            dist = Math.abs((p2[1] - p1[1]) * pts[i][0] - (p2[0] - p1[0]) * pts[i][1] + p2[0] * p1[1] - p2[1] * p1[0]) / lineLen;
-          }
-          if (dist > maxDist) {
-            maxDist = dist;
-            index = i;
+        for (let i = 1; i < pts.length; i++) {
+          const pt = pts[i];
+          const dist = Math.hypot(pt[0] - lastPt[0], pt[1] - lastPt[1]);
+          if (dist >= maxSegmentLen || i === pts.length - 1) {
+            result.push(pt);
+            lastPt = pt;
           }
         }
-
-        if (maxDist > tolerance) {
-          const rec1 = simplifyPolyline(pts.slice(0, index + 1), tolerance);
-          const rec2 = simplifyPolyline(pts.slice(index), tolerance);
-          return rec1.slice(0, rec1.length - 1).concat(rec2);
-        } else {
-          return [p1, p2];
-        }
+        return result;
       }
 
-      // ── 6. 칠해진 형광 브러시로부터 [시작점, 끝점, 주요 꺾임점]만 앵커로 깔끔하게 추출 ──
+      // ── 6. 칠해진 형광 브러시로부터 곡선 궤적 100% 완벽 보존 도로망 생성 ──
       function generateRoadNetworkFromBrush() {
         const positiveStrokes = brushStrokes.filter(s => !s.isEraser && s.points.length >= 2);
         if (positiveStrokes.length === 0) {
@@ -745,13 +733,13 @@
         generatedRoads.polylines = [];
 
         positiveStrokes.forEach((stroke) => {
-          // 허용 오차 80px로 간소화 ➔ 직선/완만한 길은 오직 시작점과 끝점 2개만 추출!
-          const simplified = simplifyPolyline(stroke.points, 80);
+          // 칠하신 곡선 궤적 그대로 부드럽게 보존
+          const smoothed = smoothAndSampleCurve(stroke.points, 45);
 
-          if (simplified.length >= 2) {
-            generatedRoads.polylines.push(simplified);
-            simplified.forEach(pt => {
-              const existing = generatedRoads.nodes.find(n => Math.hypot(n[0] - pt[0], n[1] - pt[1]) < 40);
+          if (smoothed.length >= 2) {
+            generatedRoads.polylines.push(smoothed);
+            smoothed.forEach(pt => {
+              const existing = generatedRoads.nodes.find(n => Math.hypot(n[0] - pt[0], n[1] - pt[1]) < 25);
               if (!existing) {
                 generatedRoads.nodes.push(pt);
               }
@@ -760,10 +748,10 @@
         });
 
         renderExtractedRoads();
-        showToast(`🎯 깔끔하게 총 ${generatedRoads.nodes.length}개 핵심 앵커 핀만 추출 완료! 위성에서 살살 드래그하세요!`);
+        showToast(`🎉 칠하신 곡선 그대로 총 ${generatedRoads.nodes.length}개 도로 핀 생성 완료!`);
       }
 
-      // ── 7. 자동 생성된 도로망 좌측 SVG 및 우측 위성 렌더링 (양방향 실시간 고정 드래그) ──
+      // ── 7. 자동 생성된 도로망 좌측 SVG 및 우측 위성 렌더링 (단일하고 깔끔한 형광선) ──
       function renderExtractedRoads(skipMarkers = false) {
         // 좌측 조감도 렌더링
         extractedRoadLinesLayer.innerHTML = '';
@@ -779,7 +767,7 @@
           extractedRoadLinesLayer.appendChild(createSvg('path', { class: 'extracted-road-core', d }));
         });
 
-        // 좌측 조감도 노드 핸들 (좌측에서도 드래그 가능!)
+        // 좌측 조감도 노드 핀
         generatedRoads.nodes.forEach((pos, idx) => {
           const pin = createSvg('g', { class: 'extracted-node-handle', transform: `translate(${pos[0]},${pos[1]})` }, `
             <circle class="outer" r="14"></circle>
@@ -800,7 +788,7 @@
 
               generatedRoads.polylines.forEach(line => {
                 line.forEach((p, pIdx) => {
-                  if (Math.hypot(p[0] - oldSvg[0], p[1] - oldSvg[1]) < 8) {
+                  if (Math.hypot(p[0] - oldSvg[0], p[1] - oldSvg[1]) < 12) {
                     line[pIdx] = newSvg;
                   }
                 });
@@ -825,7 +813,7 @@
           extractedRoadNodesLayer.appendChild(pin);
         });
 
-        // 우측 위성 지도 렌더링 (초록색 핀 드래그로 실제 위성 길에 완벽 고정!)
+        // 우측 위성 지도 렌더링
         if (satRoadPolylineGroup && satRoadMarkersGroup) {
           satRoadPolylineGroup.clearLayers();
           if (!skipMarkers) satRoadMarkersGroup.clearLayers();
@@ -874,13 +862,12 @@
                 generatedRoads.nodes[idx] = newSvg;
                 generatedRoads.polylines.forEach(line => {
                   line.forEach((p, pIdx) => {
-                    if (Math.hypot(p[0] - oldSvg[0], p[1] - oldSvg[1]) < 8) {
+                    if (Math.hypot(p[0] - oldSvg[0], p[1] - oldSvg[1]) < 12) {
                       line[pIdx] = newSvg;
                     }
                   });
                 });
 
-                // 좌측 조감도 및 우측 폴리라인 실시간 업데이트
                 renderExtractedRoads(true);
               });
 
@@ -891,7 +878,7 @@
                 generatedRoads.nodes[idx] = newSvg;
                 generatedRoads.polylines.forEach(line => {
                   line.forEach((p, pIdx) => {
-                    if (Math.hypot(p[0] - oldSvg[0], p[1] - oldSvg[1]) < 8) {
+                    if (Math.hypot(p[0] - oldSvg[0], p[1] - oldSvg[1]) < 12) {
                       line[pIdx] = newSvg;
                     }
                   });
@@ -1010,6 +997,8 @@
       function setMode(mode) {
         currentMode = mode;
         [btnToolBrush, btnToolEraser, btnToolPan].forEach(b => b.classList.remove('active'));
+        const btnToolMovePin = document.getElementById('btnToolMovePin');
+        [btnToolBrush, btnToolMovePin, btnToolEraser, btnToolPan].forEach(b => { if (b) b.classList.remove('active'); });
         viewport.classList.remove('drawing', 'panning');
 
         if (mode === 'brush') {
@@ -1018,6 +1007,11 @@
           hudToolTitle.textContent = '🖌️ 형광펜 브러시 모드';
           hudToolTitle.style.color = '#00e676';
           showToast('🖌️ 길 위를 마우스로 쓱쓱 색칠하세요!');
+        } else if (mode === 'move') {
+          if (btnToolMovePin) btnToolMovePin.classList.add('active');
+          hudToolTitle.textContent = '📍 핀 이동/미세조정 모드';
+          hudToolTitle.style.color = '#38bdf8';
+          showToast('📍 초록색 핀을 마우스로 잡고 살살 끌어다 놓으세요!');
         } else if (mode === 'eraser') {
           btnToolEraser.classList.add('active');
           viewport.classList.add('drawing');
@@ -1034,6 +1028,7 @@
       }
 
       btnToolBrush.onclick = () => setMode('brush');
+      document.getElementById('btnToolMovePin').onclick = () => setMode('move');
       btnToolEraser.onclick = () => setMode('eraser');
       btnToolPan.onclick = () => setMode('pan');
 
