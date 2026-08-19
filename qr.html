@@ -566,52 +566,54 @@
       color: #fff;
     }
 
-    /* ── SVG 그래픽 스타일 ── */
+    /* ── 네이버/구글 지도 스타일 프리미엄 네비게이션 경로 (Flicker-Free Smooth Route) ── */
     .route-path {
       fill: none;
-      stroke-width: 16;
+      stroke-width: 14;
       stroke-linecap: round;
       stroke-linejoin: round;
-      filter: drop-shadow(0 0 14px var(--glow-red));
-      stroke: var(--accent-red);
-      opacity: 0;
+      filter: drop-shadow(0 0 10px rgba(255, 59, 48, 0.6));
+      stroke: #ff3b30;
+      opacity: 0.95;
+      transition: d 0.3s ease-out;
     }
 
     .route-path.path-blue {
-      stroke: var(--accent-blue);
-      filter: drop-shadow(0 0 14px var(--glow-blue));
+      stroke: #0088ff;
+      filter: drop-shadow(0 0 10px rgba(0, 136, 255, 0.6));
     }
 
     .route-path.path-green {
-      stroke: var(--accent-green);
-      filter: drop-shadow(0 0 14px var(--glow-green));
+      stroke: #00e676;
+      filter: drop-shadow(0 0 10px rgba(0, 230, 118, 0.6));
     }
 
+    /* 진행 방향으로 은은하게 흐르는 도트 펄스 (눈부심 없는 네이버 지도 방식) */
     .route-overlay {
       fill: none;
-      stroke: #ffffff;
-      stroke-width: 6;
+      stroke: rgba(255, 255, 255, 0.9);
+      stroke-width: 5;
       stroke-linecap: round;
       stroke-linejoin: round;
-      opacity: 0;
+      stroke-dasharray: 12 28;
+      animation: naverFlow 1.2s linear infinite;
+      pointer-events: none;
+      transition: d 0.3s ease-out;
     }
 
-    .route-overlay.flowing {
-      opacity: 0.95;
-      stroke-dasharray: 22 42;
-      animation: dashFlow 1.1s linear infinite;
-    }
-
-    @keyframes dashFlow {
+    @keyframes naverFlow {
+      from {
+        stroke-dashoffset: 40;
+      }
       to {
-        stroke-dashoffset: -64;
+        stroke-dashoffset: 0;
       }
     }
 
     /* 내 위치 마커 & 실시간 오차 반경 원 */
     .my-pos-group {
       cursor: pointer;
-      transition: transform 0.2s ease-out;
+      transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
     .my-pos-accuracy {
@@ -1283,7 +1285,6 @@
 
       function renderDynamicRoute(destObj, shouldFocus = false) {
         activeDestObj = destObj;
-        routesLayer.innerHTML = ''; overlayLayer.innerHTML = ''; arrowsLayer.innerHTML = ''; destPinsLayer.innerHTML = '';
 
         let targetPos = destObj.pos;
         let finalLabel = destObj.label;
@@ -1364,43 +1365,73 @@
         navTitle.textContent = `${finalLabel}`;
         navMeta.textContent = `약 ${meters}m · 도보 ${minutes}분`;
 
-        // SVG 경로 렌더링 & 애니메이션
-        routeSegments.forEach((seg, idx) => {
-          if (seg.pts.length < 2) return;
-          const d = smoothPath(seg.pts);
-          const pathEl = createSvg('path', { id: `active-path-${idx}`, class: `route-path ${seg.color}`, d: d });
-          const overlayEl = createSvg('path', { class: 'route-overlay flowing', d: d });
-          routesLayer.appendChild(pathEl);
-          overlayLayer.appendChild(overlayEl);
+        // ── 네이버/구글 스타일: 깜빡임 없는 매끄러운 경로 갱신 ──
+        if (shouldFocus) {
+          // 최초 목적지 선택 시: 전체 레이어 초기화 후 부드러운 시작 애니메이션 1회 실행
+          routesLayer.innerHTML = '';
+          overlayLayer.innerHTML = '';
+          destPinsLayer.innerHTML = '';
 
-          const L = pathEl.getTotalLength();
-          pathEl.style.strokeDasharray = L;
-          pathEl.style.strokeDashoffset = L;
-          pathEl.style.opacity = 1;
-          pathEl.getBoundingClientRect();
-          pathEl.style.transition = `stroke-dashoffset ${800 + idx * 250}ms cubic-bezier(.3,.6,.2,1)`;
-          requestAnimationFrame(() => { pathEl.style.strokeDashoffset = 0; });
-        });
+          routeSegments.forEach((seg, idx) => {
+            if (seg.pts.length < 2) return;
+            const d = smoothPath(seg.pts);
+            const pathEl = createSvg('path', { id: `active-path-${idx}`, class: `route-path ${seg.color}`, d: d });
+            const overlayEl = createSvg('path', { id: `active-overlay-${idx}`, class: 'route-overlay', d: d });
+            routesLayer.appendChild(pathEl);
+            overlayLayer.appendChild(overlayEl);
 
-        // 도착지 핀들 렌더링
-        destPinsToDraw.forEach(pin => {
-          destPinsLayer.appendChild(createSvg('g', { class: `pin pin-dest ${pin.color || ''}`, transform: `translate(${pin.pos[0]},${pin.pos[1]})` }, `
-            <circle class="dest-glow-outer" r="34" />
-            <circle class="dest-glow" r="28" />
-            <circle class="dest-core" r="22" />
-            <circle class="dest-center" r="8" />
-            <text class="pin-label shadow" x="0" y="-38" text-anchor="middle">${pin.label}</text>
-            <text class="pin-label" x="0" y="-38" text-anchor="middle">${pin.label}</text>
-          `));
-        });
+            const L = pathEl.getTotalLength();
+            pathEl.style.strokeDasharray = L;
+            pathEl.style.strokeDashoffset = L;
+            pathEl.getBoundingClientRect();
+            pathEl.style.transition = `stroke-dashoffset ${700 + idx * 200}ms cubic-bezier(.3,.6,.2,1)`;
+            requestAnimationFrame(() => {
+              pathEl.style.strokeDashoffset = 0;
+              setTimeout(() => {
+                pathEl.style.strokeDasharray = 'none';
+                pathEl.style.strokeDashoffset = 'none';
+              }, 900 + idx * 200);
+            });
+          });
+
+          // 도착지 핀들 렌더링
+          destPinsToDraw.forEach(pin => {
+            destPinsLayer.appendChild(createSvg('g', { class: `pin pin-dest ${pin.color || ''}`, transform: `translate(${pin.pos[0]},${pin.pos[1]})` }, `
+              <circle class="dest-glow-outer" r="34" />
+              <circle class="dest-glow" r="28" />
+              <circle class="dest-core" r="22" />
+              <circle class="dest-center" r="8" />
+              <text class="pin-label shadow" x="0" y="-38" text-anchor="middle">${pin.label}</text>
+              <text class="pin-label" x="0" y="-38" text-anchor="middle">${pin.label}</text>
+            `));
+          });
+
+          // 최초 1회만 스마트 줌 포커스
+          if (!userInteractedWithMap) {
+            focusBounds(allFocusPoints);
+          }
+        } else {
+          // 실시간 GPS 이동 시: 화면을 지우지 않고 경로선 좌표(d)만 자연스럽게 스무딩 업데이트! (깜빡임 Zero)
+          routeSegments.forEach((seg, idx) => {
+            if (seg.pts.length < 2) return;
+            const d = smoothPath(seg.pts);
+            let pathEl = document.getElementById(`active-path-${idx}`);
+            let overlayEl = document.getElementById(`active-overlay-${idx}`);
+
+            if (pathEl && overlayEl) {
+              pathEl.setAttribute('d', d);
+              overlayEl.setAttribute('d', d);
+            } else {
+              pathEl = createSvg('path', { id: `active-path-${idx}`, class: `route-path ${seg.color}`, d: d });
+              overlayEl = createSvg('path', { id: `active-overlay-${idx}`, class: 'route-overlay', d: d });
+              routesLayer.appendChild(pathEl);
+              overlayLayer.appendChild(overlayEl);
+            }
+          });
+        }
 
         // 안내 종료 버튼 노출
         document.getElementById('resetNavRow')?.classList.add('show');
-
-        // 사용자가 직접 확대한 상태가 아닐 때(또는 목적지 최초 선택 시)만 스마트 줌 포커스
-        if (shouldFocus || !userInteractedWithMap) {
-          focusBounds(allFocusPoints);
-        }
       }
 
       function clearNavigation() {
