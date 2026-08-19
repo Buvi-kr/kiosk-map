@@ -1206,9 +1206,21 @@
                 <div class="form-input-group"><label class="form-label">🌐 경도</label><input id="ancLngInput" class="form-control" /></div>
               </div>
               <div class="form-input-group"><label class="form-label">🎯 조감도 SVG 좌표</label><input id="ancSvgInput" class="form-control" readonly /></div>
-              <div class="form-btn-row"><button class="btn-action btn-export" id="btnSaveAnchor" style="flex:2;">🔗 1:1 앵커 등록</button><button class="btn-tool" id="btnDeleteAnchor" style="display:none;">🗑️ 삭제</button></div>
+              <div class="form-btn-row">
+                <button class="btn-action btn-export" id="btnSaveAnchor" style="flex:2;">🔗 1:1 앵커 등록</button>
+                <button class="btn-tool" id="btnDeleteAnchor" style="display:none; color:#ef4444; border-color:#ef4444;">🗑️ 삭제</button>
+              </div>
             </div>
-            <button class="btn-action btn-export" id="btnAutoMapRoadsToGps" style="width:100%; margin-top:8px;">🚀 도로 핀 전체 GPS 자동 매핑</button>
+
+            <!-- 24개 GPS 앵커 JSON 복사 버튼 (눈에 확 띄게 주황색) -->
+            <button class="btn-action btn-export" id="btnCopyAnchorsJson" style="width:100%; margin-top:8px; background:linear-gradient(135deg,#ff9500,#ea580c); color:#ffffff; font-weight:800; box-shadow:0 4px 14px rgba(255,149,0,0.4);">
+              📋 24개 GPS 앵커 JSON 복사 (QR적용용)
+            </button>
+
+            <!-- 170개 도로 핀 전체 GPS 매핑 버튼 -->
+            <button class="btn-action btn-export" id="btnAutoMapRoadsToGps" style="width:100%; margin-top:6px; background:linear-gradient(135deg,#0284c7,#0369a1); color:#ffffff; font-size:12px;">
+              🚀 170개 도로 핀 전체 GPS 자동 매핑
+            </button>
           `;
           document.getElementById('btnSaveAnchor').onclick = () => {
             const name = document.getElementById('ancNameInput').value;
@@ -1219,11 +1231,30 @@
             if (selectedAnchorIdx >= 0) { gpsAnchors[selectedAnchorIdx] = { name, svg: [sx, sy], lat, lng }; } else { gpsAnchors.push({ name, svg: [sx, sy], lat, lng }); }
             renderGpsAnchors(); showToast('✅ 1:1 매핑 완료!');
           };
+          document.getElementById('btnDeleteAnchor').onclick = () => {
+            if (selectedAnchorIdx >= 0) {
+              const name = gpsAnchors[selectedAnchorIdx].name;
+              gpsAnchors.splice(selectedAnchorIdx, 1);
+              selectedAnchorIdx = -1;
+              showToast(`🗑️ 앵커 '${name}' 삭제 완료`);
+              renderGpsAnchors();
+              renderHudForMode();
+            }
+          };
+          document.getElementById('btnCopyAnchorsJson').onclick = () => {
+            const code = JSON.stringify(gpsAnchors, null, 2);
+            navigator.clipboard.writeText(code).then(() => {
+              showToast(`📋 총 ${gpsAnchors.length}개 GPS 앵커 JSON 복사 완료!`);
+            });
+            jsonArea.value = code;
+            jsonModal.style.display = 'flex';
+            jsonArea.select();
+          };
           document.getElementById('btnAutoMapRoadsToGps').onclick = () => {
             const roadAnchors = MASTER_DATA.nodes.map((pos, idx) => {
               let sorted = gpsAnchors.map(a => ({ a, dist: Math.hypot(a.svg[0] - pos[0], a.svg[1] - pos[1]) })).sort((a, b) => a.dist - b.dist).slice(0, 3);
               const w0 = 1 / (sorted[0].dist + 1e-4); const w1 = 1 / (sorted[1].dist + 1e-4); const w2 = 1 / (sorted[2].dist + 1e-4);
-              return { id: idx, svg: pos, lat: (sorted[0].a.lat * w0 + sorted[1].a.lat * w1 + sorted[2].a.lat * w2) / (w0 + w1 + w2), lng: (sorted[0].a.lng * w0 + sorted[1].a.lng * w1 + sorted[2].a.lng * w2) / (w0 + w1 + w2) };
+              return { id: idx, svg: pos, lat: parseFloat(((sorted[0].a.lat * w0 + sorted[1].a.lat * w1 + sorted[2].a.lat * w2) / (w0 + w1 + w2)).toFixed(6)), lng: parseFloat(((sorted[0].a.lng * w0 + sorted[1].a.lng * w1 + sorted[2].a.lng * w2) / (w0 + w1 + w2)).toFixed(6)) };
             });
             jsonArea.value = JSON.stringify(roadAnchors, null, 2); jsonModal.style.display = 'flex';
           };
