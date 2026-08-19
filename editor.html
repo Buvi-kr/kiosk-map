@@ -959,7 +959,7 @@
           delaunayLayer.appendChild(createSvg('path', { class: 'delaunay-edge', d }));
         });
 
-        // 2. 앵커 핀 그리기
+        // 2. 앵커 핀 그리기 (마우스 드래그로 조감도 위치 미세조정 가능)
         gpsAnchors.forEach((a, idx) => {
           const isSelected = (idx === selectedAnchorIdx);
           const pin = createSvg('g', {
@@ -971,9 +971,37 @@
             <text y="-18">${a.name}</text>
           `);
 
-          pin.addEventListener('click', (e) => {
+          let isDragging = false;
+          let hasMoved = false;
+
+          pin.addEventListener('pointerdown', (e) => {
             e.stopPropagation();
+            isDragging = true;
+            hasMoved = false;
             selectAnchor(idx);
+
+            const onDrag = (ev) => {
+              if (!isDragging) return;
+              hasMoved = true;
+              const pos = getCanvasPos(ev);
+              gpsAnchors[idx].svg = pos;
+              pin.setAttribute('transform', `translate(${pos[0]},${pos[1]})`);
+              const ancSvgInput = document.getElementById('ancSvgInput');
+              if (ancSvgInput) ancSvgInput.value = `${pos[0]}, ${pos[1]}`;
+            };
+
+            const onUp = () => {
+              isDragging = false;
+              window.removeEventListener('pointermove', onDrag);
+              window.removeEventListener('pointerup', onUp);
+              renderGpsAnchors();
+              if (hasMoved) {
+                showToast(`🎯 '${a.name}' 앵커 위치 미세조정 완료 [${gpsAnchors[idx].svg[0]}, ${gpsAnchors[idx].svg[1]}]`);
+              }
+            };
+
+            window.addEventListener('pointermove', onDrag);
+            window.addEventListener('pointerup', onUp);
           });
 
           gpsAnchorsLayer.appendChild(pin);
