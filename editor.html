@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>포천아트밸리 마스터 도로망 & 위성 듀얼 캘리브레이터 (STUDIO)</title>
+  <title>포천아트밸리 1:1 도로 직접 매핑 스튜디오 (STUDIO)</title>
   <!-- Leaflet GIS Map CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -17,7 +17,6 @@
       --accent-blue: #0088ff;
       --accent-red: #ff3b30;
       --accent-amber: #ff9500;
-      --accent-purple: #c084fc;
       --ink: #e2e8f0;
     }
 
@@ -48,7 +47,7 @@
 
     /* ── 상단 툴바 ── */
     .top-header {
-      height: 64px;
+      height: 60px;
       background: var(--panel);
       border-bottom: 1px solid var(--panel-border);
       display: flex;
@@ -57,7 +56,6 @@
       padding: 0 16px;
       gap: 10px;
       z-index: 100;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     }
 
     .app-title {
@@ -66,7 +64,6 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      white-space: nowrap;
     }
 
     .app-title span {
@@ -80,17 +77,11 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-
-    .tool-group::-webkit-scrollbar {
-      display: none;
     }
 
     .btn-tool {
-      padding: 8px 13px;
-      border-radius: 12px;
+      padding: 8px 14px;
+      border-radius: 10px;
       border: 1px solid #283548;
       background: #182230;
       color: #cbd5e1;
@@ -100,172 +91,112 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      transition: all 0.15s;
-      white-space: nowrap;
+      transition: all 0.2s;
     }
 
     .btn-tool:hover {
       background: #233144;
-      border-color: #38bdf8;
-      color: #fff;
+      border-color: #3b82f6;
     }
 
     .btn-tool.active {
-      background: linear-gradient(135deg, #0088ff, #0055ff);
+      background: #0284c7;
+      color: #ffffff;
       border-color: #38bdf8;
-      color: #fff;
-      box-shadow: 0 0 14px rgba(0, 136, 255, 0.5);
-    }
-
-    .btn-tool.test.active {
-      background: linear-gradient(135deg, #af52de, #7a1fa2);
-      border-color: #e879f9;
-      color: #fff;
-      box-shadow: 0 0 14px rgba(175, 82, 222, 0.5);
     }
 
     .btn-action {
-      padding: 9px 15px;
-      border-radius: 12px;
-      border: none;
+      padding: 8px 16px;
+      border-radius: 10px;
       font-size: 13px;
       font-weight: 800;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s;
-      white-space: nowrap;
+      border: none;
+      transition: all 0.2s;
     }
 
     .btn-export {
-      background: linear-gradient(135deg, #00e676, #00a844);
-      color: #000;
-      box-shadow: 0 2px 10px rgba(0, 230, 118, 0.4);
+      background: linear-gradient(135deg, #00e676, #00b0ff);
+      color: #06111e;
     }
 
-    .btn-export:active {
-      transform: scale(0.96);
-    }
-
-    /* ── 스플릿 뷰포트 영역 (좌: 조감도, 우: 실제 위성) ── */
+    /* ── 좌우 1:1 분할 스튜디오 ── */
     .studio-body {
       flex: 1;
       display: flex;
-      flex-direction: row;
       position: relative;
       overflow: hidden;
-      background: #040608;
     }
 
+    /* 좌측: 조감도 뷰포트 */
     .left-viewport-pane {
       flex: 1;
-      height: 100%;
       position: relative;
       overflow: hidden;
-      cursor: default;
+      background: #0b111c;
+      cursor: crosshair;
     }
 
     .left-viewport-pane.panning {
       cursor: grab;
     }
 
-    .left-viewport-pane.panning:active {
-      cursor: grabbing;
+    /* 우측: 실제 위성 지도 */
+    .right-satellite-pane {
+      width: 50%;
+      height: 100%;
+      position: relative;
+      border-left: 2px solid #1e293b;
+      display: flex;
+      flex-direction: column;
+      background: #000;
     }
 
     .split-divider {
       width: 8px;
       background: #1e293b;
       cursor: col-resize;
-      display: none;
-      align-items: center;
-      justify-content: center;
       z-index: 50;
       transition: background 0.2s;
     }
 
     .split-divider:hover,
     .split-divider.dragging {
-      background: #0088ff;
-    }
-
-    .split-divider::after {
-      content: '⋮';
-      color: #94a3b8;
-      font-size: 14px;
-      font-weight: bold;
-    }
-
-    .right-satellite-pane {
-      width: 50%;
-      height: 100%;
-      position: relative;
-      display: none;
-      border-left: 1px solid var(--panel-border);
-      background: #0b0f19;
-      z-index: 20;
-    }
-
-    /* 듀얼 모드 활성화 시 */
-    .studio-body.dual-mode .left-viewport-pane {
-      flex: 1;
-    }
-
-    .studio-body.dual-mode .split-divider {
-      display: flex;
-    }
-
-    .studio-body.dual-mode .right-satellite-pane {
-      display: block;
-    }
-
-    #leafletMap {
-      width: 100%;
-      height: 100%;
-      background: #0a0d14;
+      background: #00e676;
     }
 
     .satellite-hud-banner {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      right: 16px;
-      background: rgba(16, 22, 34, 0.9);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(0, 136, 255, 0.4);
-      border-radius: 12px;
-      padding: 10px 16px;
-      font-size: 13px;
-      color: #e2e8f0;
-      z-index: 1000;
+      padding: 8px 14px;
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      font-size: 12px;
+      z-index: 10;
     }
 
-    .satellite-hud-banner strong {
-      color: #00d2ff;
+    #leafletMap {
+      flex: 1;
+      width: 100%;
+      height: 100%;
     }
 
+    /* ── 조감도 캔버스 SVG ── */
     .map-canvas-container {
       position: absolute;
       top: 0;
       left: 0;
+      transform-origin: 0 0;
       width: 3337px;
       height: 2101px;
-      transform-origin: 0 0;
     }
 
     #bgImg {
-      position: absolute;
-      top: 0;
-      left: 0;
       width: 3337px;
       height: 2101px;
+      display: block;
       pointer-events: none;
-      user-select: none;
     }
 
     #mainSvg {
@@ -276,359 +207,162 @@
       height: 2101px;
     }
 
-    /* ── SVG 스타일 ── */
-    .road-segment {
+    /* 도로 선 스타일 */
+    .drawn-road-line {
       fill: none;
       stroke: #00e676;
-      stroke-width: 14;
+      stroke-width: 10;
       stroke-linecap: round;
       stroke-linejoin: round;
-      filter: drop-shadow(0 0 10px rgba(0, 230, 118, 0.7));
-      opacity: 0.85;
-      transition: all 0.2s;
+      filter: drop-shadow(0 0 8px rgba(0, 230, 118, 0.7));
     }
 
-    .road-segment:hover {
-      stroke: #00f0ff;
-      stroke-width: 18;
-      filter: drop-shadow(0 0 16px rgba(0, 240, 255, 1));
-      opacity: 1;
-      cursor: pointer;
-    }
-
-    .road-core {
+    .drawn-road-core {
       fill: none;
       stroke: #ffffff;
       stroke-width: 4;
       stroke-linecap: round;
       stroke-linejoin: round;
-      pointer-events: none;
     }
 
-    /* 노드 앵커 점 */
-    .node-pin {
-      cursor: move;
-      transition: transform 0.15s;
-    }
-
-    .node-pin circle.outer {
-      fill: #101622;
-      stroke: #00f0ff;
-      stroke-width: 3;
-      filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.8));
-    }
-
-    .node-pin:hover circle.outer {
-      fill: #0088ff;
-      transform: scale(1.4);
-      stroke: #fff;
-    }
-
-    .node-pin text {
-      font-size: 11px;
-      font-weight: 800;
-      fill: #ffffff;
-      text-anchor: middle;
-      dominant-baseline: central;
-      pointer-events: none;
-    }
-
-    /* 테스트 경로 라인 */
-    .test-route-line {
-      fill: none;
-      stroke: #ff3b30;
-      stroke-width: 18;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      filter: drop-shadow(0 0 16px rgba(255, 59, 48, 0.9));
-      animation: testPulse 1.5s infinite alternate;
-    }
-
-    .test-route-overlay {
-      fill: none;
-      stroke: #ffffff;
-      stroke-width: 6;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-dasharray: 20 30;
-      animation: dashFlow 1.2s linear infinite;
-    }
-
-    @keyframes dashFlow {
-      to {
-        stroke-dashoffset: -50;
-      }
-    }
-
-    @keyframes testPulse {
-      0% { stroke-width: 16; }
-      100% { stroke-width: 22; }
-    }
-
-    /* ── GPS 앵커 핀 & 들로네 삼각망 선 ── */
-    .gps-anchor-pin {
+    .drawn-road-point {
       cursor: pointer;
-      transition: transform 0.15s;
     }
 
-    .gps-anchor-pin circle.outer {
+    .drawn-road-point text {
+      fill: #ffffff;
+      font-size: 12px;
+      font-weight: 800;
+      text-anchor: middle;
+      text-shadow: 0 2px 4px #000;
+      pointer-events: none;
+    }
+
+    /* 24대 핵심 앵커 핀 (주황/노랑) */
+    .gps-anchor-pin {
+      cursor: grab;
+    }
+
+    .gps-anchor-pin .outer {
       fill: #ff9500;
       stroke: #ffffff;
-      stroke-width: 3;
-      filter: drop-shadow(0 0 10px rgba(255, 149, 0, 0.9));
-    }
-
-    .gps-anchor-pin:hover circle.outer {
-      fill: #ff3b30;
-      transform: scale(1.3);
+      stroke-width: 2.5;
+      filter: drop-shadow(0 0 6px #ff9500);
     }
 
     .gps-anchor-pin text {
-      font-size: 13px;
-      font-weight: 800;
       fill: #ffffff;
-      stroke: #000;
-      stroke-width: 3px;
-      paint-order: stroke fill;
+      font-size: 11px;
+      font-weight: 800;
+      text-anchor: middle;
+      text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
       pointer-events: none;
     }
 
+    /* 들로네 삼각망 선 */
     .delaunay-edge {
-      fill: rgba(255, 149, 0, 0.04);
-      stroke: rgba(255, 149, 0, 0.45);
-      stroke-width: 2;
-      stroke-dasharray: 6 4;
-      pointer-events: none;
+      fill: none;
+      stroke: rgba(255, 149, 0, 0.35);
+      stroke-width: 1.5;
+      stroke-dasharray: 4, 4;
     }
 
-    .track-point-dot {
-      fill: #00d2ff;
-      stroke: rgba(0, 0, 0, 0.5);
-      stroke-width: 1;
-      pointer-events: none;
-    }
-
-    /* ── 플로팅 HUD ── */
+    /* ── 플로팅 컨트롤러 HUD ── */
     .floating-hud {
       position: absolute;
-      bottom: 24px;
-      left: 24px;
-      background: rgba(16, 22, 34, 0.94);
+      bottom: 20px;
+      left: 20px;
+      width: 380px;
+      background: rgba(16, 22, 34, 0.96);
       backdrop-filter: blur(14px);
       border: 1px solid var(--panel-border);
       border-radius: 16px;
-      padding: 16px 20px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      z-index: 60;
+    }
+
+    .hud-title {
+      font-size: 14px;
+      font-weight: 800;
       display: flex;
-      flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
-      z-index: 50;
-      font-size: 13px;
-      max-width: 460px;
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    .form-input-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .form-label {
-      font-size: 11px;
-      font-weight: 700;
-      color: #94a3b8;
-    }
-
-    .form-control {
-      background: #090e15;
-      border: 1px solid #233348;
-      border-radius: 8px;
-      padding: 7px 10px;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 700;
-      outline: none;
-    }
-
-    .form-control:focus {
-      border-color: #38bdf8;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      color: #00e676;
     }
 
     .form-btn-row {
       display: flex;
-      gap: 6px;
-      margin-top: 4px;
-    }
-
-    .hud-sub-card {
-      background: rgba(0, 0, 0, 0.35);
-      border: 1px solid #1f2c3f;
-      border-radius: 10px;
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .hud-title {
-      font-weight: 800;
-      color: #00f0ff;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 14px;
-    }
-
-    .hud-stats-row {
-      display: flex;
-      gap: 12px;
-      padding: 6px 0;
-      border-bottom: 1px solid #1f2c3f;
-    }
-
-    .stat-badge {
-      background: #0d131d;
-      border: 1px solid #233348;
-      border-radius: 8px;
-      padding: 4px 8px;
-      font-size: 12px;
-      color: #94a3b8;
-    }
-
-    .stat-badge b {
-      color: #00e676;
-    }
-
-    .hud-desc {
-      color: #94a3b8;
-      font-size: 12px;
-      line-height: 1.6;
-    }
-
-    .hud-desc b {
-      color: #fff;
+      gap: 8px;
+      margin-top: 10px;
     }
 
     .floating-zoom {
       position: absolute;
-      top: 84px;
-      right: 24px;
+      top: 20px;
+      right: 20px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      z-index: 50;
+      gap: 6px;
+      z-index: 60;
     }
 
     .zoom-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: rgba(16, 22, 34, 0.94);
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(16, 22, 34, 0.9);
       border: 1px solid var(--panel-border);
       color: #fff;
-      font-size: 18px;
+      font-size: 16px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-      transition: all 0.15s;
     }
 
-    .zoom-btn:hover {
-      background: #2563eb;
-    }
-
-    /* ── 모달 & 토스트 ── */
-    .modal-overlay {
-      display: none;
+    /* 모달 */
+    .modal-backdrop {
       position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.8);
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.85);
       backdrop-filter: blur(8px);
-      z-index: 999;
+      display: none;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      z-index: 999;
     }
 
     .modal-card {
-      background: #141c27;
-      border: 1px solid #27374d;
-      border-radius: 20px;
-      width: 100%;
-      max-width: 650px;
+      width: 90%;
+      max-width: 680px;
       max-height: 85vh;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
-      overflow: hidden;
-    }
-
-    .modal-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid #202d3e;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 800;
-      font-size: 16px;
-    }
-
-    .modal-body {
-      padding: 16px 20px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      overflow-y: auto;
-    }
-
-    .modal-textarea {
-      width: 100%;
-      height: 280px;
-      background: #090e15;
-      border: 1px solid #1e2b3c;
-      border-radius: 12px;
-      color: #38bdf8;
-      font-family: ui-monospace, monospace;
-      font-size: 12px;
-      padding: 12px;
-      outline: none;
-    }
-
-    .modal-footer {
-      padding: 14px 20px;
-      border-top: 1px solid #202d3e;
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
+      padding: 20px;
     }
 
     .toast {
       position: fixed;
-      top: 84px;
+      bottom: 24px;
       left: 50%;
-      transform: translateX(-50%) translateY(-20px);
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid #00f0ff;
-      color: #fff;
-      padding: 10px 20px;
-      border-radius: 12px;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid #00e676;
+      color: #00e676;
       font-size: 13px;
-      font-weight: 700;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
-      z-index: 9999;
+      font-weight: 800;
+      padding: 10px 20px;
+      border-radius: 30px;
+      z-index: 1000;
       opacity: 0;
-      pointer-events: none;
       transition: all 0.25s ease;
     }
 
@@ -644,22 +378,19 @@
     <!-- 상단 툴바 -->
     <header class="top-header">
       <div class="app-title">
-        <span>📐 ROAD MASTER</span> | 포천아트밸리 도로 & 위성 듀얼 스튜디오
+        <span>🛣️ 1:1 도로 매핑 스튜디오</span> | 포천아트밸리
       </div>
 
       <div class="tool-group">
-        <button class="btn-tool active" id="toolViewMaster">🌐 통합 도로망</button>
-        <button class="btn-tool" id="toolDrawRoads" style="border-color:#00e676; color:#00e676; background:rgba(0,230,118,0.15); font-weight:800;">✏️ 24개 도로 직접 콕콕 그리기</button>
-        <button class="btn-tool" id="toolDualMapper" style="border-color:#00d2ff; color:#7dd3fc; background:rgba(0,210,255,0.15); font-weight:800;">🗺️ 위성 1:1 듀얼 매퍼</button>
-        <button class="btn-tool test" id="toolTestNav">🧪 길찾기 테스트</button>
-        <button class="btn-tool active" id="toolToggleNodes">📍 도로 핀 표시</button>
-        <button class="btn-action btn-export" id="btnExport">💾 데이터 내보내기</button>
+        <button class="btn-tool active" id="btnToggleDrawMode">✏️ [1:1 도로 콕콕 찍기 모드]</button>
+        <button class="btn-tool" id="btnToggleAnchors">📍 24대 핵심 앵커 (보존됨)</button>
+        <button class="btn-action btn-export" id="btnExportJson">💾 신규 도로망 JSON 내보내기</button>
       </div>
     </header>
 
     <!-- 스플릿 듀얼 바디 -->
     <div class="studio-body" id="studioBody">
-      <!-- 좌측: 우리 조감도 뷰포트 -->
+      <!-- 좌측: 조감도 뷰포트 -->
       <main class="left-viewport-pane" id="viewport">
         <div class="floating-zoom">
           <button class="zoom-btn" id="zoomInBtn" title="확대">➕</button>
@@ -670,38 +401,39 @@
         <!-- 플로팅 컨트롤러 패널 -->
         <div class="floating-hud" id="floatingHud">
           <div class="hud-title">
-            <span id="hudModeName">📐 정돈된 통합 마스터 도로망</span>
-            <span id="hudModeStatus" style="color:#00e676; font-size:12px;">● 무결점 100%</span>
+            <span id="hudStepTitle">👉 [1단계] 좌측 조감도에서 도로 클릭</span>
+            <span id="hudPointCount" style="color:#00e676; font-size:13px;">● 0개 구간</span>
           </div>
 
-          <div id="hudContentArea">
-            <!-- 모드별 동적 내용 -->
+          <div id="hudBodyText" style="font-size:12px; color:#94a3b8; line-height:1.4; margin-bottom:10px;">
+            1. <strong>좌측 조감도</strong>에서 도로의 <strong>시작점 ➔ 끝점</strong>을 클릭하세요.<br>
+            2. 그 다음 <strong>우측 위성 지도</strong>에서도 동일한 실제 위치를 <strong>시작점 ➔ 끝점</strong> 클릭하세요!
+          </div>
+
+          <div style="background:rgba(0,230,118,0.08); border:1px solid rgba(0,230,118,0.3); padding:10px; border-radius:8px; margin-bottom:8px;">
+            <div style="font-size:11px; color:#94a3b8;">현재 작업 중인 점:</div>
+            <div id="hudCurrentCoord" style="font-size:13px; font-weight:bold; color:#00e676; margin-top:2px;">
+              조감도: 대기 중... / 위성: 대기 중...
+            </div>
+          </div>
+
+          <div class="form-btn-row">
+            <button class="btn-tool" id="btnUndoLastPoint" style="flex:1;">↩️ 마지막 점 취소</button>
+            <button class="btn-tool" id="btnResetAll" style="flex:1; color:#ef4444; border-color:#ef4444;">🗑️ 전체 초기화</button>
           </div>
         </div>
 
         <div class="map-canvas-container" id="mapContainer">
-          <!-- 배경 조감도 이미지 -->
           <img id="bgImg" src="아트밸리_전경도_안내_v2_mobile.webp" alt="지도 배경" />
 
-          <!-- 마스터 도로망 & GPS 레이어 -->
           <svg id="mainSvg" viewBox="0 0 3337 2101">
-            <!-- 도로 선 레이어 -->
-            <g id="roadLinesLayer"></g>
-            <g id="roadCoreLayer"></g>
-
-            <!-- 들로네 삼각망 & 실측 트랙 레이어 -->
+            <!-- 24대 핵심 앵커 들로네 레이어 -->
             <g id="delaunayLayer"></g>
-            <g id="trackDotsLayer"></g>
-
-            <!-- 실시간 테스트 경로 레이어 -->
-            <g id="testRouteLayer"></g>
-            <g id="testPinsLayer"></g>
-
-            <!-- GPS 앵커 레이어 -->
             <g id="gpsAnchorsLayer"></g>
 
-            <!-- 도로망 노드 조작 핸들 레이어 -->
-            <g id="nodesLayer"></g>
+            <!-- 사장님이 직접 콕콕 찍을 신규 도로 레이어 -->
+            <g id="newRoadLinesLayer"></g>
+            <g id="newRoadNodesLayer"></g>
           </svg>
         </div>
       </main>
@@ -711,38 +443,22 @@
 
       <!-- 우측: 실제 위성 지도 (Leaflet) -->
       <section class="right-satellite-pane" id="rightSatellitePane">
-        <div class="satellite-hud-banner" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-          <div>🛰️ <strong>위성 지도 매퍼</strong> — 핀을 마우스로 잡고 당기면 <strong>주변 일대 도로가 뭉탱이로 함께 이동</strong>합니다!</div>
-          <div style="display:flex; gap:6px; align-items:center;">
-            <!-- 미세이동 조그 버튼 -->
-            <span style="font-size:11px; color:#94a3b8;">위성도로 전체 미세이동:</span>
-            <button class="btn-tool" id="btnNudgeUp" style="padding:2px 6px; font-size:11px;" title="북쪽으로 1m 이동">⬆️</button>
-            <button class="btn-tool" id="btnNudgeDown" style="padding:2px 6px; font-size:11px;" title="남쪽으로 1m 이동">⬇️</button>
-            <button class="btn-tool" id="btnNudgeLeft" style="padding:2px 6px; font-size:11px;" title="서쪽으로 1m 이동">⬅️</button>
-            <button class="btn-tool" id="btnNudgeRight" style="padding:2px 6px; font-size:11px;" title="동쪽으로 1m 이동">➡️</button>
-          </div>
+        <div class="satellite-hud-banner">
+          <div>🛰️ <strong>실제 위성 지도</strong> — 조감도에 찍은 점과 1:1로 일치하는 실제 위성 도로를 클릭하세요!</div>
           <div id="satCoordDisplay" style="font-family:monospace; font-weight:bold; color:#38bdf8; font-size:12px;">lat: --, lng: --</div>
         </div>
         <div id="leafletMap"></div>
       </section>
     </div>
 
-    <!-- 데이터 내보내기 모달 -->
-    <div class="modal-overlay" id="jsonModal">
+    <!-- JSON 내보내기 모달 -->
+    <div class="modal-backdrop" id="jsonModal">
       <div class="modal-card">
-        <div class="modal-header">
-          <span>💾 완성된 통합 마스터 도로망 데이터 (JSON)</span>
-          <button id="closeModalBtn" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer;">✕</button>
-        </div>
-        <div class="modal-body">
-          <p style="font-size:12px; color:#94a3b8;">
-            정돈된 마스터 도로망 데이터입니다. 키오스크(`index.html`)와 모바일(`qr.html`)에 실시간으로 탑재되어 있습니다!
-          </p>
-          <textarea id="jsonArea" class="modal-textarea" spellcheck="false"></textarea>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-tool" id="btnCopyJson">📋 클립보드 복사</button>
-          <button class="btn-action btn-export" id="btnDownloadJson">💾 .json 파일 다운로드</button>
+        <div style="font-size:16px; font-weight:800; color:#00e676; margin-bottom:12px;">💾 1:1 신규 도로망 데이터 추출</div>
+        <textarea id="jsonArea" style="flex:1; width:100%; min-height:300px; background:#070a0f; color:#00e676; font-family:monospace; font-size:12px; border:1px solid #1e293b; border-radius:8px; padding:12px; resize:none;" readonly></textarea>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
+          <button class="btn-tool" id="closeModalBtn">닫기</button>
+          <button class="btn-action btn-export" id="btnCopyJson">📋 JSON 클립보드 복사</button>
         </div>
       </div>
     </div>
@@ -754,14 +470,9 @@
   <script>
     (function () {
       const CANVAS_W = 3337, CANVAS_H = 2101;
-      let currentMode = 'view'; // 'view' | 'test'
-      let showNodes = true;
 
-      // ── 압축 & 최적화된 마스터 도로 데이터 탑재 ──
-      const MASTER_DATA = {"nodes": [[2201, 2094], [2201, 1942], [2212, 1874], [2222, 1838], [2259, 1765], [2274, 1725], [2243, 1668], [2172, 1577], [2149, 1537], [2078, 1490], [1982, 1425], [1903, 1407], [1770, 1360], [1684, 1308], [1632, 1263], [1590, 1248], [1556, 1227], [1436, 1159], [1387, 1099], [1353, 1073], [1235, 997], [1120, 926], [919, 840], [823, 806], [776, 778], [718, 746], [692, 712], [632, 678], [598, 660], [504, 624], [454, 595], [462, 556], [499, 524], [494, 488], [447, 443], [347, 420], [2282, 1893], [2363, 1908], [2405, 1866], [2449, 1835], [2491, 1767], [2465, 1728], [2332, 1825], [2434, 1710], [2394, 1686], [2340, 1725], [2300, 1642], [2282, 1584], [2321, 1537], [2577, 1822], [2577, 1940], [2755, 1942], [2708, 1934], [2689, 1861], [2880, 1924], [2849, 1880], [2820, 1830], [2807, 1796], [2742, 1812], [2812, 1757], [2843, 1733], [2935, 1908], [2984, 1882], [3063, 1825], [3112, 1767], [3154, 1707], [3188, 1645], [3277, 1566], [3300, 1530], [3217, 1584], [3188, 1530], [3172, 1490], [2512, 1937], [2676, 1825], [2423, 1924], [2112, 1472], [2159, 1443], [2287, 1407], [2329, 1363], [2392, 1282], [2410, 1245], [2434, 1208], [2449, 1175], [2467, 1112], [2509, 1060], [2533, 1023], [2548, 989], [2569, 913], [2575, 866], [2548, 843], [2499, 825], [2371, 825], [2381, 780], [2423, 762], [2449, 738], [2420, 707], [2405, 665], [2397, 603], [2400, 556], [2366, 488], [2355, 449], [2311, 605], [2178, 681], [2191, 718], [2209, 783], [2191, 919], [2063, 929], [2024, 898], [1990, 877], [1969, 848], [1945, 822], [1679, 822], [1622, 830], [1454, 830], [1277, 859], [1230, 832], [1238, 788], [1295, 775], [1342, 746], [1470, 702], [1588, 650], [1734, 603], [1776, 595], [1849, 571], [1922, 564], [2047, 545], [2102, 537], [1193, 806], [1157, 796], [1149, 757], [1128, 725], [1005, 710], [943, 728], [883, 759], [849, 778], [1102, 686], [1165, 668], [1141, 637], [1107, 626], [1076, 577], [1042, 587], [995, 600], [956, 605], [635, 603], [574, 584], [548, 608], [533, 553], [1131, 553], [1217, 668], [1259, 663], [1120, 788], [1081, 788], [1219, 874], [2044, 806], [2107, 804], [2329, 725], [2384, 718], [2488, 660], [2533, 694], [413, 624], [373, 629], [321, 629], [235, 592], [204, 569], [172, 530], [326, 530], [167, 480], [188, 443], [222, 425], [287, 407]], "adj": {"35": [[34, 102.61], [169, 61.39]], "34": [[33, 65.07], [35, 102.61]], "33": [[32, 36.35], [34, 65.07]], "32": [[31, 48.92], [33, 36.35], [146, 44.69]], "31": [[30, 39.81], [32, 48.92]], "30": [[29, 57.8], [31, 39.81], [159, 50.22]], "29": [[28, 100.66], [30, 57.8], [145, 46.82]], "28": [[27, 38.47], [29, 100.66]], "27": [[26, 68.96], [28, 38.47]], "26": [[25, 42.8], [27, 68.96]], "25": [[24, 66.24], [26, 42.8]], "24": [[23, 54.71], [25, 66.24]], "23": [[22, 101.84], [24, 54.71], [134, 38.21]], "22": [[21, 218.63], [23, 101.84]], "21": [[20, 135.15], [22, 218.63], [152, 111.83]], "20": [[19, 140.36], [21, 135.15]], "19": [[18, 42.8], [20, 140.36]], "18": [[17, 77.47], [19, 42.8]], "17": [[16, 137.93], [18, 77.47]], "16": [[15, 39.96], [17, 137.93]], "15": [[14, 44.6], [16, 39.96]], "14": [[13, 68.77], [15, 44.6]], "13": [[12, 100.5], [14, 68.77]], "12": [[11, 141.06], [13, 100.5]], "11": [[10, 81.02], [12, 141.06]], "10": [[9, 115.94], [11, 81.02]], "9": [[8, 85.15], [10, 115.94], [75, 38.47]], "8": [[7, 46.14], [9, 85.15]], "7": [[6, 115.42], [8, 46.14]], "6": [[5, 64.88], [7, 115.42], [47, 92.61]], "5": [[4, 42.72], [6, 64.88], [45, 66.0]], "4": [[3, 81.84], [5, 42.72]], "3": [[2, 37.36], [4, 81.84], [42, 110.77]], "2": [[1, 68.88], [3, 37.36], [36, 72.53]], "1": [[0, 152.0], [2, 68.88]], "0": [[1, 152.0]], "36": [[2, 72.53], [37, 82.38]], "37": [[36, 82.38], [38, 59.4], [74, 62.1]], "74": [[37, 62.1], [72, 89.94]], "72": [[50, 65.07], [74, 89.94]], "50": [[49, 118.0], [51, 178.01], [72, 65.07]], "51": [[50, 178.01], [52, 47.68], [54, 126.29]], "54": [[51, 126.29], [55, 53.82], [61, 57.28]], "61": [[54, 57.28], [62, 55.47]], "62": [[61, 55.47], [63, 97.42]], "63": [[62, 97.42], [64, 75.93]], "64": [[63, 75.93], [65, 73.24]], "65": [[64, 73.24], [66, 70.71]], "66": [[65, 70.71], [67, 119.0]], "67": [[66, 119.0], [68, 42.72]], "68": [[67, 42.72], [69, 99.02]], "71": [[70, 43.08]], "70": [[69, 61.29], [71, 43.08]], "69": [[68, 99.02], [70, 61.29]], "60": [[59, 39.2]], "59": [[57, 39.32], [60, 39.2]], "57": [[56, 36.4], [58, 66.94], [59, 39.32]], "56": [[55, 57.8], [57, 36.4]], "55": [[54, 53.82], [56, 57.8]], "58": [[57, 66.94], [73, 67.27]], "73": [[49, 99.05], [53, 38.28], [58, 67.27]], "53": [[52, 75.43], [73, 38.28]], "52": [[51, 47.68], [53, 75.43]], "49": [[40, 102.08], [50, 118.0], [73, 99.05]], "40": [[39, 79.92], [41, 46.87], [49, 102.08]], "41": [[40, 46.87], [42, 164.61], [43, 35.85]], "48": [[47, 61.07]], "47": [[6, 92.61], [46, 60.73], [48, 61.07]], "46": [[44, 103.79], [47, 60.73]], "44": [[43, 46.65], [45, 66.61], [46, 103.79]], "43": [[41, 35.85], [44, 46.65]], "39": [[38, 53.82], [40, 79.92]], "38": [[37, 59.4], [39, 53.82]], "42": [[3, 110.77], [41, 164.61]], "45": [[5, 66.0], [44, 66.61]], "75": [[9, 38.47], [76, 55.23]], "76": [[75, 55.23], [77, 132.97]], "77": [[76, 132.97], [78, 60.83]], "78": [[77, 60.83], [79, 102.62]], "79": [[78, 102.62], [80, 41.15]], "80": [[79, 41.15], [81, 44.1]], "81": [[80, 44.1], [82, 36.25]], "82": [[81, 36.25], [83, 65.52]], "83": [[82, 65.52], [84, 66.84]], "84": [[83, 66.84], [85, 44.1]], "85": [[84, 44.1], [86, 37.16]], "86": [[85, 37.16], [87, 78.85]], "87": [[86, 78.85], [88, 47.38]], "88": [[87, 47.38], [89, 35.47]], "89": [[88, 35.47], [90, 52.2]], "90": [[89, 52.2], [91, 128.0]], "91": [[90, 128.0], [92, 46.1]], "92": [[91, 46.1], [93, 45.69]], "93": [[92, 45.69], [94, 35.38]], "94": [[93, 35.38], [95, 42.45], [158, 94.83]], "158": [[94, 94.83], [157, 56.4]], "157": [[95, 82.66], [158, 56.4]], "95": [[96, 44.6], [156, 37.64], [157, 82.66]], "156": [[95, 37.64], [155, 55.44]], "155": [[104, 133.28], [156, 55.44]], "104": [[103, 67.45], [105, 137.19], [154, 104.14], [155, 133.28]], "154": [[104, 104.14], [153, 63.03]], "153": [[110, 100.28], [154, 63.03]], "110": [[109, 35.38], [111, 266.0], [153, 100.28]], "111": [[110, 266.0], [112, 57.56]], "112": [[111, 57.56], [113, 168.0]], "113": [[112, 168.0], [114, 179.36]], "114": [[113, 179.36], [115, 54.2], [152, 59.91]], "152": [[21, 111.83], [114, 59.91], [115, 43.42]], "109": [[108, 35.81], [110, 35.38]], "108": [[107, 39.96], [109, 35.81]], "107": [[106, 49.82], [108, 39.96]], "106": [[105, 128.39], [107, 49.82]], "105": [[104, 137.19], [106, 128.39]], "103": [[102, 39.22], [104, 67.45]], "102": [[101, 153.18], [103, 39.22]], "101": [[97, 86.02], [102, 153.18]], "97": [[96, 62.51], [98, 47.1], [101, 86.02]], "98": [[97, 47.1], [99, 76.03]], "99": [[98, 76.03], [100, 40.52]], "100": [[99, 40.52]], "96": [[95, 44.6], [97, 62.51]], "115": [[114, 54.2], [116, 44.72], [127, 45.22], [128, 81.39], [152, 43.42]], "128": [[115, 81.39], [127, 37.36], [129, 39.81], [150, 37.85]], "150": [[128, 37.85], [129, 42.45], [151, 39.0]], "151": [[150, 39.0]], "127": [[115, 45.22], [116, 48.47], [128, 37.36]], "116": [[115, 44.72], [117, 58.46], [127, 48.47]], "117": [[116, 58.46], [118, 55.23]], "118": [[117, 55.23], [119, 135.35]], "119": [[118, 135.35], [120, 128.95]], "120": [[119, 128.95], [121, 153.38]], "121": [[120, 153.38], [122, 42.76]], "122": [[121, 42.76], [123, 76.84]], "123": [[122, 76.84], [124, 73.33]], "124": [[123, 73.33], [125, 126.44]], "125": [[124, 126.44], [126, 55.58]], "126": [[125, 55.58]], "129": [[128, 39.81], [130, 38.28], [150, 42.45]], "130": [[129, 38.28], [131, 123.91], [135, 46.87]], "135": [[130, 46.87], [136, 65.52]], "136": [[135, 65.52], [137, 39.2], [148, 52.0]], "148": [[136, 52.0], [149, 42.3]], "149": [[148, 42.3]], "137": [[136, 39.2], [138, 35.74]], "138": [[137, 35.74], [139, 57.98]], "139": [[138, 57.98], [140, 35.44], [147, 60.01]], "147": [[139, 60.01]], "140": [[139, 35.44], [141, 48.76]], "141": [[140, 48.76], [142, 39.32]], "142": [[141, 39.32], [143, 321.01]], "143": [[142, 321.01], [144, 63.89]], "144": [[143, 63.89], [145, 35.38], [146, 51.4]], "146": [[32, 44.69], [144, 51.4]], "145": [[29, 46.82], [144, 35.38]], "169": [[35, 61.39], [168, 67.45]], "168": [[167, 38.47], [169, 67.45]], "167": [[166, 42.54], [168, 38.47]], "166": [[164, 50.25], [167, 42.54]], "164": [[163, 50.45], [165, 154.0], [166, 50.25]], "163": [[162, 38.6], [164, 50.45]], "162": [[161, 93.62], [163, 38.6]], "161": [[160, 52.0], [162, 93.62]], "160": [[159, 40.31], [161, 52.0]], "159": [[30, 50.22], [160, 40.31]], "165": [[164, 154.0]], "131": [[130, 123.91], [132, 64.56]], "132": [[131, 64.56], [133, 67.54]], "133": [[132, 67.54], [134, 38.95]], "134": [[23, 38.21], [133, 38.95]]}, "polylines": [[[2201, 2094], [2201, 1942], [2212, 1895], [2212, 1874], [2222, 1838], [2253, 1775], [2253, 1767], [2259, 1765], [2261, 1757], [2272, 1744], [2274, 1725], [2243, 1668], [2172, 1577], [2149, 1537], [2097, 1498], [2078, 1490], [1982, 1425], [1903, 1407], [1770, 1360], [1684, 1308], [1632, 1263], [1598, 1248], [1590, 1248], [1588, 1237], [1556, 1227], [1462, 1180], [1436, 1159], [1387, 1099], [1353, 1073], [1264, 1010], [1235, 997], [1120, 926], [919, 840], [823, 806], [776, 778], [739, 765], [718, 746], [692, 712], [645, 689], [632, 678], [598, 660], [520, 637], [504, 624], [475, 611], [465, 600], [454, 595], [452, 558], [462, 556], [478, 545], [499, 524], [499, 496], [494, 488], [447, 443], [347, 420]], [[2212, 1877], [2217, 1874], [2282, 1893], [2363, 1908], [2423, 1924], [2512, 1937], [2577, 1940], [2755, 1942], [2776, 1940], [2783, 1934], [2880, 1924], [2935, 1908], [2984, 1882], [3063, 1825], [3112, 1767], [3154, 1707], [3165, 1678], [3188, 1645], [3277, 1566], [3300, 1530]], [[3227, 1592], [3217, 1584], [3193, 1532], [3188, 1530], [3178, 1490], [3172, 1490]], [[2880, 1906], [2877, 1900], [2849, 1880], [2838, 1856], [2820, 1830], [2807, 1796], [2807, 1770], [2812, 1757], [2843, 1733]], [[2676, 1825], [2726, 1812], [2742, 1812], [2776, 1801], [2791, 1793], [2804, 1778], [2804, 1770]], [[2708, 1934], [2689, 1861], [2674, 1825]], [[2661, 1825], [2577, 1822], [2491, 1767], [2475, 1749], [2465, 1728], [2449, 1720]], [[2235, 1634], [2256, 1603], [2282, 1584], [2319, 1545], [2321, 1537]], [[2447, 1718], [2436, 1715], [2434, 1710], [2394, 1686], [2300, 1642], [2261, 1603], [2264, 1598]], [[2387, 1900], [2387, 1893], [2405, 1866], [2449, 1835], [2501, 1772]], [[2567, 1916], [2567, 1817]], [[2243, 1866], [2332, 1825], [2441, 1746], [2449, 1744]], [[2279, 1741], [2290, 1741], [2340, 1725], [2400, 1689]], [[2086, 1480], [2112, 1472], [2159, 1443], [2287, 1407], [2313, 1389], [2329, 1363], [2392, 1282], [2410, 1245], [2434, 1208], [2449, 1175], [2449, 1164], [2467, 1112], [2509, 1060], [2533, 1023], [2538, 1005], [2548, 989], [2569, 913], [2575, 903], [2575, 866], [2564, 853], [2556, 851], [2548, 843], [2499, 825], [2371, 825], [2363, 814], [2363, 793], [2381, 780], [2400, 775], [2423, 762], [2449, 738], [2475, 723], [2533, 694], [2541, 694], [2548, 681], [2533, 665], [2488, 660], [2420, 707], [2384, 718], [2329, 725], [2209, 783], [2107, 804], [2044, 806], [1945, 822], [1679, 822], [1622, 830], [1454, 830], [1277, 859], [1219, 874], [1110, 893], [1099, 898]], [[2076, 932], [2063, 929], [2024, 898], [1990, 877], [1982, 861], [1969, 848], [1935, 822]], [[2084, 934], [2170, 934], [2180, 932], [2191, 919], [2191, 799]], [[2191, 804], [2191, 718], [2178, 681], [2170, 671], [2170, 663], [2311, 605], [2397, 603], [2400, 597], [2400, 556], [2394, 535], [2366, 488], [2355, 449]], [[2434, 694], [2428, 694], [2410, 678], [2405, 665], [2400, 597]], [[1256, 853], [1230, 832], [1157, 796], [1120, 788], [1097, 772], [1091, 770], [1081, 788]], [[1185, 806], [1193, 806], [1238, 788], [1295, 775], [1342, 746], [1470, 702], [1588, 650], [1734, 603], [1776, 595], [1849, 571], [1922, 564], [2047, 545], [2071, 537], [2102, 537]], [[1172, 791], [1170, 775], [1165, 767], [1149, 757], [1128, 725], [1105, 707], [1102, 686], [1165, 668], [1217, 668], [1259, 663]], [[1175, 663], [1141, 637], [1131, 631], [1107, 626], [1084, 608], [1076, 577], [1131, 553]], [[1050, 590], [1042, 587], [995, 600], [956, 605], [635, 603], [616, 600], [574, 584], [533, 553], [501, 540]], [[541, 621], [548, 608], [567, 590], [585, 590]], [[441, 616], [413, 624], [373, 629], [321, 629], [235, 592], [204, 569], [172, 530], [167, 509], [167, 480], [188, 443], [222, 425], [259, 412], [287, 407], [324, 407]], [[178, 532], [326, 530]], [[366, 420], [324, 409]], [[823, 791], [849, 778], [856, 778], [883, 759], [943, 728], [1005, 710], [1118, 694], [1133, 686]], [[3227, 1592], [3300, 1530]]]};
-
-      // ── GPS 앵커 초기 데이터셋 (국토지리/네이버/OSM 위성 정밀 실측 기반 24대 거점) ──
-      let gpsAnchors = [
+      // ── 1. 사장님이 튜닝하신 24대 핵심 GPS 앵커 (100% 온전하게 보존) ──
+      const gpsAnchors = [
         { name: '천문과학관(본관)', svg: [189, 296], lat: 37.924800, lng: 127.243378 },
         { name: '산마루공연장(무대)', svg: [316, 519], lat: 37.924888, lng: 127.242634 },
         { name: '산마루매점/천문대진입로', svg: [89, 439], lat: 37.924981, lng: 127.242600 },
@@ -787,334 +498,208 @@
         { name: '포천관광정보센터/청년여행LAB', svg: [3171, 1493], lat: 37.922254, lng: 127.236980 },
         { name: '제1주차장/정문', svg: [3300, 1530], lat: 37.923672, lng: 127.236862 }
       ];
-      let selectedAnchorIdx = -1;
-      let loadedTrackPoints = [];
-      const studioBody = document.getElementById('studioBody');
+
+      // ── 2. 신규 1:1 도로 데이터 (Zero-base 시작) ──
+      // 각 아이템: { id: 0, svg: [x, y], lat: 37.xxx, lng: 127.xxx }
+      let customRoadNodes = [];
+
+      let showAnchors = true;
+      let pendingSvgPoint = null; // 좌측에서 찍은 SVG 점 대기
+
       const viewport = document.getElementById('viewport');
       const mapContainer = document.getElementById('mapContainer');
-      const mainSvg = document.getElementById('mainSvg');
+      const toastMsg = document.getElementById('toastMsg');
+      const hudStepTitle = document.getElementById('hudStepTitle');
+      const hudPointCount = document.getElementById('hudPointCount');
+      const hudCurrentCoord = document.getElementById('hudCurrentCoord');
+
+      const delaunayLayer = document.getElementById('delaunayLayer');
+      const gpsAnchorsLayer = document.getElementById('gpsAnchorsLayer');
+      const newRoadLinesLayer = document.getElementById('newRoadLinesLayer');
+      const newRoadNodesLayer = document.getElementById('newRoadNodesLayer');
+
       const splitDivider = document.getElementById('splitDivider');
       const rightSatellitePane = document.getElementById('rightSatellitePane');
       const satCoordDisplay = document.getElementById('satCoordDisplay');
-      const roadLinesLayer = document.getElementById('roadLinesLayer');
-      const roadCoreLayer = document.getElementById('roadCoreLayer');
-      const nodesLayer = document.getElementById('nodesLayer');
-      const testRouteLayer = document.getElementById('testRouteLayer');
-      const testPinsLayer = document.getElementById('testPinsLayer');
-      const gpsAnchorsLayer = document.getElementById('gpsAnchorsLayer');
-      const delaunayLayer = document.getElementById('delaunayLayer');
-      const trackDotsLayer = document.getElementById('trackDotsLayer');
-      const toolViewMaster = document.getElementById('toolViewMaster');
-      const toolTestNav = document.getElementById('toolTestNav');
-      const toolDualMapper = document.getElementById('toolDualMapper');
-      const toolTrackFitter = document.getElementById('toolTrackFitter');
-      const toolToggleNodes = document.getElementById('toolToggleNodes');
-      const btnExport = document.getElementById('btnExport');
-      const hudModeName = document.getElementById('hudModeName');
-      const hudModeStatus = document.getElementById('hudModeStatus');
-      const hudContentArea = document.getElementById('hudContentArea');
-      const toastMsg = document.getElementById('toastMsg');
-      const jsonModal = document.getElementById('jsonModal');
-      const jsonArea = document.getElementById('jsonArea');
+
       let leafletMap = null;
-      let tempSatMarker = null;
-      let satAnchorMarkersGroup = null;
-      let satRoadsLayerGroup = null;
-      function initLeafletMap() {
-        if (leafletMap) {
-          setTimeout(() => leafletMap.invalidateSize(), 200);
-          return;
-        }
-        leafletMap = L.map('leafletMap', { zoomControl: true, attributionControl: false }).setView([37.9238, 127.2405], 17);
-        const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(leafletMap);
-        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+      let satRoadMarkersGroup = null;
+      let satRoadPolylineGroup = null;
+      let satAnchorGroup = null;
 
-        satRoadsLayerGroup = L.layerGroup().addTo(leafletMap);
-        satAnchorMarkersGroup = L.layerGroup().addTo(leafletMap);
-
-        L.control.layers({
-          "🛰️ 고화질 위성 지도": satLayer,
-          "🗺️ OSM 일반 지도": osmLayer
-        }, {
-          "🛣️ 1:1 도로망 오버레이": satRoadsLayerGroup,
-          "📍 24대 GPS 앵커": satAnchorMarkersGroup
-        }, { position: 'topright' }).addTo(leafletMap);
-
-        leafletMap.on('click', (e) => {
-          const lat = e.latlng.lat.toFixed(6);
-          const lng = e.latlng.lng.toFixed(6);
-          if (tempSatMarker) {
-            tempSatMarker.setLatLng(e.latlng);
-          } else {
-            tempSatMarker = L.marker(e.latlng, { icon: L.divIcon({ className: 'custom-sat-pin', html: '<div style="background:#ff3b30; width:16px; height:16px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 10px #ff3b30;"></div>', iconSize: [22, 22], iconAnchor: [11, 11] }) }).addTo(leafletMap);
-          }
-          satCoordDisplay.textContent = `lat: ${lat}, lng: ${lng}`;
-          const ancLatInput = document.getElementById('ancLatInput');
-          const ancLngInput = document.getElementById('ancLngInput');
-          if (ancLatInput && ancLngInput) { ancLatInput.value = lat; ancLngInput.value = lng; }
-          showToast(`🛰️ 위성 지도 좌표 캡처! [${lat}, ${lng}]`);
-        });
-        renderLeafletAnchorMarkers();
-        renderSatelliteRoadNetwork();
+      function showToast(msg) {
+        toastMsg.textContent = msg;
+        toastMsg.classList.add('show');
+        setTimeout(() => toastMsg.classList.remove('show'), 2200);
       }
 
-      // ── 조감도 SVG [X, Y] ➔ 실제 위성 GPS [lat, lng] 1:1 역변환기 ──
-      function svgToGps(pos) {
-        if (!gpsAnchors || gpsAnchors.length === 0) return [37.9238, 127.2405];
-        let sorted = gpsAnchors.map(a => ({
-          a,
-          dist: Math.hypot(a.svg[0] - pos[0], a.svg[1] - pos[1])
-        })).sort((a, b) => a.dist - b.dist);
-
-        if (sorted[0].dist < 1) return [sorted[0].a.lat, sorted[0].a.lng];
-
-        const top3 = sorted.slice(0, 3);
-        const w0 = 1 / Math.pow(top3[0].dist, 2.0);
-        const w1 = 1 / Math.pow(top3[1].dist, 2.0);
-        const w2 = 1 / Math.pow(top3[2].dist, 2.0);
-        const totalW = w0 + w1 + w2;
-
-        const lat = (top3[0].a.lat * w0 + top3[1].a.lat * w1 + top3[2].a.lat * w2) / totalW;
-        const lng = (top3[0].a.lng * w0 + top3[1].a.lng * w1 + top3[2].a.lng * w2) / totalW;
-        return [parseFloat(lat.toFixed(6)), parseFloat(lng.toFixed(6))];
-      }
-
-      // ── 실제 위성 GPS [lat, lng] ➔ 조감도 SVG [X, Y] 1:1 순방향 변환기 ──
-      function gpsToSvg(lat, lng) {
-        if (!gpsAnchors || gpsAnchors.length === 0) return [1668, 1050];
-        let sorted = gpsAnchors.map(a => ({
-          a,
-          dist: Math.hypot((a.lat - lat) * 111000, (a.lng - lng) * 88000)
-        })).sort((a, b) => a.dist - b.dist);
-
-        if (sorted[0].dist < 0.5) return [sorted[0].a.svg[0], sorted[0].a.svg[1]];
-
-        const top3 = sorted.slice(0, 3);
-        const w0 = 1 / (Math.pow(top3[0].dist, 2.0) + 1e-4);
-        const w1 = 1 / (Math.pow(top3[1].dist, 2.0) + 1e-4);
-        const w2 = 1 / (Math.pow(top3[2].dist, 2.0) + 1e-4);
-        const totalW = w0 + w1 + w2;
-
-        const sx = (top3[0].a.svg[0] * w0 + top3[1].a.svg[0] * w1 + top3[2].a.svg[0] * w2) / totalW;
-        const sy = (top3[0].a.svg[1] * w0 + top3[1].a.svg[1] * w1 + top3[2].a.svg[1] * w2) / totalW;
-        return [Math.round(sx), Math.round(sy)];
-      }
-
-      let isGroupDragEnabled = true; // 뭉탱이 탄성 드래그 모드 기본 ON
-      let groupDragRadiusMeters = 80; // 영향 반경 80미터
-      let roadDragStartState = null;
-
-      // ── 우측 위성 지도 위에 1:1 도로망 & 170개 초록색 도로 핀 직접 드래그 렌더링 ──
-      function renderSatelliteRoadNetwork(skipNodes = false) {
-        if (!satRoadsLayerGroup || !leafletMap) return;
-        satRoadsLayerGroup.clearLayers();
-
-        // 1. 위성 지도 위에 초록색 도로 폴리라인 렌더링
-        MASTER_DATA.polylines.forEach((line) => {
-          const latlngs = line.map(pt => svgToGps(pt));
-          const polyline = L.polyline(latlngs, {
-            color: '#00e676',
-            weight: 5,
-            opacity: 0.85,
-            lineCap: 'round',
-            lineJoin: 'round',
-            interactive: false
-          });
-          satRoadsLayerGroup.addLayer(polyline);
-        });
-
-        if (skipNodes) return;
-
-        // 2. 위성 지도 위에 170개 '초록색 도로 핀'을 직접 드래그 가능한 마커로 렌더링!
-        MASTER_DATA.nodes.forEach((pos, nIdx) => {
-          const gps = svgToGps(pos);
-
-          const roadIcon = L.divIcon({
-            className: 'custom-sat-road-node-pin',
-            html: `
-              <div style="display:flex; flex-direction:column; align-items:center; cursor:grab; pointer-events:auto;">
-                <div style="background:#00e676; width:14px; height:14px; border-radius:50%; border:2px solid #ffffff; box-shadow:0 0 8px #00e676;"></div>
-                <div style="background:rgba(15,23,42,0.85); color:#00e676; font-size:9px; font-weight:800; padding:1px 4px; border-radius:3px; border:1px solid #00e676; white-space:nowrap; margin-top:1px; pointer-events:none;">
-                  #${nIdx}
-                </div>
-              </div>
-            `,
-            iconSize: [40, 28],
-            iconAnchor: [20, 7]
-          });
-
-          const roadMarker = L.marker(gps, {
-            icon: roadIcon,
-            draggable: true,
-            zIndexOffset: 500,
-            autoPan: true
-          });
-
-          roadMarker.on('dragstart', (e) => {
-            L.DomEvent.stopPropagation(e);
-            // 드래그 시작 시점의 170개 도로 노드 GPS 스냅샷
-            roadDragStartState = MASTER_DATA.nodes.map(n => svgToGps(n));
-          });
-
-          roadMarker.on('drag', (e) => {
-            const newPos = e.target.getLatLng();
-            const startOrigin = roadDragStartState[nIdx];
-            const dLat = newPos.lat - startOrigin[0];
-            const dLng = newPos.lng - startOrigin[1];
-
-            if (isGroupDragEnabled) {
-              // 🧲 뭉탱이 탄성 드래그: 주변 초록 도로 핀들도 거리에 맞게 함께 쓱쓱 딸려옴!
-              MASTER_DATA.nodes.forEach((nPos, idx) => {
-                if (idx === nIdx) {
-                  const newSvg = gpsToSvg(newPos.lat, newPos.lng);
-                  MASTER_DATA.nodes[idx] = newSvg;
-                } else {
-                  const initGps = roadDragStartState[idx];
-                  const distMeters = Math.hypot((initGps[0] - startOrigin[0]) * 111000, (initGps[1] - startOrigin[1]) * 88000);
-                  if (distMeters < groupDragRadiusMeters) {
-                    const factor = Math.pow(1 - distMeters / groupDragRadiusMeters, 2.0);
-                    const shiftedLat = initGps[0] + dLat * factor;
-                    const shiftedLng = initGps[1] + dLng * factor;
-                    const newSvg = gpsToSvg(shiftedLat, shiftedLng);
-                    MASTER_DATA.nodes[idx] = newSvg;
-                  }
-                }
-              });
-            } else {
-              const newSvg = gpsToSvg(newPos.lat, newPos.lng);
-              MASTER_DATA.nodes[nIdx] = newSvg;
-            }
-
-            // 좌측 조감도 마스터 도로망 실시간 재렌더링
-            renderMasterRoads();
-            // 우측 위성 폴리라인만 실시간 갱신 (마커 재생성 방지)
-            renderSatelliteRoadNetwork(true);
-          });
-
-          roadMarker.on('dragend', () => {
-            showToast(`🎯 초록 도로 핀 #${nIdx} 및 주변 도로 뭉탱이 이동 완료!`);
-            renderMasterRoads();
-            renderSatelliteRoadNetwork(false);
-          });
-
-          satRoadsLayerGroup.addLayer(roadMarker);
-        });
-      }
-
-      let dragStartAnchorsState = null;
-
-      function renderLeafletAnchorMarkers() {
-        if (!satAnchorMarkersGroup) return;
-        satAnchorMarkersGroup.clearLayers();
-        gpsAnchors.forEach((a, idx) => {
-          const isSelected = (idx === selectedAnchorIdx);
-          const pinColor = isSelected ? '#ff3b30' : '#ff9500';
-          const customIcon = L.divIcon({
-            className: 'custom-sat-draggable-pin',
-            html: `
-              <div style="display:flex; flex-direction:column; align-items:center; cursor:grab; pointer-events:auto;">
-                <div style="background:${pinColor}; width:22px; height:22px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 0 14px ${pinColor}; transition:transform 0.1s;"></div>
-                <div style="background:rgba(15,23,42,0.95); color:#ffffff; font-size:11px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid ${pinColor}; white-space:nowrap; margin-top:2px; pointer-events:none;">
-                  ${a.name}
-                </div>
-              </div>
-            `,
-            iconSize: [80, 46],
-            iconAnchor: [40, 11]
-          });
-
-          const marker = L.marker([a.lat, a.lng], {
-            icon: customIcon,
-            draggable: true,
-            zIndexOffset: isSelected ? 2000 : 1000,
-            autoPan: true
-          });
-
-          marker.on('click', (e) => {
-            L.DomEvent.stopPropagation(e);
-            selectAnchor(idx);
-          });
-
-          marker.on('dragstart', (e) => {
-            L.DomEvent.stopPropagation(e);
-            selectedAnchorIdx = idx;
-            // 드래그 시작 시점의 모든 앵커 위치 스냅샷
-            dragStartAnchorsState = gpsAnchors.map(anc => ({ lat: anc.lat, lng: anc.lng }));
-          });
-
-          marker.on('drag', (e) => {
-            const newPos = e.target.getLatLng();
-            const startOrigin = dragStartAnchorsState[idx];
-            const dLat = newPos.lat - startOrigin.lat;
-            const dLng = newPos.lng - startOrigin.lng;
-
-            if (isGroupDragEnabled) {
-              // 🧲 뭉탱이 탄성 드래그: 주변 앵커들도 거리에 따라 부드럽게 함께 슬쩍슬쩍 이동!
-              gpsAnchors.forEach((anc, aIdx) => {
-                if (aIdx === idx) {
-                  anc.lat = parseFloat(newPos.lat.toFixed(6));
-                  anc.lng = parseFloat(newPos.lng.toFixed(6));
-                } else {
-                  const initPos = dragStartAnchorsState[aIdx];
-                  // 미터 단위 거리 계산
-                  const distMeters = Math.hypot((initPos.lat - startOrigin.lat) * 111000, (initPos.lng - startOrigin.lng) * 88000);
-                  if (distMeters < groupDragRadiusMeters) {
-                    const factor = Math.pow(1 - distMeters / groupDragRadiusMeters, 2.0); // 2차 감쇠 탄성
-                    anc.lat = parseFloat((initPos.lat + dLat * factor).toFixed(6));
-                    anc.lng = parseFloat((initPos.lng + dLng * factor).toFixed(6));
-                  }
-                }
-              });
-            } else {
-              gpsAnchors[idx].lat = parseFloat(newPos.lat.toFixed(6));
-              gpsAnchors[idx].lng = parseFloat(newPos.lng.toFixed(6));
-            }
-
-            const ancLatInput = document.getElementById('ancLatInput');
-            const ancLngInput = document.getElementById('ancLngInput');
-            if (ancLatInput) ancLatInput.value = gpsAnchors[idx].lat;
-            if (ancLngInput) ancLngInput.value = gpsAnchors[idx].lng;
-            if (satCoordDisplay) satCoordDisplay.textContent = `lat: ${gpsAnchors[idx].lat}, lng: ${gpsAnchors[idx].lng}`;
-
-            // 좌측 들로네 삼각망 & 우측 위성 도로망 실시간 재계산
-            renderSvgOnlyGpsAnchors();
-            renderSatelliteRoadNetwork();
-          });
-
-          marker.on('dragend', () => {
-            showToast(`🎯 '${a.name}' 및 주변 일대 위치 조정 완료!`);
-            renderGpsAnchors();
-          });
-
-          satAnchorMarkersGroup.addLayer(marker);
-        });
-      }
-      function initSplitDivider() {
-        let isResizing = false;
-        splitDivider.addEventListener('mousedown', (e) => { isResizing = true; splitDivider.classList.add('dragging'); document.body.style.cursor = 'col-resize'; });
-        window.addEventListener('mousemove', (e) => {
-          if (!isResizing) return;
-          const containerWidth = studioBody.offsetWidth;
-          const newRightWidth = containerWidth - e.clientX;
-          const minW = 320, maxW = containerWidth - 320;
-          if (newRightWidth >= minW && newRightWidth <= maxW) {
-            rightSatellitePane.style.width = `${newRightWidth}px`;
-            if (leafletMap) leafletMap.invalidateSize();
-          }
-        });
-        window.addEventListener('mouseup', () => { if (isResizing) { isResizing = false; splitDivider.classList.remove('dragging'); document.body.style.cursor = 'default'; if (leafletMap) leafletMap.invalidateSize(); } });
-      }
-      initSplitDivider();
-      function showToast(msg) { toastMsg.textContent = msg; toastMsg.classList.add('show'); setTimeout(() => toastMsg.classList.remove('show'), 2400); }
       function createSvg(tag, attrs = {}, innerHTML = '') {
         const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
         Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
         if (innerHTML) el.innerHTML = innerHTML;
         return el;
       }
+
+      // ── 3. 우측 Leaflet 위성 지도 초기화 ──
+      function initLeafletMap() {
+        if (leafletMap) return;
+        leafletMap = L.map('leafletMap', { zoomControl: true, attributionControl: false }).setView([37.9235, 127.2395], 17);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(leafletMap);
+
+        satAnchorGroup = L.layerGroup().addTo(leafletMap);
+        satRoadPolylineGroup = L.layerGroup().addTo(leafletMap);
+        satRoadMarkersGroup = L.layerGroup().addTo(leafletMap);
+
+        // 위성 지도 클릭 시 1:1 GPS 점 등록!
+        leafletMap.on('click', (e) => {
+          const lat = parseFloat(e.latlng.lat.toFixed(6));
+          const lng = parseFloat(e.latlng.lng.toFixed(6));
+          satCoordDisplay.textContent = `lat: ${lat}, lng: ${lng}`;
+
+          if (!pendingSvgPoint) {
+            showToast('⚠️ 먼저 좌측 조감도에서 대응하는 도로 위치를 클릭해 주세요!');
+            return;
+          }
+
+          // 1:1 매핑 완료!
+          const nodeIdx = customRoadNodes.length;
+          customRoadNodes.push({
+            id: nodeIdx,
+            svg: pendingSvgPoint,
+            lat: lat,
+            lng: lng
+          });
+
+          showToast(`🎉 #${nodeIdx}번 도로 1:1 매칭 완료! [SVG: ${pendingSvgPoint[0]},${pendingSvgPoint[1]}] ➔ [GPS: ${lat}, ${lng}]`);
+          pendingSvgPoint = null;
+          updateHudUI();
+          renderNewRoads();
+        });
+
+        renderSatelliteAnchors();
+      }
+
+      // 24대 핵심 앵커 렌더링
+      function renderSatelliteAnchors() {
+        if (!satAnchorGroup) return;
+        satAnchorGroup.clearLayers();
+        if (!showAnchors) return;
+
+        gpsAnchors.forEach((a) => {
+          const customIcon = L.divIcon({
+            className: 'custom-sat-anchor',
+            html: `
+              <div style="display:flex; flex-direction:column; align-items:center; pointer-events:none;">
+                <div style="background:#ff9500; width:16px; height:16px; border-radius:50%; border:2px solid #ffffff; box-shadow:0 0 10px #ff9500;"></div>
+                <div style="background:rgba(15,23,42,0.9); color:#ffffff; font-size:10px; font-weight:800; padding:1px 5px; border-radius:3px; border:1px solid #ff9500; white-space:nowrap; margin-top:2px;">
+                  ${a.name}
+                </div>
+              </div>
+            `,
+            iconSize: [80, 36],
+            iconAnchor: [40, 8]
+          });
+          L.marker([a.lat, a.lng], { icon: customIcon, interactive: false }).addTo(satAnchorGroup);
+        });
+      }
+
+      // ── 4. 좌측 조감도 앵커 & 들로네 렌더링 ──
+      function renderLeftAnchors() {
+        gpsAnchorsLayer.innerHTML = '';
+        delaunayLayer.innerHTML = '';
+        if (!showAnchors) return;
+
+        gpsAnchors.forEach((a) => {
+          const pin = createSvg('g', { class: 'gps-anchor-pin', transform: `translate(${a.svg[0]},${a.svg[1]})` }, `
+            <circle class="outer" r="11"></circle>
+            <circle r="4" fill="#ffffff"></circle>
+            <text y="-16">${a.name}</text>
+          `);
+          gpsAnchorsLayer.appendChild(pin);
+        });
+      }
+
+      // ── 5. 신규 도로 렌더링 (좌측 조감도 & 우측 위성 실시간 동기화) ──
+      function renderNewRoads() {
+        // 좌측 조감도 렌더링
+        newRoadLinesLayer.innerHTML = '';
+        newRoadNodesLayer.innerHTML = '';
+
+        if (customRoadNodes.length > 1) {
+          let d = `M ${customRoadNodes[0].svg[0]},${customRoadNodes[0].svg[1]}`;
+          for (let i = 1; i < customRoadNodes.length; i++) {
+            d += ` L ${customRoadNodes[i].svg[0]},${customRoadNodes[i].svg[1]}`;
+          }
+          newRoadLinesLayer.appendChild(createSvg('path', { class: 'drawn-road-line', d }));
+          newRoadLinesLayer.appendChild(createSvg('path', { class: 'drawn-road-core', d }));
+        }
+
+        // 임시 대기 점 표시
+        if (pendingSvgPoint) {
+          const pendingPin = createSvg('g', { transform: `translate(${pendingSvgPoint[0]},${pendingSvgPoint[1]})` }, `
+            <circle r="14" fill="#ff3b30" opacity="0.4"></circle>
+            <circle r="7" fill="#ff3b30" stroke="#ffffff" stroke-width="2"></circle>
+            <text y="-14" fill="#ff3b30" font-size="12" font-weight="bold">우측 위성 클릭 대기중...</text>
+          `);
+          newRoadNodesLayer.appendChild(pendingPin);
+        }
+
+        customRoadNodes.forEach((node, idx) => {
+          const pin = createSvg('g', { class: 'drawn-road-point', transform: `translate(${node.svg[0]},${node.svg[1]})` }, `
+            <circle r="14" fill="#00e676" opacity="0.35"></circle>
+            <circle r="7" fill="#00e676" stroke="#ffffff" stroke-width="2"></circle>
+            <text y="4">${idx}</text>
+          `);
+          newRoadNodesLayer.appendChild(pin);
+        });
+
+        // 우측 위성 지도 렌더링
+        if (satRoadPolylineGroup && satRoadMarkersGroup) {
+          satRoadPolylineGroup.clearLayers();
+          satRoadMarkersGroup.clearLayers();
+
+          if (customRoadNodes.length > 1) {
+            const latlngs = customRoadNodes.map(n => [n.lat, n.lng]);
+            const poly = L.polyline(latlngs, { color: '#00e676', weight: 6, opacity: 0.9 });
+            satRoadPolylineGroup.addLayer(poly);
+          }
+
+          customRoadNodes.forEach((node, idx) => {
+            const marker = L.circleMarker([node.lat, node.lng], {
+              radius: 5.5,
+              fillColor: '#00e676',
+              color: '#ffffff',
+              weight: 2,
+              fillOpacity: 1
+            });
+            marker.bindTooltip(`<b>#${idx}번 도로</b><br>SVG: [${node.svg[0]}, ${node.svg[1]}]<br>GPS: ${node.lat}, ${node.lng}`, { direction: 'top' });
+            satRoadMarkersGroup.addLayer(marker);
+          });
+        }
+      }
+
+      function updateHudUI() {
+        hudPointCount.textContent = `● 총 ${customRoadNodes.length}개 구간`;
+        if (pendingSvgPoint) {
+          hudStepTitle.textContent = '👉 [2단계] 우측 위성 지도에서 동일 위치 클릭!';
+          hudStepTitle.style.color = '#38bdf8';
+          hudCurrentCoord.textContent = `조감도: [${pendingSvgPoint[0]}, ${pendingSvgPoint[1]}] ➔ 위성: 대기 중...`;
+        } else {
+          hudStepTitle.textContent = '👉 [1단계] 좌측 조감도에서 다음 도로 클릭';
+          hudStepTitle.style.color = '#00e676';
+          hudCurrentCoord.textContent = `조감도: 다음 점 대기 중...`;
+        }
+      }
+
+      // ── 6. 좌측 뷰포트 조작 (Pan & Zoom) ──
       let scale = 0.5, panX = 0, panY = 0;
       let isPanning = false, startX = 0, startY = 0;
-      function updateTransform() { mapContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`; }
+      let hasCanvasMoved = false, dragStartX = 0, dragStartY = 0;
+
+      function updateTransform() {
+        mapContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+      }
+
       function getCanvasPos(e) {
         const rect = viewport.getBoundingClientRect();
         const clientX = e.clientX - rect.left;
@@ -1123,6 +708,7 @@
         const y = Math.round((clientY - panY) / scale);
         return [Math.max(0, Math.min(CANVAS_W, x)), Math.max(0, Math.min(CANVAS_H, y))];
       }
+
       viewport.addEventListener('wheel', (e) => {
         e.preventDefault();
         const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
@@ -1135,27 +721,23 @@
         scale = newScale;
         updateTransform();
       }, { passive: false });
-      let isCanvasDragging = false;
-      let canvasDragStartX = 0, canvasDragStartY = 0;
-      let hasCanvasMoved = false;
 
       viewport.addEventListener('pointerdown', (e) => {
         if (e.target.closest('.floating-hud') || e.target.closest('.floating-zoom')) return;
-
         if (e.button === 0) {
           isPanning = true;
           hasCanvasMoved = false;
           startX = e.clientX - panX;
           startY = e.clientY - panY;
-          canvasDragStartX = e.clientX;
-          canvasDragStartY = e.clientY;
+          dragStartX = e.clientX;
+          dragStartY = e.clientY;
           viewport.classList.add('panning');
         }
       });
 
       window.addEventListener('pointermove', (e) => {
         if (!isPanning) return;
-        if (Math.hypot(e.clientX - canvasDragStartX, e.clientY - canvasDragStartY) > 4) {
+        if (Math.hypot(e.clientX - dragStartX, e.clientY - dragStartY) > 5) {
           hasCanvasMoved = true;
         }
         panX = e.clientX - startX;
@@ -1168,66 +750,90 @@
           isPanning = false;
           viewport.classList.remove('panning');
 
-          // 드래그가 아닌 단순 제자리 클릭이었을 때만 좌표 선택 이벤트 발동
-          if (!hasCanvasMoved && e.target && (e.target.id === 'bgImg' || e.target.id === 'mainSvg' || e.target.closest('#mainSvg'))) {
+          // 제자리 클릭 시 조감도 도로 점 찍기!
+          if (!hasCanvasMoved && (e.target.id === 'bgImg' || e.target.id === 'mainSvg' || e.target.closest('#mainSvg'))) {
             const pt = getCanvasPos(e);
-            if (currentMode === 'draw') {
-              handleDrawClick(pt);
-            } else if (currentMode === 'test') {
-              handleTestClick(pt);
-            } else if (currentMode === 'anchors' || currentMode === 'dual') {
-              handleAnchorCanvasClick(pt);
-            }
+            pendingSvgPoint = pt;
+            showToast(`🎯 조감도 #${customRoadNodes.length}번 도로 점 선택 [${pt[0]}, ${pt[1]}] ➔ 이제 우측 위성 지도를 클릭하세요!`);
+            updateHudUI();
+            renderNewRoads();
           }
         }
       });
 
-      let drawPoints = []; // 직접 콕콕 찍을 도로 점들 [ [x, y], ... ]
-
-      function handleDrawClick(pt) {
-        drawPoints.push(pt);
-        renderDrawLayer();
-        renderHudForMode();
-        showToast(`📍 #${drawPoints.length - 1}번 도로 점 추가 [${pt[0]}, ${pt[1]}] (총 ${drawPoints.length}개)`);
-      }
-
-      function renderDrawLayer() {
-        if (currentMode !== 'draw') return;
-        roadLinesLayer.innerHTML = '';
-        roadCoreLayer.innerHTML = '';
-        nodesLayer.innerHTML = '';
-
-        if (drawPoints.length > 1) {
-          const d = smoothPath(drawPoints);
-          roadLinesLayer.appendChild(createSvg('path', { class: 'road-segment', d }));
-          roadCoreLayer.appendChild(createSvg('path', { class: 'road-core', d }));
+      // ── 7. 분할 바 조절 ──
+      let isResizing = false;
+      splitDivider.addEventListener('mousedown', () => {
+        isResizing = true;
+        splitDivider.classList.add('dragging');
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        const containerWidth = document.getElementById('studioBody').offsetWidth;
+        const newRightWidth = containerWidth - e.clientX;
+        if (newRightWidth >= 300 && newRightWidth <= containerWidth - 300) {
+          rightSatellitePane.style.width = `${newRightWidth}px`;
+          if (leafletMap) leafletMap.invalidateSize();
         }
+      });
+      window.addEventListener('mouseup', () => {
+        if (isResizing) {
+          isResizing = false;
+          splitDivider.classList.remove('dragging');
+          if (leafletMap) leafletMap.invalidateSize();
+        }
+      });
 
-        drawPoints.forEach((pos, idx) => {
-          const pin = createSvg('g', { class: 'node-handle', transform: `translate(${pos[0]},${pos[1]})` }, `
-            <circle r="16" fill="#00e676" opacity="0.3"></circle>
-            <circle r="9" fill="#00e676" stroke="#ffffff" stroke-width="2.5"></circle>
-            <text y="4" font-weight="bold">${idx}</text>
-          `);
-          nodesLayer.appendChild(pin);
+      // ── 8. 버튼 이벤트 ──
+      document.getElementById('btnUndoLastPoint').onclick = () => {
+        if (pendingSvgPoint) {
+          pendingSvgPoint = null;
+          showToast('↩️ 조감도 선택 대기 취소');
+        } else if (customRoadNodes.length > 0) {
+          const popped = customRoadNodes.pop();
+          showToast(`↩️ #${popped.id}번 도로 점 취소됨`);
+        }
+        updateHudUI();
+        renderNewRoads();
+      };
+
+      document.getElementById('btnResetAll').onclick = () => {
+        customRoadNodes = [];
+        pendingSvgPoint = null;
+        updateHudUI();
+        renderNewRoads();
+        showToast('🗑️ 모든 도로 점이 초기화되었습니다. 새로 찍으세요!');
+      };
+
+      document.getElementById('btnToggleAnchors').onclick = () => {
+        showAnchors = !showAnchors;
+        document.getElementById('btnToggleAnchors').classList.toggle('active', showAnchors);
+        renderLeftAnchors();
+        renderSatelliteAnchors();
+        showToast(showAnchors ? '📍 24대 핵심 앵커 표시 ON' : '📍 24대 핵심 앵커 숨김 OFF');
+      };
+
+      document.getElementById('btnExportJson').onclick = () => {
+        const exportData = {
+          total: customRoadNodes.length,
+          nodes: customRoadNodes.map(n => n.svg),
+          gps_nodes: customRoadNodes.map(n => ({ id: n.id, svg: n.svg, lat: n.lat, lng: n.lng })),
+          polylines: [customRoadNodes.map(n => n.svg)]
+        };
+        document.getElementById('jsonArea').value = JSON.stringify(exportData, null, 2);
+        document.getElementById('jsonModal').style.display = 'flex';
+      };
+
+      document.getElementById('closeModalBtn').onclick = () => {
+        document.getElementById('jsonModal').style.display = 'none';
+      };
+
+      document.getElementById('btnCopyJson').onclick = () => {
+        navigator.clipboard.writeText(document.getElementById('jsonArea').value).then(() => {
+          showToast('📋 신규 1:1 도로 데이터가 클립보드에 복사되었습니다!');
         });
+      };
 
-        // 우측 위성 지도에도 1:1로 실시간 도로선 표시
-        if (satRoadsLayerGroup && leafletMap) {
-          satRoadsLayerGroup.clearLayers();
-          if (drawPoints.length > 1) {
-            const latlngs = drawPoints.map(pt => svgToGps(pt));
-            const poly = L.polyline(latlngs, { color: '#00e676', weight: 6, opacity: 0.9 });
-            satRoadsLayerGroup.addLayer(poly);
-          }
-          drawPoints.forEach((pos, idx) => {
-            const gps = svgToGps(pos);
-            const marker = L.circleMarker(gps, { radius: 5, fillColor: '#00e676', color: '#fff', weight: 2, fillOpacity: 1 });
-            marker.bindTooltip(`<b>#${idx}번 도로</b>`, { direction: 'top' });
-            satRoadsLayerGroup.addLayer(marker);
-          });
-        }
-      }
       document.getElementById('zoomInBtn').onclick = () => { scale = Math.min(3.5, scale * 1.25); updateTransform(); };
       document.getElementById('zoomOutBtn').onclick = () => { scale = Math.max(0.15, scale * 0.8); updateTransform(); };
       document.getElementById('zoomResetBtn').onclick = () => {
@@ -1237,463 +843,12 @@
         panY = (vh - CANVAS_H * scale) / 2;
         updateTransform();
       };
-      function smoothPath(pts) {
-        if (!pts || pts.length === 0) return '';
-        if (pts.length === 1) return `M ${pts[0][0]},${pts[0][1]}`;
-        if (pts.length === 2) return `M ${pts[0][0]},${pts[0][1]} L ${pts[1][0]},${pts[1][1]}`;
-        let d = `M ${pts[0][0]},${pts[0][1]}`;
-        for (let i = 0; i < pts.length - 1; i++) {
-          const p0 = i > 0 ? pts[i - 1] : pts[0];
-          const p1 = pts[i];
-          const p2 = pts[i + 1];
-          const p3 = i < pts.length - 2 ? pts[i + 2] : p2;
-          const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
-          const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
-          const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
-          const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
-          d += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2[0]},${p2[1]}`;
-        }
-        return d;
-      }
-      function renderMasterRoads() {
-        roadLinesLayer.innerHTML = '';
-        roadCoreLayer.innerHTML = '';
-        nodesLayer.innerHTML = '';
-        MASTER_DATA.polylines.forEach(pts => {
-          const d = smoothPath(pts);
-          roadLinesLayer.appendChild(createSvg('path', { class: 'road-segment', d }));
-          roadCoreLayer.appendChild(createSvg('path', { class: 'road-core', d }));
-        });
-        if (showNodes) {
-          MASTER_DATA.nodes.forEach((pos, idx) => {
-            const pin = createSvg('g', { class: 'node-handle', transform: `translate(${pos[0]},${pos[1]})` }, `
-              <circle r="14" fill="#00e676" opacity="0.3"></circle>
-              <circle r="7" fill="#00e676" stroke="#ffffff" stroke-width="2"></circle>
-              <text y="4">${idx}</text>
-            `);
-            let isDragging = false;
-            pin.addEventListener('pointerdown', (e) => {
-              e.stopPropagation();
-              isDragging = true;
-              const onDrag = (ev) => {
-                if (!isDragging) return;
-                const p = getCanvasPos(ev);
-                MASTER_DATA.nodes[idx] = p;
-                pin.setAttribute('transform', `translate(${p[0]},${p[1]})`);
-              };
-              const onUp = () => {
-                isDragging = false;
-                window.removeEventListener('pointermove', onDrag);
-                window.removeEventListener('pointerup', onUp);
-                renderMasterRoads();
-              };
-              window.addEventListener('pointermove', onDrag);
-              window.addEventListener('pointerup', onUp);
-            });
-            nodesLayer.appendChild(pin);
-          });
-        }
-      }
-      function buildDelaunayTriangles(pts) {
-        if (pts.length < 3) return [];
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        pts.forEach(p => { if (p.lng < minX) minX = p.lng; if (p.lng > maxX) maxX = p.lng; if (p.lat < minY) minY = p.lat; if (p.lat > maxY) maxY = p.lat; });
-        const dx = (maxX - minX) || 0.01, dy = (maxY - minY) || 0.01;
-        const deltaMax = Math.max(dx, dy) * 50;
-        const midX = (minX + maxX) / 2, midY = (minY + maxY) / 2;
-        const stA = { lng: midX - deltaMax, lat: midY - deltaMax, idx: -1 };
-        const stB = { lng: midX, lat: midY + deltaMax, idx: -2 };
-        const stC = { lng: midX + deltaMax, lat: midY - deltaMax, idx: -3 };
-        let triangles = [{ a: stA, b: stB, c: stC }];
-        function circumcircle(a, b, c) {
-          const ax = a.lng * 88000, ay = a.lat * 111000;
-          const bx = b.lng * 88000, by = b.lat * 111000;
-          const cx = c.lng * 88000, cy = c.lat * 111000;
-          const d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
-          if (Math.abs(d) < 1e-9) return { x: ax, y: ay, rSq: Infinity };
-          const ax2 = ax * ax + ay * ay;
-          const bx2 = bx * bx + by * by;
-          const cx2 = cx * cx + cy * cy;
-          const ox = (ax2 * (by - cy) + bx2 * (cy - ay) + cx2 * (ay - by)) / d;
-          const oy = (ax2 * (cx - bx) + bx2 * (ax - cx) + cx2 * (bx - ax)) / d;
-          const rSq = (ax - ox) * (ax - ox) + (ay - oy) * (ay - oy);
-          return { x: ox, y: oy, rSq };
-        }
-        pts.forEach((p, pIdx) => {
-          const node = { lng: p.lng, lat: p.lat, idx: pIdx };
-          const px = p.lng * 88000, py = p.lat * 111000;
-          let badTriangles = [];
-          triangles.forEach(t => {
-            const cc = circumcircle(t.a, t.b, t.c);
-            const distSq = (px - cc.x) * (px - cc.x) + (py - cc.y) * (py - cc.y);
-            if (distSq <= cc.rSq + 1e-4) badTriangles.push(t);
-          });
-          let polygon = [];
-          badTriangles.forEach(t => {
-            const edges = [{ p1: t.a, p2: t.b }, { p1: t.b, p2: t.c }, { p1: t.c, p2: t.a }];
-            edges.forEach(edge => {
-              let isShared = false;
-              badTriangles.forEach(other => {
-                if (other === t) return;
-                const oEdges = [{ p1: other.a, p2: other.b }, { p1: other.b, p2: other.c }, { p1: other.c, p2: other.a }];
-                if (oEdges.some(oe => (oe.p1.idx === edge.p1.idx && oe.p2.idx === edge.p2.idx) || (oe.p1.idx === edge.p2.idx && oe.p2.idx === edge.p1.idx))) isShared = true;
-              });
-              if (!isShared) polygon.push(edge);
-            });
-          });
-          triangles = triangles.filter(t => !badTriangles.includes(t));
-          polygon.forEach(edge => { triangles.push({ a: edge.p1, b: edge.p2, c: node }); });
-        });
-        return triangles.filter(t => t.a.idx >= 0 && t.b.idx >= 0 && t.c.idx >= 0).map(t => [t.a.idx, t.b.idx, t.c.idx]);
-      }
-      function renderSvgOnlyGpsAnchors() {
-        gpsAnchorsLayer.innerHTML = '';
-        delaunayLayer.innerHTML = '';
-        if (currentMode !== 'anchors' && currentMode !== 'track' && currentMode !== 'dual') return;
-        const triangles = buildDelaunayTriangles(gpsAnchors);
-        triangles.forEach(([i1, i2, i3]) => {
-          const p1 = gpsAnchors[i1].svg, p2 = gpsAnchors[i2].svg, p3 = gpsAnchors[i3].svg;
-          const d = `M ${p1[0]},${p1[1]} L ${p2[0]},${p2[1]} L ${p3[0]},${p3[1]} Z`;
-          delaunayLayer.appendChild(createSvg('path', { class: 'delaunay-edge', d }));
-        });
-        gpsAnchors.forEach((a, idx) => {
-          const isSelected = (idx === selectedAnchorIdx);
-          const pin = createSvg('g', { class: 'gps-anchor-pin', transform: `translate(${a.svg[0]},${a.svg[1]})` }, `
-            <circle class="outer" r="${isSelected ? 16 : 11}" style="fill:${isSelected ? '#ff3b30' : '#ff9500'}"></circle>
-            <circle r="4" fill="#ffffff"></circle>
-            <text y="-18">${a.name}</text>
-          `);
-          let isDragging = false;
-          let hasMoved = false;
-          pin.addEventListener('pointerdown', (e) => {
-            e.stopPropagation();
-            isDragging = true;
-            hasMoved = false;
-            selectAnchor(idx, false);
-
-            const onDrag = (ev) => {
-              if (!isDragging) return;
-              hasMoved = true;
-              const pos = getCanvasPos(ev);
-              gpsAnchors[idx].svg = pos;
-              pin.setAttribute('transform', `translate(${pos[0]},${pos[1]})`);
-              const ancSvgInput = document.getElementById('ancSvgInput');
-              if (ancSvgInput) ancSvgInput.value = `${pos[0]}, ${pos[1]}`;
-            };
-
-            const onUp = () => {
-              isDragging = false;
-              window.removeEventListener('pointermove', onDrag);
-              window.removeEventListener('pointerup', onUp);
-              renderGpsAnchors();
-              if (hasMoved) {
-                showToast(`🎯 '${a.name}' 조감도 위치 이동 완료! [${gpsAnchors[idx].svg[0]}, ${gpsAnchors[idx].svg[1]}]`);
-              }
-            };
-
-            window.addEventListener('pointermove', onDrag);
-            window.addEventListener('pointerup', onUp);
-          });
-          gpsAnchorsLayer.appendChild(pin);
-        });
-      }
-
-      function renderGpsAnchors() {
-        renderMasterRoads();
-        renderSvgOnlyGpsAnchors();
-        renderLeafletAnchorMarkers();
-        renderSatelliteRoadNetwork();
-      }
-
-      function selectAnchor(idx, shouldFly = true) {
-        selectedAnchorIdx = idx;
-        const a = gpsAnchors[idx];
-        const ancName = document.getElementById('ancNameInput');
-        const ancLat = document.getElementById('ancLatInput');
-        const ancLng = document.getElementById('ancLngInput');
-        const ancSvg = document.getElementById('ancSvgInput');
-        const btnDel = document.getElementById('btnDeleteAnchor');
-        if (ancName) ancName.value = a.name;
-        if (ancLat) ancLat.value = a.lat;
-        if (ancLng) ancLng.value = a.lng;
-        if (ancSvg) ancSvg.value = `${a.svg[0]}, ${a.svg[1]}`;
-        if (btnDel) btnDel.style.display = 'block';
-        if (satCoordDisplay) satCoordDisplay.textContent = `lat: ${a.lat}, lng: ${a.lng}`;
-        if (shouldFly && leafletMap) { leafletMap.flyTo([a.lat, a.lng], 18, { duration: 0.7 }); }
-        showToast(`📍 앵커 선택: ${a.name}`);
-        renderSvgOnlyGpsAnchors();
-      }
-      function handleAnchorCanvasClick(pt) {
-        const ancSvg = document.getElementById('ancSvgInput');
-        if (ancSvg) ancSvg.value = `${pt[0]}, ${pt[1]}`;
-        selectedAnchorIdx = -1;
-        const btnDel = document.getElementById('btnDeleteAnchor');
-        if (btnDel) btnDel.style.display = 'none';
-        showToast(`🎯 조감도 좌표 선택 [${pt[0]}, ${pt[1]}] (우측 위성 지도에서도 동일 위치를 클릭하세요)`);
-      }
-      let isGroupDragEnabled = false; // 뭉탱이 탄성 이동 취소 (단독 1개 핀 독립 이동 모드로 복원)
-      let groupDragRadiusMeters = 80;
-
-      function renderHudForMode() {
-        if (currentMode === 'view') {
-          hudModeName.textContent = '📐 정돈된 통합 마스터 도로망';
-          hudModeStatus.textContent = '● 무결점 100%';
-          hudModeStatus.style.color = '#00e676';
-          hudContentArea.innerHTML = `<div class="hud-desc">• 노드 핀을 마우스로 드래그하여 실시간 미세조정할 수 있습니다.</div>`;
-        } else if (currentMode === 'draw') {
-          hudModeName.textContent = '✏️ 24개 도로 직접 콕콕 그리기';
-          hudModeStatus.textContent = `● 현재 ${drawPoints.length}개 찍힘`;
-          hudModeStatus.style.color = '#00e676';
-          hudContentArea.innerHTML = `
-            <div style="font-size:12px; color:#cbd5e1; margin-bottom:8px; line-height:1.4;">
-              조감도(또는 위성 지도) 위에서 <strong>진입광장(#0)부터 순서대로 마우스로 콕콕</strong> 찍어주세요!
-            </div>
-            <div style="background:rgba(0,230,118,0.1); border:1px solid #00e676; padding:8px; border-radius:6px; margin-bottom:8px; font-size:13px; font-weight:800; color:#00e676; text-align:center;">
-              현재 등록된 점: ${drawPoints.length} / 24개
-            </div>
-            <div class="form-btn-row" style="margin-bottom:6px;">
-              <button class="btn-tool" id="btnUndoDrawPoint" style="flex:1;">↩️ 마지막 점 취소</button>
-              <button class="btn-tool" id="btnResetDrawPoints" style="flex:1; color:#ef4444; border-color:#ef4444;">🗑️ 전체 지우기</button>
-            </div>
-            <button class="btn-action btn-export" id="btnApplyCustomRoads" style="width:100%; font-weight:800; background:linear-gradient(135deg,#00e676,#059669); color:#0f172a;">
-              ✅ 찍은 ${drawPoints.length}개 도로로 확정 & 적용
-            </button>
-          `;
-          document.getElementById('btnUndoDrawPoint').onclick = () => {
-            if (drawPoints.length > 0) {
-              drawPoints.pop();
-              renderDrawLayer();
-              renderHudForMode();
-              showToast('↩️ 마지막 점 취소됨');
-            }
-          };
-          document.getElementById('btnResetDrawPoints').onclick = () => {
-            drawPoints = [];
-            renderDrawLayer();
-            renderHudForMode();
-            showToast('🗑️ 모든 점 초기화됨. 새로 콕콕 찍으세요!');
-          };
-          document.getElementById('btnApplyCustomRoads').onclick = () => {
-            if (drawPoints.length < 2) return showToast('⚠️ 최소 2개 이상의 점을 찍어야 합니다!');
-            // 새로운 마스터 도로망으로 확정
-            MASTER_DATA.nodes = [...drawPoints];
-            MASTER_DATA.polylines = [ [...drawPoints] ];
-            MASTER_DATA.adj = {};
-            for (let i = 0; i < drawPoints.length; i++) {
-              MASTER_DATA.adj[i] = [];
-              if (i > 0) {
-                const dist = Math.hypot(drawPoints[i][0] - drawPoints[i-1][0], drawPoints[i][1] - drawPoints[i-1][1]);
-                MASTER_DATA.adj[i].push([i - 1, parseFloat(dist.toFixed(2))]);
-              }
-              if (i < drawPoints.length - 1) {
-                const dist = Math.hypot(drawPoints[i][0] - drawPoints[i+1][0], drawPoints[i][1] - drawPoints[i+1][1]);
-                MASTER_DATA.adj[i].push([i + 1, parseFloat(dist.toFixed(2))]);
-              }
-            }
-            showToast(`🎉 총 ${drawPoints.length}개 점으로 새로운 마스터 도로망 적용 완료!`);
-            currentMode = 'dual';
-            resetToolbarActive();
-            toolDualMapper.classList.add('active');
-            studioBody.classList.add('dual-mode');
-            renderMasterRoads();
-            renderGpsAnchors();
-            renderHudForMode();
-          };
-        } else if (currentMode === 'dual' || currentMode === 'anchors') {
-          hudModeName.textContent = '🗺️ 위성 1:1 듀얼 매퍼';
-          hudModeStatus.textContent = `● 총 ${gpsAnchors.length}개 앵커`;
-          hudModeStatus.style.color = '#00d2ff';
-          hudContentArea.innerHTML = `
-            <div class="hud-sub-card">
-              <div class="form-input-group"><label class="form-label">🏷️ 앵커 명칭</label><input id="ancNameInput" class="form-control" /></div>
-              <div class="form-grid">
-                <div class="form-input-group"><label class="form-label">🌐 위도</label><input id="ancLatInput" class="form-control" /></div>
-                <div class="form-input-group"><label class="form-label">🌐 경도</label><input id="ancLngInput" class="form-control" /></div>
-              </div>
-              <div class="form-input-group"><label class="form-label">🎯 조감도 SVG 좌표</label><input id="ancSvgInput" class="form-control" readonly /></div>
-              <div class="form-btn-row">
-                <button class="btn-action btn-export" id="btnSaveAnchor" style="flex:2;">🔗 1:1 앵커 등록</button>
-                <button class="btn-tool" id="btnDeleteAnchor" style="display:none; color:#ef4444; border-color:#ef4444;">🗑️ 삭제</button>
-              </div>
-            </div>
-
-            <!-- 24개 GPS 앵커 JSON 복사 버튼 (눈에 확 띄게 주황색) -->
-            <button class="btn-action btn-export" id="btnCopyAnchorsJson" style="width:100%; margin-top:8px; background:linear-gradient(135deg,#ff9500,#ea580c); color:#ffffff; font-weight:800; box-shadow:0 4px 14px rgba(255,149,0,0.4);">
-              📋 24개 GPS 앵커 JSON 복사 (QR적용용)
-            </button>
-
-            <!-- 170개 도로 핀 전체 GPS 매핑 버튼 -->
-            <button class="btn-action btn-export" id="btnAutoMapRoadsToGps" style="width:100%; margin-top:6px; background:linear-gradient(135deg,#0284c7,#0369a1); color:#ffffff; font-size:12px;">
-              🚀 170개 도로 핀 전체 GPS 자동 매핑
-            </button>
-          `;
-          document.getElementById('btnSaveAnchor').onclick = () => {
-            const name = document.getElementById('ancNameInput').value;
-            const lat = parseFloat(document.getElementById('ancLatInput').value);
-            const lng = parseFloat(document.getElementById('ancLngInput').value);
-            const [sx, sy] = document.getElementById('ancSvgInput').value.split(',').map(n => parseInt(n));
-            if (!name || isNaN(lat)) return showToast('⚠️ 데이터를 입력하세요!');
-            if (selectedAnchorIdx >= 0) { gpsAnchors[selectedAnchorIdx] = { name, svg: [sx, sy], lat, lng }; } else { gpsAnchors.push({ name, svg: [sx, sy], lat, lng }); }
-            renderGpsAnchors(); showToast('✅ 1:1 매핑 완료!');
-          };
-          document.getElementById('btnDeleteAnchor').onclick = () => {
-            if (selectedAnchorIdx >= 0) {
-              const name = gpsAnchors[selectedAnchorIdx].name;
-              gpsAnchors.splice(selectedAnchorIdx, 1);
-              selectedAnchorIdx = -1;
-              showToast(`🗑️ 앵커 '${name}' 삭제 완료`);
-              renderGpsAnchors();
-              renderHudForMode();
-            }
-          };
-          document.getElementById('btnCopyAnchorsJson').onclick = () => {
-            const code = JSON.stringify(gpsAnchors, null, 2);
-            navigator.clipboard.writeText(code).then(() => {
-              showToast(`📋 총 ${gpsAnchors.length}개 GPS 앵커 JSON 복사 완료!`);
-            });
-            jsonArea.value = code;
-            jsonModal.style.display = 'flex';
-            jsonArea.select();
-          };
-          document.getElementById('btnAutoMapRoadsToGps').onclick = () => {
-            const roadAnchors = MASTER_DATA.nodes.map((pos, idx) => {
-              let sorted = gpsAnchors.map(a => ({ a, dist: Math.hypot(a.svg[0] - pos[0], a.svg[1] - pos[1]) })).sort((a, b) => a.dist - b.dist).slice(0, 3);
-              const w0 = 1 / (sorted[0].dist + 1e-4); const w1 = 1 / (sorted[1].dist + 1e-4); const w2 = 1 / (sorted[2].dist + 1e-4);
-              return { id: idx, svg: pos, lat: parseFloat(((sorted[0].a.lat * w0 + sorted[1].a.lat * w1 + sorted[2].a.lat * w2) / (w0 + w1 + w2)).toFixed(6)), lng: parseFloat(((sorted[0].a.lng * w0 + sorted[1].a.lng * w1 + sorted[2].a.lng * w2) / (w0 + w1 + w2)).toFixed(6)) };
-            });
-            jsonArea.value = JSON.stringify(roadAnchors, null, 2); jsonModal.style.display = 'flex';
-          };
-        }
-      }
-      function resetToolbarActive() {
-        const toolDrawRoads = document.getElementById('toolDrawRoads');
-        [toolViewMaster, toolDrawRoads, toolTestNav, toolDualMapper, toolTrackFitter].forEach(btn => {
-          if (btn) btn.classList.remove('active');
-        });
-        if (testRouteLayer) testRouteLayer.innerHTML = '';
-        if (testPinsLayer) testPinsLayer.innerHTML = '';
-        if (studioBody) studioBody.classList.remove('dual-mode');
-      }
-
-      const toolDrawRoads = document.getElementById('toolDrawRoads');
-      if (toolDrawRoads) {
-        toolDrawRoads.onclick = () => {
-          currentMode = 'draw';
-          resetToolbarActive();
-          toolDrawRoads.classList.add('active');
-          drawPoints = [];
-          renderDrawLayer();
-          renderHudForMode();
-          showToast('✏️ [24개 도로 직접 콕콕 그리기 모드] 조감도를 클릭하여 점을 찍으세요!');
-        };
-      }
-
-      toolViewMaster.onclick = () => {
-        currentMode = 'view';
-        resetToolbarActive();
-        toolViewMaster.classList.add('active');
-        renderGpsAnchors();
-        renderHudForMode();
-        showToast('🌐 통합 마스터 도로망 뷰 활성화');
-      };
-
-      toolTestNav.onclick = () => {
-        currentMode = 'test';
-        resetToolbarActive();
-        toolTestNav.classList.add('active');
-        testPoints = [];
-        renderGpsAnchors();
-        renderHudForMode();
-        showToast('🧪 아무 지점이나 2번 클릭하여 최단 경로를 테스트하세요!');
-      };
-
-      toolDualMapper.onclick = () => {
-        currentMode = 'dual';
-        resetToolbarActive();
-        toolDualMapper.classList.add('active');
-        studioBody.classList.add('dual-mode');
-        selectedAnchorIdx = -1;
-        initLeafletMap();
-        renderMasterRoads();
-        renderGpsAnchors();
-        renderHudForMode();
-        showToast('🗺️ [좌: 조감도 | 우: 실제 위성] 1:1 듀얼 매퍼 활성화!');
-      };
-
-      toolTrackFitter.onclick = () => {
-        currentMode = 'track';
-        resetToolbarActive();
-        toolTrackFitter.classList.add('active');
-        renderGpsAnchors();
-        renderTrackDots();
-        renderHudForMode();
-        showToast('🚶 [방법 B] 걷기 트랙 정합기 활성화!');
-      };
-
-      toolToggleNodes.onclick = () => {
-        showNodes = !showNodes;
-        toolToggleNodes.classList.toggle('active', showNodes);
-        renderMasterRoads();
-        showToast(showNodes ? '📍 도로 핀 표시 ON' : '📍 도로 핀 표시 OFF');
-      };
-
-      btnExport.onclick = () => {
-        jsonArea.value = JSON.stringify(MASTER_DATA, null, 2);
-        jsonModal.style.display = 'flex';
-        jsonArea.select();
-      };
-
-      document.getElementById('closeModalBtn').onclick = () => { jsonModal.style.display = 'none'; };
-      document.getElementById('btnCopyJson').onclick = () => {
-        navigator.clipboard.writeText(jsonArea.value).then(() => showToast('📋 클립보드 복사 완료!'));
-      };
-
-      // 🧲 상단 툴바 뭉탱이 탄성 이동 토글
-      const topBtnGroupDrag = document.getElementById('topBtnGroupDrag');
-      if (topBtnGroupDrag) {
-        topBtnGroupDrag.onclick = () => {
-          isGroupDragEnabled = !isGroupDragEnabled;
-          topBtnGroupDrag.style.color = isGroupDragEnabled ? '#00e676' : '#94a3b8';
-          topBtnGroupDrag.style.borderColor = isGroupDragEnabled ? '#00e676' : '#64748b';
-          topBtnGroupDrag.style.background = isGroupDragEnabled ? 'rgba(0,230,118,0.15)' : 'transparent';
-          topBtnGroupDrag.textContent = isGroupDragEnabled ? '🧲 뭉탱이 탄성 이동: ON' : '🎯 단독 개별 이동: OFF';
-          renderHudForMode();
-          showToast(isGroupDragEnabled ? '🧲 뭉탱이 탄성 이동 [켜짐] (주변 도로 함께 당김)' : '🎯 단독 개별 이동 [켜짐]');
-        };
-      }
-
-      // 🕹️ 위성 전체 도로 미세이동 조그 셔틀 (1.5미터 단위 이동)
-      function nudgeSatelliteAnchors(dLatMeters, dLngMeters) {
-        const dLat = dLatMeters / 111000;
-        const dLng = dLngMeters / 88000;
-        gpsAnchors.forEach(anc => {
-          anc.lat = parseFloat((anc.lat + dLat).toFixed(6));
-          anc.lng = parseFloat((anc.lng + dLng).toFixed(6));
-        });
-        renderGpsAnchors();
-        showToast(`🕹️ 위성 도로망 전체 미세 이동 완료!`);
-      }
-
-      const btnNudgeUp = document.getElementById('btnNudgeUp');
-      const btnNudgeDown = document.getElementById('btnNudgeDown');
-      const btnNudgeLeft = document.getElementById('btnNudgeLeft');
-      const btnNudgeRight = document.getElementById('btnNudgeRight');
-      if (btnNudgeUp) btnNudgeUp.onclick = () => nudgeSatelliteAnchors(1.5, 0);
-      if (btnNudgeDown) btnNudgeDown.onclick = () => nudgeSatelliteAnchors(-1.5, 0);
-      if (btnNudgeLeft) btnNudgeLeft.onclick = () => nudgeSatelliteAnchors(0, -1.5);
-      if (btnNudgeRight) btnNudgeRight.onclick = () => nudgeSatelliteAnchors(0, 1.5);
-      document.getElementById('btnDownloadJson').onclick = () => {
-        const blob = new Blob([jsonArea.value], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = '포천아트밸리_정돈된_마스터도로망.json';
-        a.click();
-        showToast('💾 다운로드 완료!');
-      };
 
       // ── 초기화 실행 ──
-      renderMasterRoads();
-      renderHudForMode();
+      initLeafletMap();
+      renderLeftAnchors();
+      updateHudUI();
+      renderNewRoads();
     })();
   </script>
 </body>
