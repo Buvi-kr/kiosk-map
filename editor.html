@@ -845,21 +845,21 @@
           const customIcon = L.divIcon({
             className: 'custom-sat-draggable-pin',
             html: `
-              <div style="display:flex; flex-direction:column; align-items:center; cursor:grab;">
-                <div style="background:${pinColor}; width:18px; height:18px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 0 12px ${pinColor}; transition:transform 0.15s;"></div>
-                <div style="background:rgba(15,23,42,0.9); color:#ffffff; font-size:11px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid ${pinColor}; white-space:nowrap; margin-top:2px; pointer-events:none;">
+              <div style="display:flex; flex-direction:column; align-items:center; cursor:grab; pointer-events:auto;">
+                <div style="background:${pinColor}; width:20px; height:20px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 0 12px ${pinColor};"></div>
+                <div style="background:rgba(15,23,42,0.95); color:#ffffff; font-size:11px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid ${pinColor}; white-space:nowrap; margin-top:2px; pointer-events:none;">
                   ${a.name}
                 </div>
               </div>
             `,
-            iconSize: [80, 42],
-            iconAnchor: [40, 9]
+            iconSize: [80, 44],
+            iconAnchor: [40, 10]
           });
 
           const marker = L.marker([a.lat, a.lng], {
             icon: customIcon,
             draggable: true,
-            title: `마우스로 드래그하여 '${a.name}' 위성 위치를 이동하세요`
+            autoPan: true
           });
 
           marker.on('click', (e) => {
@@ -867,8 +867,9 @@
             selectAnchor(idx);
           });
 
-          marker.on('dragstart', () => {
-            selectAnchor(idx);
+          marker.on('dragstart', (e) => {
+            L.DomEvent.stopPropagation(e);
+            selectedAnchorIdx = idx;
           });
 
           marker.on('drag', (e) => {
@@ -884,8 +885,8 @@
             if (ancLngInput) ancLngInput.value = lng;
             if (satCoordDisplay) satCoordDisplay.textContent = `lat: ${lat}, lng: ${lng}`;
 
-            // 좌측 들로네 삼각망 실시간 재계산
-            renderGpsAnchors();
+            // 좌측 들로네 삼각망만 실시간 갱신 (Leaflet 레이어 재생성 방지!)
+            renderSvgOnlyGpsAnchors();
           });
 
           marker.on('dragend', () => {
@@ -1104,7 +1105,7 @@
         });
         return triangles.filter(t => t.a.idx >= 0 && t.b.idx >= 0 && t.c.idx >= 0).map(t => [t.a.idx, t.b.idx, t.c.idx]);
       }
-      function renderGpsAnchors() {
+      function renderSvgOnlyGpsAnchors() {
         gpsAnchorsLayer.innerHTML = '';
         delaunayLayer.innerHTML = '';
         if (currentMode !== 'anchors' && currentMode !== 'track' && currentMode !== 'dual') return;
@@ -1127,7 +1128,7 @@
             e.stopPropagation();
             isDragging = true;
             hasMoved = false;
-            selectAnchor(idx);
+            selectAnchor(idx, false);
 
             const onDrag = (ev) => {
               if (!isDragging) return;
@@ -1154,9 +1155,14 @@
           });
           gpsAnchorsLayer.appendChild(pin);
         });
+      }
+
+      function renderGpsAnchors() {
+        renderSvgOnlyGpsAnchors();
         renderLeafletAnchorMarkers();
       }
-      function selectAnchor(idx) {
+
+      function selectAnchor(idx, shouldFly = true) {
         selectedAnchorIdx = idx;
         const a = gpsAnchors[idx];
         const ancName = document.getElementById('ancNameInput');
@@ -1170,9 +1176,9 @@
         if (ancSvg) ancSvg.value = `${a.svg[0]}, ${a.svg[1]}`;
         if (btnDel) btnDel.style.display = 'block';
         if (satCoordDisplay) satCoordDisplay.textContent = `lat: ${a.lat}, lng: ${a.lng}`;
-        if (leafletMap) { leafletMap.flyTo([a.lat, a.lng], 18, { duration: 0.7 }); }
+        if (shouldFly && leafletMap) { leafletMap.flyTo([a.lat, a.lng], 18, { duration: 0.7 }); }
         showToast(`📍 앵커 선택: ${a.name}`);
-        renderGpsAnchors();
+        renderSvgOnlyGpsAnchors();
       }
       function handleAnchorCanvasClick(pt) {
         const ancSvg = document.getElementById('ancSvgInput');
