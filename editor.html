@@ -703,7 +703,36 @@
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // ── 6. 칠해진 형광 브러시로부터 도로망 자동 생성 (Centerline Extraction) ──
+      // ── Douglas-Peucker 다각형/곡선 간소화 알고리즘 (핵심 시작점/끝점/꺾임점만 추출) ──
+      function simplifyPolyline(pts, tolerance = 60) {
+        if (pts.length <= 2) return pts;
+        let maxDist = 0, index = 0;
+        const p1 = pts[0], p2 = pts[pts.length - 1];
+        const lineLen = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+
+        for (let i = 1; i < pts.length - 1; i++) {
+          let dist = 0;
+          if (lineLen < 1e-6) {
+            dist = Math.hypot(pts[i][0] - p1[0], pts[i][1] - p1[1]);
+          } else {
+            dist = Math.abs((p2[1] - p1[1]) * pts[i][0] - (p2[0] - p1[0]) * pts[i][1] + p2[0] * p1[1] - p2[1] * p1[0]) / lineLen;
+          }
+          if (dist > maxDist) {
+            maxDist = dist;
+            index = i;
+          }
+        }
+
+        if (maxDist > tolerance) {
+          const rec1 = simplifyPolyline(pts.slice(0, index + 1), tolerance);
+          const rec2 = simplifyPolyline(pts.slice(index), tolerance);
+          return rec1.slice(0, rec1.length - 1).concat(rec2);
+        } else {
+          return [p1, p2];
+        }
+      }
+
+      // ── 6. 칠해진 형광 브러시로부터 [시작점, 끝점, 주요 꺾임점]만 앵커로 깔끔하게 추출 ──
       function generateRoadNetworkFromBrush() {
         const positiveStrokes = brushStrokes.filter(s => !s.isEraser && s.points.length >= 2);
         if (positiveStrokes.length === 0) {
@@ -715,24 +744,13 @@
         generatedRoads.polylines = [];
 
         positiveStrokes.forEach((stroke) => {
-          // 스트로크 점들을 일정 간격(약 45px)으로 샘플링하여 부드러운 노드들로 정돈
-          let sampled = [stroke.points[0]];
-          let lastPt = stroke.points[0];
+          // 허용 오차 80px로 간소화 ➔ 직선/완만한 길은 오직 시작점과 끝점 2개만 추출!
+          const simplified = simplifyPolyline(stroke.points, 80);
 
-          for (let i = 1; i < stroke.points.length; i++) {
-            const pt = stroke.points[i];
-            const dist = Math.hypot(pt[0] - lastPt[0], pt[1] - lastPt[1]);
-            if (dist >= 45 || i === stroke.points.length - 1) {
-              sampled.push(pt);
-              lastPt = pt;
-            }
-          }
-
-          if (sampled.length >= 2) {
-            generatedRoads.polylines.push(sampled);
-            sampled.forEach(pt => {
-              // 중복 근접 점 병합
-              const existing = generatedRoads.nodes.find(n => Math.hypot(n[0] - pt[0], n[1] - pt[1]) < 25);
+          if (simplified.length >= 2) {
+            generatedRoads.polylines.push(simplified);
+            simplified.forEach(pt => {
+              const existing = generatedRoads.nodes.find(n => Math.hypot(n[0] - pt[0], n[1] - pt[1]) < 40);
               if (!existing) {
                 generatedRoads.nodes.push(pt);
               }
@@ -741,7 +759,7 @@
         });
 
         renderExtractedRoads();
-        showToast(`🎉 칠해진 길에서 총 ${generatedRoads.nodes.length}개 도로 노드 및 ${generatedRoads.polylines.length}개 구간 자동 생성 완료!`);
+        showToast(`🎯 깔끔하게 총 ${generatedRoads.nodes.length}개 핵심 앵커 핀만 추출 완료! 위성에서 살살 드래그하세요!`);
       }
 
       // ── 7. 자동 생성된 도로망 좌측 SVG 및 우측 위성 렌더링 (위성에서 드래그 가능!) ──
