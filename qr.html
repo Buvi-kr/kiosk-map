@@ -834,9 +834,14 @@
             <div class="data-label">📡 GPS 수신 정확도</div>
             <div class="data-val" id="inspAccVal">±0m</div>
           </div>
+          <div class="data-row" style="border-color: #3b82f6; background: rgba(59, 130, 246, 0.1);">
+            <div class="data-label" style="color: #60a5fa;">🚶 현장 산책 걷기 트랙 로거 (방법 B)</div>
+            <div class="data-val" id="inspTrackStatus" style="font-size: 13px; color: #93c5fd;">대기 중 (0포인트 기록됨)</div>
+          </div>
         </div>
         <div class="inspector-actions">
-          <button class="copy-action-btn primary" id="copyJsonFormatBtn">📋 JSON 데이터 복사 (코드 추가용)</button>
+          <button class="copy-action-btn" id="trackRecordBtn" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); border-color: #60a5fa;">▶️ 걷기 트랙 기록 시작</button>
+          <button class="copy-action-btn primary" id="copyJsonFormatBtn">📋 단일 포인트 JSON 복사</button>
           <button class="copy-action-btn" id="copySimpleCoordsBtn">📍 위경도 좌표 복사</button>
         </div>
       </div>
@@ -1647,12 +1652,29 @@
       const inspAccVal = document.getElementById('inspAccVal');
       const copyJsonFormatBtn = document.getElementById('copyJsonFormatBtn');
       const copySimpleCoordsBtn = document.getElementById('copySimpleCoordsBtn');
+      const trackRecordBtn = document.getElementById('trackRecordBtn');
+      const inspTrackStatus = document.getElementById('inspTrackStatus');
+
+      // 트랙 로거 상태
+      let isTrackLogging = false;
+      let recordedTrack = [];
 
       function updateInspectorModal() {
         if (!inspGpsVal) return;
         inspGpsVal.textContent = `${lastGpsRaw.lat.toFixed(6)}, ${lastGpsRaw.lng.toFixed(6)}`;
         inspSvgVal.textContent = `[${currentPos[0]}, ${currentPos[1]}]`;
         inspAccVal.textContent = `±${lastGpsRaw.acc}m`;
+
+        // 트랙 상태 갱신
+        if (inspTrackStatus) {
+          if (isTrackLogging) {
+            inspTrackStatus.innerHTML = `<span style="color:#ef4444; font-weight:900;">🔴 실시간 기록 중... (${recordedTrack.length}개)</span>`;
+          } else if (recordedTrack.length > 0) {
+            inspTrackStatus.innerHTML = `<span style="color:#10b981;">✅ 기록 완료 (${recordedTrack.length}개 누적됨)</span>`;
+          } else {
+            inspTrackStatus.textContent = '대기 중 (0포인트 기록됨)';
+          }
+        }
 
         // 가장 가까운 앵커 찾기
         let nearestAnchor = null, minDist = Infinity;
@@ -1673,6 +1695,47 @@
       function closeInspector() {
         gpsInspectorModal.classList.remove('show');
       }
+
+      // 걷기 트랙 로거 토글 이벤트
+      trackRecordBtn?.addEventListener('click', () => {
+        if (!isTrackLogging) {
+          isTrackLogging = true;
+          trackRecordBtn.textContent = '⏹️ 걷기 기록 종료 & JSON 다운로드';
+          trackRecordBtn.style.background = 'linear-gradient(135deg, #dc2626, #991b1b)';
+          trackRecordBtn.style.borderColor = '#f87171';
+          showToast('🚶 GPS 트랙 기록을 시작합니다! 산책로를 걸어주세요.');
+          updateInspectorModal();
+        } else {
+          isTrackLogging = false;
+          trackRecordBtn.textContent = '▶️ 걷기 트랙 기록 시작 (새로 기록)';
+          trackRecordBtn.style.background = 'linear-gradient(135deg, #2563eb, #1d4ed8)';
+          trackRecordBtn.style.borderColor = '#60a5fa';
+
+          if (recordedTrack.length === 0) {
+            showToast('⚠️ 기록된 트랙 데이터가 없습니다.');
+            return;
+          }
+
+          const trackJson = JSON.stringify(recordedTrack, null, 2);
+
+          // 클립보드 복사
+          navigator.clipboard.writeText(trackJson).catch(() => {});
+
+          // JSON 파일 자동 다운로드
+          try {
+            const blob = new Blob([trackJson], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `포천아트밸리_실측트랙_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+          } catch (e) {}
+
+          showToast(`🎉 총 ${recordedTrack.length}개 GPS 트랙이 클립보드 및 파일로 저장되었습니다!`);
+          updateInspectorModal();
+        }
+      });
 
       // 헤더 로고/타이틀 5회 연속 연타 시 실측 인스펙터(관리자 모드) 열기
       let inspectorSecretTaps = 0;
@@ -1719,6 +1782,17 @@
         const accuracy = Math.round(pos.coords.accuracy || 0);
 
         lastGpsRaw = { lat, lng, acc: accuracy };
+
+        // 트랙 로깅 활성화 시 자동 기록
+        if (isTrackLogging) {
+          recordedTrack.push({
+            lat: Number(lat.toFixed(7)),
+            lng: Number(lng.toFixed(7)),
+            acc: accuracy,
+            t: Date.now()
+          });
+        }
+
         updateInspectorModal();
 
         // 1. 지수이동평균(EMA) 필터링 (다중경로 노이즈 및 순간 튐 방지)
