@@ -841,9 +841,58 @@
         satAnchorMarkersGroup.clearLayers();
         gpsAnchors.forEach((a, idx) => {
           const isSelected = (idx === selectedAnchorIdx);
-          const marker = L.circleMarker([a.lat, a.lng], { radius: isSelected ? 9 : 6, fillColor: isSelected ? '#ff3b30' : '#ff9500', color: '#ffffff', weight: 2, opacity: 1, fillOpacity: 0.95 });
-          marker.bindTooltip(`<b>${a.name}</b>`, { permanent: false, direction: 'top' });
-          marker.on('click', (e) => { L.DomEvent.stopPropagation(e); selectAnchor(idx); });
+          const pinColor = isSelected ? '#ff3b30' : '#ff9500';
+          const customIcon = L.divIcon({
+            className: 'custom-sat-draggable-pin',
+            html: `
+              <div style="display:flex; flex-direction:column; align-items:center; cursor:grab;">
+                <div style="background:${pinColor}; width:18px; height:18px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 0 12px ${pinColor}; transition:transform 0.15s;"></div>
+                <div style="background:rgba(15,23,42,0.9); color:#ffffff; font-size:11px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid ${pinColor}; white-space:nowrap; margin-top:2px; pointer-events:none;">
+                  ${a.name}
+                </div>
+              </div>
+            `,
+            iconSize: [80, 42],
+            iconAnchor: [40, 9]
+          });
+
+          const marker = L.marker([a.lat, a.lng], {
+            icon: customIcon,
+            draggable: true,
+            title: `마우스로 드래그하여 '${a.name}' 위성 위치를 이동하세요`
+          });
+
+          marker.on('click', (e) => {
+            L.DomEvent.stopPropagation(e);
+            selectAnchor(idx);
+          });
+
+          marker.on('dragstart', () => {
+            selectAnchor(idx);
+          });
+
+          marker.on('drag', (e) => {
+            const newPos = e.target.getLatLng();
+            const lat = parseFloat(newPos.lat.toFixed(6));
+            const lng = parseFloat(newPos.lng.toFixed(6));
+            gpsAnchors[idx].lat = lat;
+            gpsAnchors[idx].lng = lng;
+
+            const ancLatInput = document.getElementById('ancLatInput');
+            const ancLngInput = document.getElementById('ancLngInput');
+            if (ancLatInput) ancLatInput.value = lat;
+            if (ancLngInput) ancLngInput.value = lng;
+            if (satCoordDisplay) satCoordDisplay.textContent = `lat: ${lat}, lng: ${lng}`;
+
+            // 좌측 들로네 삼각망 실시간 재계산
+            renderGpsAnchors();
+          });
+
+          marker.on('dragend', () => {
+            showToast(`🎯 '${a.name}' 위성 GPS 위치 조정 완료! [${gpsAnchors[idx].lat}, ${gpsAnchors[idx].lng}]`);
+            renderGpsAnchors();
+          });
+
           satAnchorMarkersGroup.addLayer(marker);
         });
       }
@@ -1040,12 +1089,33 @@
             <text y="-18">${a.name}</text>
           `);
           let isDragging = false;
+          let hasMoved = false;
           pin.addEventListener('pointerdown', (e) => {
             e.stopPropagation();
             isDragging = true;
+            hasMoved = false;
             selectAnchor(idx);
-            const onDrag = (ev) => { if (!isDragging) return; const pos = getCanvasPos(ev); gpsAnchors[idx].svg = pos; pin.setAttribute('transform', `translate(${pos[0]},${pos[1]})`); };
-            const onUp = () => { isDragging = false; window.removeEventListener('pointermove', onDrag); window.removeEventListener('pointerup', onUp); renderGpsAnchors(); };
+
+            const onDrag = (ev) => {
+              if (!isDragging) return;
+              hasMoved = true;
+              const pos = getCanvasPos(ev);
+              gpsAnchors[idx].svg = pos;
+              pin.setAttribute('transform', `translate(${pos[0]},${pos[1]})`);
+              const ancSvgInput = document.getElementById('ancSvgInput');
+              if (ancSvgInput) ancSvgInput.value = `${pos[0]}, ${pos[1]}`;
+            };
+
+            const onUp = () => {
+              isDragging = false;
+              window.removeEventListener('pointermove', onDrag);
+              window.removeEventListener('pointerup', onUp);
+              renderGpsAnchors();
+              if (hasMoved) {
+                showToast(`🎯 '${a.name}' 조감도 위치 이동 완료! [${gpsAnchors[idx].svg[0]}, ${gpsAnchors[idx].svg[1]}]`);
+              }
+            };
+
             window.addEventListener('pointermove', onDrag);
             window.addEventListener('pointerup', onUp);
           });
