@@ -337,14 +337,15 @@
       background: rgba(13, 19, 28, 0.94);
       border: 1px solid rgba(0, 240, 255, 0.8);
       border-radius: 12px;
-      padding: 5px 8px 6px;
+      padding: 6px 10px 7px;
       display: flex;
       flex-direction: column;
       gap: 2px;
       backdrop-filter: blur(12px);
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 240, 255, 0.3);
       z-index: 30;
-      max-width: 180px;
+      min-width: 170px;
+      max-width: 230px;
       animation: bannerPop 0.2s ease-out;
     }
 
@@ -412,16 +413,16 @@
 
     .route-tabs {
       display: flex;
-      gap: 6px;
-      margin-top: 6px;
+      gap: 4px;
+      margin-top: 5px;
       width: 100%;
     }
 
     .route-tab-btn {
       flex: 1;
-      padding: 5px 8px;
-      border-radius: 8px;
-      font-size: 11px;
+      padding: 4px 5px;
+      border-radius: 6px;
+      font-size: 10.5px;
       font-weight: 700;
       border: 1px solid rgba(255, 255, 255, 0.15);
       background: rgba(255, 255, 255, 0.08);
@@ -1361,8 +1362,8 @@
           if (isFromUpperZone) {
             routeTabsEl.style.display = 'flex';
             routeTabsEl.innerHTML = `
-              <button class="route-tab-btn ${selectedLakeRouteMode === 'flat' ? 'active' : ''}" id="btnRouteFlat">● 추천: 호수광장길</button>
-              <button class="route-tab-btn ${selectedLakeRouteMode === 'deck' ? 'active' : ''}" id="btnRouteDeck">🌿 전망: 윗길데크</button>
+              <button class="route-tab-btn ${selectedLakeRouteMode === 'flat' ? 'active' : ''}" id="btnRouteFlat">♿ 완만(평지)</button>
+              <button class="route-tab-btn ${selectedLakeRouteMode === 'deck' ? 'active' : ''}" id="btnRouteDeck">🪜 윗길(계단)</button>
             `;
             document.getElementById('btnRouteFlat').onclick = (e) => {
               e.stopPropagation();
