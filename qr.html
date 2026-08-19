@@ -1354,58 +1354,51 @@
         let destPinsToDraw = [];
         const routeTabsEl = document.getElementById('routeTabs');
 
-        // 1) 천주호: 천문대/산마루 방면에서 출발할 경우 2대 경로(호수광장길 vs 전망데크길) 스마트 활성화
-        if (destObj.id === 'lake') {
-          const startNearNode = RoadGraph.findNearestNode(currentPos);
-          const isFromUpperZone = [38, 40, 41, 42, 43, 44].includes(startNearNode);
+        // ── 상부(천문대/산마루) ↔ 하부(천주호/조각공원/호수공연장/하차장) 간 범용 양방향 윗길/아랫길 지원 ──
+        const startNearNode = RoadGraph.findNearestNode(currentPos);
+        const endNearNode = RoadGraph.findNearestNode(targetPos);
+        const UPPER_ZONE = [38, 40, 41, 42, 43, 44];
+        const LOWER_ZONE = [32, 30, 31, 28, 27, 26, 23, 22, 21, 20, 19, 18, 17, 16, 45, 46];
+        const isCrossZone = (UPPER_ZONE.includes(startNearNode) && LOWER_ZONE.includes(endNearNode)) ||
+                            (LOWER_ZONE.includes(startNearNode) && UPPER_ZONE.includes(endNearNode));
 
-          if (isFromUpperZone) {
-            routeTabsEl.style.display = 'flex';
-            routeTabsEl.innerHTML = `
-              <button class="route-tab-btn ${selectedLakeRouteMode === 'flat' ? 'active' : ''}" id="btnRouteFlat">♿ 완만(평지)</button>
-              <button class="route-tab-btn ${selectedLakeRouteMode === 'deck' ? 'active' : ''}" id="btnRouteDeck">🪜 윗길(계단)</button>
-            `;
-            document.getElementById('btnRouteFlat').onclick = (e) => {
-              e.stopPropagation();
-              selectedLakeRouteMode = 'flat';
-              renderDynamicRoute(destObj, true);
-            };
-            document.getElementById('btnRouteDeck').onclick = (e) => {
-              e.stopPropagation();
-              selectedLakeRouteMode = 'deck';
-              renderDynamicRoute(destObj, true);
-            };
+        // 1) 상부 ↔ 하부 교차 이동 시 (상행/하행 양방향 전체 2대 코스 스마트 제공)
+        if (isCrossZone && destObj.id !== 'forest') {
+          routeTabsEl.style.display = 'flex';
+          routeTabsEl.innerHTML = `
+            <button class="route-tab-btn ${selectedLakeRouteMode === 'flat' ? 'active' : ''}" id="btnRouteFlat">♿ 완만(평지)</button>
+            <button class="route-tab-btn ${selectedLakeRouteMode === 'deck' ? 'active' : ''}" id="btnRouteDeck">🪜 윗길(계단)</button>
+          `;
+          document.getElementById('btnRouteFlat').onclick = (e) => {
+            e.stopPropagation();
+            selectedLakeRouteMode = 'flat';
+            renderDynamicRoute(destObj, true);
+          };
+          document.getElementById('btnRouteDeck').onclick = (e) => {
+            e.stopPropagation();
+            selectedLakeRouteMode = 'deck';
+            renderDynamicRoute(destObj, true);
+          };
 
-            // 평지 호수광장길 (38-27 제외 안함 / 36-38 제외)
-            const flatPts = RoadGraph.findPath(currentPos, [1245, 670], [36, 38]);
-            // 윗길 전망데크길 (38-27 아랫길 제외)
-            const deckPts = RoadGraph.findPath(currentPos, [1245, 670], [38, 27]);
+          // 평지 아랫길 (36-38 데크 제외)
+          const flatPts = RoadGraph.findPath(currentPos, targetPos, [36, 38]);
+          // 윗길 전망데크길 (38-27 아랫길 제외)
+          const deckPts = RoadGraph.findPath(currentPos, targetPos, [38, 27]);
 
-            if (selectedLakeRouteMode === 'flat') {
-              routeSegments.push({ color: 'path-blue', pts: flatPts });
-              altSegments.push({ color: 'alt-route-path', pts: deckPts });
-            } else {
-              routeSegments.push({ color: 'path-green', pts: deckPts });
-              altSegments.push({ color: 'alt-route-path', pts: flatPts });
-            }
+          const mainColor = (destObj.color === 'green') ? 'path-green' : (destObj.color === 'cyan' ? 'path-blue' : 'path-red');
+
+          if (selectedLakeRouteMode === 'flat') {
+            routeSegments.push({ color: mainColor, pts: flatPts });
+            altSegments.push({ color: 'alt-route-path', pts: deckPts });
           } else {
-            routeTabsEl.style.display = 'none';
-            const pts = RoadGraph.findPath(currentPos, [1245, 670]);
-            routeSegments.push({ color: 'path-blue', pts });
+            routeSegments.push({ color: 'path-green', pts: deckPts });
+            altSegments.push({ color: 'alt-route-path', pts: flatPts });
           }
 
-          allFocusPoints = [currentPos, [1245, 670]];
-          destPinsToDraw.push({ pos: [1245, 670], label: '🚩 천주호', color: '' });
+          allFocusPoints = [currentPos, targetPos];
+          destPinsToDraw.push({ pos: targetPos, label: `🚩 ${finalLabel}` });
         }
-        // 2) 전망카페: 직행 단일 경로 (16번 노드 [2538, 708])
-        else if (destObj.id === 'cafe' || destObj.id === 's_cafe') {
-          routeTabsEl.style.display = 'none';
-          const pts = RoadGraph.findPath(currentPos, [2538, 708]);
-          routeSegments.push({ color: 'path-red', pts });
-          allFocusPoints = [currentPos, [2538, 708]];
-          destPinsToDraw.push({ pos: [2538, 708], label: '🚩 전망카페' });
-        }
-        // 3) 힐링숲 산책로: 전망카페(16번)까지 진입(빨강) ➔ 16-15-14-5 능선 숲길(초록) 완벽 분할
+        // 2) 힐링숲 산책로: 전망카페(16번)까지 진입(빨강) ➔ 16-15-14-5 능선 숲길(초록) 완벽 분할
         else if (destObj.id === 'forest') {
           routeTabsEl.style.display = 'none';
           const entryPts = RoadGraph.findPath(currentPos, [2538, 708]);
@@ -1417,7 +1410,7 @@
           destPinsToDraw.push({ pos: [2538, 708], label: '☕ 전망카페(숲길입구)', color: 'dest-green' });
           destPinsToDraw.push({ pos: [2100, 1516], label: '🚩 힐링숲 종점', color: 'dest-green' });
         }
-        // 4) 하늘정원: 반드시 산마루능선길(45번)을 거쳐 소원의 하늘정원(46번 [2109, 515])으로 가는 코스!
+        // 3) 하늘정원: 반드시 산마루능선길(45번)을 거쳐 소원의 하늘정원(46번 [2109, 515])으로 가는 코스!
         else if (destObj.id === 'skyGarden') {
           routeTabsEl.style.display = 'none';
           const pts = RoadGraph.findPath(currentPos, [2109, 515]);
@@ -1425,7 +1418,7 @@
           allFocusPoints = [currentPos, [2109, 515]];
           destPinsToDraw.push({ pos: [2109, 515], label: '🚩 하늘정원', color: 'dest-green' });
         }
-        // 5) 기타 모든 목적지 (매표소, 관광정보센터, 화장실, 매점, 모노레일 등): 마스터 도로망 최단 경로
+        // 4) 기타 모든 목적지: 마스터 도로망 최단 경로
         else {
           routeTabsEl.style.display = 'none';
           const pts = RoadGraph.findPath(currentPos, targetPos);
