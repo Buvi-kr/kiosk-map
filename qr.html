@@ -1126,21 +1126,21 @@
 
       // ── 구글 지도 & 폰 실측 GPS 매핑 ──
       const POI_MASTER = {
-        astro: { name: '천문과학관', svg: [189, 296], lat: 37.9250, lng: 127.2435 },
-        sanmaru: { name: '산마루공연장', svg: [316, 519], lat: 37.9249, lng: 127.2426 },
-        monoUpper: { name: '모노레일 하차장(상행)', svg: [661, 649], lat: 37.9246, lng: 127.2418 },
-        monoDown: { name: '모노레일 하차장(하행)', svg: [1075, 803], lat: 37.9243, lng: 127.2409 },
-        lake: { name: '천주호 전망대', svg: [1247, 663], lat: 37.9239, lng: 127.2413 },
-        skyGarden: { name: '하늘정원', svg: [2102, 514], lat: 37.9229, lng: 127.2410 },
-        lakeStage: { name: '호수공연장', svg: [2366, 429], lat: 37.9224, lng: 127.2412 },
-        cafe: { name: '전망카페', svg: [2599, 703], lat: 37.9224, lng: 127.2400 },
-        sculpture: { name: '조각공원', svg: [2057, 937], lat: 37.9232, lng: 127.2397 },
-        forest: { name: '힐링숲 산책로', svg: [2499, 1034], lat: 37.9228, lng: 127.2398 },
-        gate: { name: '검표소', svg: [2114, 1488], lat: 37.9233, lng: 127.2379 },
-        monoLower: { name: '모노레일 하부탑승장', svg: [2326, 1535], lat: 37.9232, lng: 127.2376 },
-        ticket: { name: '매표소/입구', svg: [2440, 1711], lat: 37.9232, lng: 127.2372 },
-        artMuseum: { name: '김광우미술관', svg: [2840, 1740], lat: 37.9229, lng: 127.2368 },
-        info: { name: '관광정보센터/주차장', svg: [3171, 1493], lat: 37.9223, lng: 127.2370 }
+        astro: { name: '천문과학관', svg: [283, 403], lat: 37.924769, lng: 127.243186 },
+        sanmaru: { name: '산마루공연장', svg: [2168, 790], lat: 37.923038, lng: 127.240198 },
+        monoUpper: { name: '모노레일 하차장(상행)', svg: [662, 657], lat: 37.924572, lng: 127.241796 },
+        monoDown: { name: '모노레일 하차장(하행)', svg: [1073, 806], lat: 37.924333, lng: 127.24096 },
+        lake: { name: '천주호 전망대', svg: [1245, 670], lat: 37.92389, lng: 127.241511 },
+        skyGarden: { name: '소원의 하늘정원', svg: [2109, 515], lat: 37.923164, lng: 127.240777 },
+        lakeStage: { name: '호수공연장', svg: [1068, 914], lat: 37.924371, lng: 127.240766 },
+        cafe: { name: '전망카페', svg: [2538, 708], lat: 37.922492, lng: 127.239929 },
+        sculpture: { name: '조각공원', svg: [2416, 600], lat: 37.922516, lng: 127.240687 },
+        forest: { name: '힐링숲 산책로', svg: [2538, 708], lat: 37.922492, lng: 127.239929 },
+        gate: { name: '검표소', svg: [2100, 1516], lat: 37.923398, lng: 127.238089 },
+        monoLower: { name: '모노레일 하부탑승장', svg: [2178, 1904], lat: 37.9237, lng: 127.23691 },
+        ticket: { name: '매표소/돌문화전시관', svg: [2262, 1784], lat: 37.923482, lng: 127.237285 },
+        artMuseum: { name: '김광우미술관', svg: [2834, 1754], lat: 37.92286, lng: 127.236835 },
+        info: { name: '포천관광정보센터/청년여행LAB', svg: [3172, 1506], lat: 37.922362, lng: 127.236968 }
       };
 
       const ANCHORS = {};
@@ -1149,16 +1149,16 @@
       // ── 편의시설 실측 지도 아이콘 100% 일치 좌표 매핑 ──
       const AMENITIES = {
         toilets: [
-          { name: '천문과학관 화장실', pos: [220, 310], lat: 37.9250, lng: 127.2435 },
-          { name: '천주호 화장실', pos: [834, 764], lat: 37.9244, lng: 127.2413 }, // 사진 속 남녀 휠체어 화장실 아이콘 정중앙
-          { name: '매표소 화장실', pos: [2460, 1690], lat: 37.9232, lng: 127.2372 },
-          { name: '관광정보센터 화장실', pos: [3170, 1490], lat: 37.9223, lng: 127.2370 }
+          { name: '천문과학관 화장실', pos: [283, 403], lat: 37.9248, lng: 127.2432 },
+          { name: '천주호 화장실', pos: [834, 764], lat: 37.9244, lng: 127.2413 },
+          { name: '매표소 화장실', pos: [2262, 1784], lat: 37.9234, lng: 127.2372 },
+          { name: '정보센터 화장실', pos: [3172, 1506], lat: 37.9223, lng: 127.2370 }
         ],
         shops: [
-          { name: '천문과학관/산마루 매점', pos: [140, 420], lat: 37.9250, lng: 127.2430 }, // 과학관 좌측 아래 파란 음료수 컵 아이콘
-          { name: '천주호 매점', pos: [1041, 728], lat: 37.9242, lng: 127.2412 }, // 화장실 오른쪽 파란 음료수 컵 아이콘
-          { name: '전망카페', pos: [2599, 703], lat: 37.9224, lng: 127.2400 },
-          { name: '입구 매점/스낵', pos: [2420, 1680], lat: 37.9232, lng: 127.2372 }
+          { name: '천문과학관/산마루 매점', pos: [104, 451], lat: 37.9250, lng: 127.2431 },
+          { name: '천주호 매점', pos: [1036, 730], lat: 37.9242, lng: 127.2412 },
+          { name: '전망카페', pos: [2538, 708], lat: 37.9225, lng: 127.2399 },
+          { name: '입구 매점/스낵', pos: [2262, 1784], lat: 37.9234, lng: 127.2372 }
         ]
       };
 
@@ -1166,33 +1166,33 @@
       const DESTINATIONS = [
         // 🌟 주요 명소 (spot)
         { id: 'lake', cat: 'spot', label: '천주호', icon: '🏞️', color: 'cyan', pos: [1245, 670] },
-        { id: 'astro', cat: 'spot', label: '천문과학관', icon: '🔭', color: 'cyan', pos: [2100, 1516] },
+        { id: 'astro', cat: 'spot', label: '천문과학관', icon: '🔭', color: 'cyan', pos: [283, 403] },
         { id: 'cafe', cat: 'spot', label: '전망카페', icon: '☕', color: 'amber', pos: [2538, 708] },
-        { id: 'forest', cat: 'spot', label: '힐링숲 산책로', icon: '🌲', color: 'green', pos: [2076, 1474], isForest: true },
+        { id: 'forest', cat: 'spot', label: '힐링숲 산책로', icon: '🌲', color: 'green', pos: [2538, 708], isForest: true },
         { id: 'sculpture', cat: 'spot', label: '조각공원', icon: '🗿', color: 'amber', pos: [2416, 600] },
         { id: 'skyGarden', cat: 'spot', label: '소원의 하늘정원', icon: '🌄', color: 'green', pos: [2109, 515] },
         { id: 'sanmaru', cat: 'spot', label: '산마루공연장', icon: '🎭', color: 'cyan', pos: [2168, 790] },
         { id: 'lakeStage', cat: 'spot', label: '호수공연장', icon: '🎪', color: 'cyan', pos: [1068, 914] },
-        { id: 'artMuseum', cat: 'spot', label: '돌문화홍보관/미술관', icon: '🎨', color: 'cyan', pos: [2950, 1804] },
+        { id: 'artMuseum', cat: 'spot', label: '김광우미술관', icon: '🎨', color: 'cyan', pos: [2834, 1754] },
 
         // 🚻 편의시설 (amenity)
         { id: 'nearest_toilet', cat: 'amenity', label: '⚡가까운 화장실', icon: '🚻', color: 'amber', isDynamic: true, type: 'toilet' },
-        { id: 't_astro', cat: 'amenity', label: '천문과학관 화장실', icon: '🚻', color: 'cyan', pos: [220, 310] },
+        { id: 't_astro', cat: 'amenity', label: '천문과학관 화장실', icon: '🚻', color: 'cyan', pos: [283, 403] },
         { id: 't_lake', cat: 'amenity', label: '천주호 화장실', icon: '🚻', color: 'cyan', pos: [834, 764] },
-        { id: 't_ticket', cat: 'amenity', label: '매표소 화장실', icon: '🚻', color: 'red', pos: [2460, 1690] },
-        { id: 't_info', cat: 'amenity', label: '정보센터 화장실', icon: '🚻', color: 'cyan', pos: [3170, 1490] },
+        { id: 't_ticket', cat: 'amenity', label: '매표소 화장실', icon: '🚻', color: 'red', pos: [2262, 1784] },
+        { id: 't_info', cat: 'amenity', label: '정보센터 화장실', icon: '🚻', color: 'cyan', pos: [3172, 1506] },
         { id: 'nearest_shop', cat: 'amenity', label: '⚡가까운 매점/카페', icon: '🥤', color: 'amber', isDynamic: true, type: 'shop' },
-        { id: 's_astro', cat: 'amenity', label: '천문과학관/산마루 매점', icon: '🥤', color: 'cyan', pos: [140, 420] },
-        { id: 's_lake', cat: 'amenity', label: '천주호 매점', icon: '🥤', color: 'cyan', pos: [1041, 728] },
-        { id: 's_cafe', cat: 'amenity', label: '전망카페', icon: '☕', color: 'amber', pos: ANCHORS.cafe },
-        { id: 's_ticket', cat: 'amenity', label: '입구 매점/스낵', icon: '🥪', color: 'red', pos: [2420, 1680] },
+        { id: 's_astro', cat: 'amenity', label: '천문과학관/산마루 매점', icon: '🥤', color: 'cyan', pos: [104, 451] },
+        { id: 's_lake', cat: 'amenity', label: '천주호 매점', icon: '🥤', color: 'cyan', pos: [1036, 730] },
+        { id: 's_cafe', cat: 'amenity', label: '전망카페', icon: '☕', color: 'amber', pos: [2538, 708] },
+        { id: 's_ticket', cat: 'amenity', label: '입구 매점/스낵', icon: '🥪', color: 'red', pos: [2262, 1784] },
 
         // 🚡 교통/매표 (transit)
-        { id: 'mono_down', cat: 'transit', label: '모노레일 하차장(하행)', icon: '🚡', color: 'cyan', pos: ANCHORS.monoDown },
-        { id: 'mono_up', cat: 'transit', label: '모노레일 하부탑승장', icon: '🚡', color: 'red', pos: ANCHORS.monoLower },
-        { id: 'ticket', cat: 'transit', label: '매표소 / 정문출구', icon: '🎫', color: 'red', pos: ANCHORS.ticket },
-        { id: 'info', cat: 'transit', label: '관광정보센터/주차장', icon: 'ℹ️', color: 'cyan', pos: ANCHORS.info },
-        { id: 'gate', cat: 'transit', label: '검표소 입구', icon: '🚧', color: 'amber', pos: ANCHORS.gate }
+        { id: 'mono_down', cat: 'transit', label: '모노레일 하차장(하행)', icon: '🚡', color: 'cyan', pos: [1073, 806] },
+        { id: 'mono_up', cat: 'transit', label: '모노레일 하부탑승장', icon: '🚡', color: 'red', pos: [2178, 1904] },
+        { id: 'ticket', cat: 'transit', label: '매표소/돌문화전시관', icon: '🎫', color: 'red', pos: [2262, 1784] },
+        { id: 'info', cat: 'transit', label: '포천관광정보센터/청년여행LAB', icon: 'ℹ️', color: 'cyan', pos: [3172, 1506] },
+        { id: 'gate', cat: 'transit', label: '검표소', icon: '🚧', color: 'amber', pos: [2100, 1516] }
       ];
 
       // ── 사장님이 완성하신 47개 1:1 정밀 도로망 최종 마스터 그래프 (Master Road Graph) ──
@@ -1319,17 +1319,16 @@
           allFocusPoints = [currentPos, [2538, 708]];
           destPinsToDraw.push({ pos: [2538, 708], label: '🚩 전망카페' });
         }
-        // 3) 힐링숲 산책로: 진입로(빨강) ➔ 능선 숲길(초록) 완벽 분할
+        // 3) 힐링숲 산책로: 전망카페(16번)까지 진입(빨강) ➔ 16-15-14-5 능선 숲길(초록) 완벽 분할
         else if (destObj.id === 'forest') {
-          const entryPts = RoadGraph.findPath(currentPos, [2520, 1064]);
-          const forestPts = RoadGraph.findPath([2520, 1064], [2076, 1474]);
+          const entryPts = RoadGraph.findPath(currentPos, [2538, 708]);
+          const forestPts = [[2538, 708], [2592, 890], [2520, 1064], [2100, 1516]];
           routeSegments.push({ color: 'path-red', pts: entryPts });
           routeSegments.push({ color: 'path-green', pts: forestPts });
 
-          const junctionPos = (entryPts.length > 0) ? entryPts[entryPts.length - 1] : [2520, 1064];
-          allFocusPoints = [currentPos, junctionPos, [2076, 1474]];
-          destPinsToDraw.push({ pos: junctionPos, label: '🌲 숲길 입구', color: 'dest-green' });
-          destPinsToDraw.push({ pos: [2076, 1474], label: '🚩 힐링숲 종점', color: 'dest-green' });
+          allFocusPoints = [currentPos, [2538, 708], [2100, 1516]];
+          destPinsToDraw.push({ pos: [2538, 708], label: '☕ 전망카페(숲길입구)', color: 'dest-green' });
+          destPinsToDraw.push({ pos: [2100, 1516], label: '🚩 힐링숲 종점', color: 'dest-green' });
         }
         // 4) 하늘정원: 반드시 산마루능선길(45번)을 거쳐 소원의 하늘정원(46번 [2109, 515])으로 가는 코스!
         else if (destObj.id === 'skyGarden') {
