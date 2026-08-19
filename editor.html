@@ -534,7 +534,7 @@
         { name: "제1주차장/정문", svg: [3300, 1530], lat: 37.922014, lng: 127.236958 }
       ];
 
-      // ── 2. 사장님이 추출 완료하신 30개 1:1 완제품 도로망 기본 로드 ──
+      // ── 2. 사장님이 추출 완료하신 41개 1:1 완제품 도로망 기본 로드 ──
       const INITIAL_MASTER_NODES = [
         { id: 0, svg: [2174, 1944], lat: 37.923719, lng: 127.236893 },
         { id: 1, svg: [2950, 1804], lat: 37.922873, lng: 127.236555 },
@@ -563,9 +563,20 @@
         { id: 24, svg: [1560, 1278], lat: 37.92399, lng: 127.239463 },
         { id: 25, svg: [2076, 1474], lat: 37.923308, lng: 127.238104 },
         { id: 26, svg: [1068, 914], lat: 37.924371, lng: 127.240766 },
-        { id: 27, svg: [832, 768], lat: 37.924333, lng: 127.240959 },
-        { id: 28, svg: [1120, 782], lat: 37.924329, lng: 127.240965 },
-        { id: 29, svg: [1036, 730], lat: 37.924219, lng: 127.241222 }
+        { id: 27, svg: [832, 768], lat: 37.924485, lng: 127.241383 },
+        { id: 28, svg: [1036, 730], lat: 37.92422, lng: 127.241216 },
+        { id: 29, svg: [1036, 730], lat: 37.924219, lng: 127.241222 },
+        { id: 30, svg: [1073, 806], lat: 37.924333, lng: 127.24096 },
+        { id: 31, svg: [1109, 786], lat: 37.924301, lng: 127.241016 },
+        { id: 32, svg: [1245, 670], lat: 37.92389, lng: 127.241511 },
+        { id: 33, svg: [1148, 625], lat: 37.92399, lng: 127.241539 },
+        { id: 34, svg: [1083, 569], lat: 37.924087, lng: 127.241592 },
+        { id: 35, svg: [849, 638], lat: 37.924329, lng: 127.241517 },
+        { id: 36, svg: [596, 623], lat: 37.92454, lng: 127.241995 },
+        { id: 37, svg: [662, 657], lat: 37.924561, lng: 127.241807 },
+        { id: 38, svg: [583, 676], lat: 37.92465, lng: 127.24178 },
+        { id: 39, svg: [474, 533], lat: 37.924781, lng: 127.242487 },
+        { id: 40, svg: [448, 616], lat: 37.924794, lng: 127.242434 }
       ];
 
       const INITIAL_MASTER_POLYLINES = [
@@ -592,7 +603,17 @@
         [27, 26],
         [26, 23],
         [28, 23],
-        [29, 27]
+        [29, 27],
+        [30, 31],
+        [32, 28],
+        [33, 32],
+        [34, 33],
+        [35, 34],
+        [36, 35],
+        [37, 36],
+        [38, 27],
+        [39, 38],
+        [40, 38]
       ];
 
       const initialNodeObjects = INITIAL_MASTER_NODES.map(n => ({ ...n }));
@@ -812,8 +833,8 @@
         let maxNodeId = activeNodes.reduce((max, n) => Math.max(max, n.id), -1) + 1;
 
         positiveStrokes.forEach((stroke) => {
-          // 이미 이 획에 생성된 노드들이 있다면 스킵 (이미 activeNodes/newPolylines에 포함됨)
-          if (stroke.nodes && stroke.nodes.length >= 2) {
+          // 이미 이 획에 생성된 노드들이 있다면 스킵
+          if (stroke.createdPolyline) {
             return;
           }
 
@@ -821,8 +842,9 @@
           const keyPts = extractKeyEndpoints(stroke.points);
           if (keyPts.length >= 2) {
             let strokeNodes = [];
+            let createdNewNodes = [];
             keyPts.forEach(pt => {
-              // 이미 존재하는 기존 노드(0~29번 포함)와 40px 이내면 그 노드를 그대로 연결!
+              // 이미 존재하는 기존 노드(0~40번 포함)와 40px 이내면 그 노드를 그대로 연결!
               let existing = activeNodes.find(n => Math.hypot(n.svg[0] - pt[0], n.svg[1] - pt[1]) < 40);
               if (!existing) {
                 const gps = svgToGps(pt);
@@ -833,10 +855,12 @@
                   lng: gps[1]
                 };
                 activeNodes.push(existing);
+                createdNewNodes.push(existing);
               }
               strokeNodes.push(existing);
             });
-            stroke.nodes = strokeNodes; // 획에 영구 바인딩
+            stroke.createdPolyline = strokeNodes;
+            stroke.createdNewNodes = createdNewNodes;
             newPolylines.push(strokeNodes);
           }
         });
@@ -845,7 +869,7 @@
         generatedRoads.polylines = newPolylines;
 
         renderExtractedRoads();
-        showToast(`🎯 기존 0~29번 도로 유지 + 새 도로 추가 완료! (총 ${generatedRoads.nodes.length}개 노드)`);
+        showToast(`🎯 도로망 갱신 완료! (총 ${generatedRoads.nodes.length}개 노드)`);
       }
 
       // ── 7. 자동 생성된 도로망 좌측 SVG 및 우측 위성 렌더링 (영구 고정 드래그) ──
@@ -1144,14 +1168,20 @@
 
       function undoLastStroke() {
         if (brushStrokes.length > 0) {
-          brushStrokes.pop();
-          redrawBrushCanvas();
-          if (brushStrokes.length > 0) {
-            generateRoadNetworkFromBrush();
-          } else {
-            generatedRoads = { nodes: [], polylines: [] };
-            renderExtractedRoads();
+          const popped = brushStrokes.pop();
+          if (popped) {
+            // 방금 획으로 추가되었던 폴리라인 제거
+            if (popped.createdPolyline) {
+              generatedRoads.polylines = generatedRoads.polylines.filter(p => p !== popped.createdPolyline);
+            }
+            // 방금 획으로 추가되었던 새 노드 제거
+            if (popped.createdNewNodes && popped.createdNewNodes.length > 0) {
+              const removedIds = new Set(popped.createdNewNodes.map(n => n.id));
+              generatedRoads.nodes = generatedRoads.nodes.filter(n => !removedIds.has(n.id));
+            }
           }
+          redrawBrushCanvas();
+          renderExtractedRoads();
           showToast(`↩️ 마지막 1개 획 취소 완료! (남은 획: ${brushStrokes.length}개)`);
         } else {
           showToast('⚠️ 취소할 브러시 획이 없습니다.');
