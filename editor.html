@@ -736,7 +736,7 @@
         return [pStart, pEnd];
       }
 
-      // ── 6. 칠해진 형광 브러시로부터 [시작점, 끝점] 앵커 핀만 깔끔하게 생성 ──
+      // ── 6. 칠해진 형광 브러시로부터 [시작점, 끝점] 앵커 핀 생성 ──
       function generateRoadNetworkFromBrush() {
         const positiveStrokes = brushStrokes.filter(s => !s.isEraser && s.points.length >= 2);
         if (positiveStrokes.length === 0) {
@@ -747,47 +747,57 @@
         generatedRoads.nodes = [];
         generatedRoads.polylines = [];
 
+        let nodeCounter = 0;
         positiveStrokes.forEach((stroke) => {
-          // 획당 시작점/끝점 위주로 2~3개만 핀으로 생성
-          const keyNodes = extractKeyEndpoints(stroke.points);
+          const keyPts = extractKeyEndpoints(stroke.points);
 
-          if (keyNodes.length >= 2) {
-            generatedRoads.polylines.push(keyNodes);
-            keyNodes.forEach(pt => {
-              const existing = generatedRoads.nodes.find(n => Math.hypot(n[0] - pt[0], n[1] - pt[1]) < 35);
+          if (keyPts.length >= 2) {
+            let strokeNodes = [];
+            keyPts.forEach(pt => {
+              // 기존 노드와 30px 이내면 동일 노드로 병합
+              let existing = generatedRoads.nodes.find(n => Math.hypot(n.svg[0] - pt[0], n.svg[1] - pt[1]) < 30);
               if (!existing) {
-                generatedRoads.nodes.push(pt);
+                const gps = svgToGps(pt);
+                existing = {
+                  id: nodeCounter++,
+                  svg: [pt[0], pt[1]],
+                  lat: gps[0],
+                  lng: gps[1]
+                };
+                generatedRoads.nodes.push(existing);
               }
+              strokeNodes.push(existing);
             });
+            generatedRoads.polylines.push(strokeNodes);
           }
         });
 
         renderExtractedRoads();
-        showToast(`🎯 획당 시작/끝점만 깔끔하게 총 ${generatedRoads.nodes.length}개 핀 생성 완료!`);
+        showToast(`🎯 총 ${generatedRoads.nodes.length}개 핀 생성 완료! 이제 위성 지도에서 핀을 옮기세요!`);
       }
 
-      // ── 7. 자동 생성된 도로망 좌측 SVG 및 우측 위성 렌더링 (단일하고 깔끔한 형광선) ──
+      // ── 7. 자동 생성된 도로망 좌측 SVG 및 우측 위성 렌더링 (영구 고정 드래그) ──
       function renderExtractedRoads(skipMarkers = false) {
         // 좌측 조감도 렌더링
         extractedRoadLinesLayer.innerHTML = '';
         extractedRoadNodesLayer.innerHTML = '';
 
-        generatedRoads.polylines.forEach((line) => {
-          if (line.length < 2) return;
-          let d = `M ${line[0][0]},${line[0][1]}`;
-          for (let i = 1; i < line.length; i++) {
-            d += ` L ${line[i][0]},${line[i][1]}`;
+        generatedRoads.polylines.forEach((lineNodes) => {
+          if (lineNodes.length < 2) return;
+          let d = `M ${lineNodes[0].svg[0]},${lineNodes[0].svg[1]}`;
+          for (let i = 1; i < lineNodes.length; i++) {
+            d += ` L ${lineNodes[i].svg[0]},${lineNodes[i].svg[1]}`;
           }
           extractedRoadLinesLayer.appendChild(createSvg('path', { class: 'extracted-road-line', d }));
           extractedRoadLinesLayer.appendChild(createSvg('path', { class: 'extracted-road-core', d }));
         });
 
         // 좌측 조감도 노드 핀
-        generatedRoads.nodes.forEach((pos, idx) => {
-          const pin = createSvg('g', { class: 'extracted-node-handle', transform: `translate(${pos[0]},${pos[1]})` }, `
+        generatedRoads.nodes.forEach((node) => {
+          const pin = createSvg('g', { class: 'extracted-node-handle', transform: `translate(${node.svg[0]},${node.svg[1]})` }, `
             <circle class="outer" r="14"></circle>
             <circle class="core" r="6"></circle>
-            <text y="4">${idx}</text>
+            <text y="4">${node.id}</text>
           `);
 
           let isDragging = false;
@@ -798,16 +808,10 @@
             const onDrag = (ev) => {
               if (!isDragging) return;
               const newSvg = getCanvasPos(ev);
-              const oldSvg = generatedRoads.nodes[idx];
-              generatedRoads.nodes[idx] = newSvg;
-
-              generatedRoads.polylines.forEach(line => {
-                line.forEach((p, pIdx) => {
-                  if (Math.hypot(p[0] - oldSvg[0], p[1] - oldSvg[1]) < 12) {
-                    line[pIdx] = newSvg;
-                  }
-                });
-              });
+              node.svg = newSvg;
+              const gps = svgToGps(newSvg);
+              node.lat = gps[0];
+              node.lng = gps[1];
 
               pin.setAttribute('transform', `translate(${newSvg[0]},${newSvg[1]})`);
               renderExtractedRoads(true);
@@ -818,7 +822,7 @@
               window.removeEventListener('pointermove', onDrag);
               window.removeEventListener('pointerup', onUp);
               renderExtractedRoads(false);
-              showToast(`🎯 #${idx}번 도로 핀 조감도 위치 이동 완료!`);
+              showToast(`🎯 #${node.id}번 도로 핀 조감도 위치 이동 완료!`);
             };
 
             window.addEventListener('pointermove', onDrag);
@@ -828,13 +832,13 @@
           extractedRoadNodesLayer.appendChild(pin);
         });
 
-        // 우측 위성 지도 렌더링
+        // 우측 위성 지도 렌더링 (드래그 시 실시간 영구 고정!)
         if (satRoadPolylineGroup && satRoadMarkersGroup) {
           satRoadPolylineGroup.clearLayers();
           if (!skipMarkers) satRoadMarkersGroup.clearLayers();
 
-          generatedRoads.polylines.forEach((line) => {
-            const latlngs = line.map(pt => svgToGps(pt));
+          generatedRoads.polylines.forEach((lineNodes) => {
+            const latlngs = lineNodes.map(n => [n.lat, n.lng]);
             const poly = L.polyline(latlngs, {
               color: '#00e676',
               weight: 6,
@@ -846,16 +850,14 @@
           });
 
           if (!skipMarkers) {
-            generatedRoads.nodes.forEach((pos, idx) => {
-              const gps = svgToGps(pos);
-
+            generatedRoads.nodes.forEach((node) => {
               const roadIcon = L.divIcon({
                 className: 'custom-sat-road-pin',
                 html: `
                   <div style="display:flex; flex-direction:column; align-items:center; cursor:grab; pointer-events:auto;">
                     <div style="background:#00e676; width:18px; height:18px; border-radius:50%; border:2px solid #ffffff; box-shadow:0 0 12px #00e676;"></div>
                     <div style="background:rgba(15,23,42,0.95); color:#00e676; font-size:11px; font-weight:800; padding:1px 5px; border-radius:3px; border:1px solid #00e676; white-space:nowrap; margin-top:2px; pointer-events:none;">
-                      #${idx}
+                      #${node.id}
                     </div>
                   </div>
                 `,
@@ -863,7 +865,7 @@
                 iconAnchor: [22, 9]
               });
 
-              const marker = L.marker(gps, {
+              const marker = L.marker([node.lat, node.lng], {
                 icon: roadIcon,
                 draggable: true,
                 autoPan: true
@@ -871,34 +873,21 @@
 
               marker.on('drag', (e) => {
                 const newLatLng = e.target.getLatLng();
-                const oldSvg = generatedRoads.nodes[idx];
-                const newSvg = gpsToSvg(newLatLng.lat, newLatLng.lng);
+                node.lat = parseFloat(newLatLng.lat.toFixed(6));
+                node.lng = parseFloat(newLatLng.lng.toFixed(6));
+                node.svg = gpsToSvg(node.lat, node.lng);
 
-                generatedRoads.nodes[idx] = newSvg;
-                generatedRoads.polylines.forEach(line => {
-                  line.forEach((p, pIdx) => {
-                    if (Math.hypot(p[0] - oldSvg[0], p[1] - oldSvg[1]) < 12) {
-                      line[pIdx] = newSvg;
-                    }
-                  });
-                });
-
+                // 좌측 조감도 및 우측 폴리라인 실시간 업데이트
                 renderExtractedRoads(true);
               });
 
               marker.on('dragend', (e) => {
                 const finalLatLng = e.target.getLatLng();
-                const newSvg = gpsToSvg(finalLatLng.lat, finalLatLng.lng);
-                const oldSvg = generatedRoads.nodes[idx];
-                generatedRoads.nodes[idx] = newSvg;
-                generatedRoads.polylines.forEach(line => {
-                  line.forEach((p, pIdx) => {
-                    if (Math.hypot(p[0] - oldSvg[0], p[1] - oldSvg[1]) < 12) {
-                      line[pIdx] = newSvg;
-                    }
-                  });
-                });
-                showToast(`🎯 #${idx}번 도로 핀 위성 위치 [${finalLatLng.lat.toFixed(6)}, ${finalLatLng.lng.toFixed(6)}] 미세조정 완료!`);
+                node.lat = parseFloat(finalLatLng.lat.toFixed(6));
+                node.lng = parseFloat(finalLatLng.lng.toFixed(6));
+                node.svg = gpsToSvg(node.lat, node.lng);
+
+                showToast(`🎯 #${node.id}번 도로 핀 위성 위치 [${node.lat}, ${node.lng}] 영구 고정 완료!`);
                 renderExtractedRoads(false);
               });
 
