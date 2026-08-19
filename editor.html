@@ -649,14 +649,9 @@
 
       <div class="tool-group">
         <button class="btn-tool active" id="toolViewMaster">🌐 통합 도로망</button>
-        <button class="btn-tool test" id="toolTestNav">🧪 길찾기 테스트</button>
+        <button class="btn-tool" id="toolDrawRoads" style="border-color:#00e676; color:#00e676; background:rgba(0,230,118,0.15); font-weight:800;">✏️ 24개 도로 직접 콕콕 그리기</button>
         <button class="btn-tool" id="toolDualMapper" style="border-color:#00d2ff; color:#7dd3fc; background:rgba(0,210,255,0.15); font-weight:800;">🗺️ 위성 1:1 듀얼 매퍼</button>
-        
-        <!-- 🧲 상단 툴바 전면 배치 뭉탱이 탄성 이동 버튼 -->
-        <button class="btn-tool" id="topBtnGroupDrag" style="border-color:#00e676; color:#00e676; background:rgba(0,230,118,0.15); font-weight:800;" title="핀 하나를 잡고 당기면 주변 도로/앵커들도 거리에 맞게 부드럽게 함께 딸려옵니다!">
-          🧲 뭉탱이 탄성 이동: ON
-        </button>
-
+        <button class="btn-tool test" id="toolTestNav">🧪 길찾기 테스트</button>
         <button class="btn-tool active" id="toolToggleNodes">📍 도로 핀 표시</button>
         <button class="btn-action btn-export" id="btnExport">💾 데이터 내보내기</button>
       </div>
@@ -1176,7 +1171,9 @@
           // 드래그가 아닌 단순 제자리 클릭이었을 때만 좌표 선택 이벤트 발동
           if (!hasCanvasMoved && e.target && (e.target.id === 'bgImg' || e.target.id === 'mainSvg' || e.target.closest('#mainSvg'))) {
             const pt = getCanvasPos(e);
-            if (currentMode === 'test') {
+            if (currentMode === 'draw') {
+              handleDrawClick(pt);
+            } else if (currentMode === 'test') {
               handleTestClick(pt);
             } else if (currentMode === 'anchors' || currentMode === 'dual') {
               handleAnchorCanvasClick(pt);
@@ -1184,6 +1181,53 @@
           }
         }
       });
+
+      let drawPoints = []; // 직접 콕콕 찍을 도로 점들 [ [x, y], ... ]
+
+      function handleDrawClick(pt) {
+        drawPoints.push(pt);
+        renderDrawLayer();
+        renderHudForMode();
+        showToast(`📍 #${drawPoints.length - 1}번 도로 점 추가 [${pt[0]}, ${pt[1]}] (총 ${drawPoints.length}개)`);
+      }
+
+      function renderDrawLayer() {
+        if (currentMode !== 'draw') return;
+        roadLinesLayer.innerHTML = '';
+        roadCoreLayer.innerHTML = '';
+        nodesLayer.innerHTML = '';
+
+        if (drawPoints.length > 1) {
+          const d = smoothPath(drawPoints);
+          roadLinesLayer.appendChild(createSvg('path', { class: 'road-segment', d }));
+          roadCoreLayer.appendChild(createSvg('path', { class: 'road-core', d }));
+        }
+
+        drawPoints.forEach((pos, idx) => {
+          const pin = createSvg('g', { class: 'node-handle', transform: `translate(${pos[0]},${pos[1]})` }, `
+            <circle r="16" fill="#00e676" opacity="0.3"></circle>
+            <circle r="9" fill="#00e676" stroke="#ffffff" stroke-width="2.5"></circle>
+            <text y="4" font-weight="bold">${idx}</text>
+          `);
+          nodesLayer.appendChild(pin);
+        });
+
+        // 우측 위성 지도에도 1:1로 실시간 도로선 표시
+        if (satRoadsLayerGroup && leafletMap) {
+          satRoadsLayerGroup.clearLayers();
+          if (drawPoints.length > 1) {
+            const latlngs = drawPoints.map(pt => svgToGps(pt));
+            const poly = L.polyline(latlngs, { color: '#00e676', weight: 6, opacity: 0.9 });
+            satRoadsLayerGroup.addLayer(poly);
+          }
+          drawPoints.forEach((pos, idx) => {
+            const gps = svgToGps(pos);
+            const marker = L.circleMarker(gps, { radius: 5, fillColor: '#00e676', color: '#fff', weight: 2, fillOpacity: 1 });
+            marker.bindTooltip(`<b>#${idx}번 도로</b>`, { direction: 'top' });
+            satRoadsLayerGroup.addLayer(marker);
+          });
+        }
+      }
       document.getElementById('zoomInBtn').onclick = () => { scale = Math.min(3.5, scale * 1.25); updateTransform(); };
       document.getElementById('zoomOutBtn').onclick = () => { scale = Math.max(0.15, scale * 0.8); updateTransform(); };
       document.getElementById('zoomResetBtn').onclick = () => {
@@ -1387,12 +1431,74 @@
         if (btnDel) btnDel.style.display = 'none';
         showToast(`🎯 조감도 좌표 선택 [${pt[0]}, ${pt[1]}] (우측 위성 지도에서도 동일 위치를 클릭하세요)`);
       }
+      let isGroupDragEnabled = false; // 뭉탱이 탄성 이동 취소 (단독 1개 핀 독립 이동 모드로 복원)
+      let groupDragRadiusMeters = 80;
+
       function renderHudForMode() {
         if (currentMode === 'view') {
           hudModeName.textContent = '📐 정돈된 통합 마스터 도로망';
           hudModeStatus.textContent = '● 무결점 100%';
           hudModeStatus.style.color = '#00e676';
           hudContentArea.innerHTML = `<div class="hud-desc">• 노드 핀을 마우스로 드래그하여 실시간 미세조정할 수 있습니다.</div>`;
+        } else if (currentMode === 'draw') {
+          hudModeName.textContent = '✏️ 24개 도로 직접 콕콕 그리기';
+          hudModeStatus.textContent = `● 현재 ${drawPoints.length}개 찍힘`;
+          hudModeStatus.style.color = '#00e676';
+          hudContentArea.innerHTML = `
+            <div style="font-size:12px; color:#cbd5e1; margin-bottom:8px; line-height:1.4;">
+              조감도(또는 위성 지도) 위에서 <strong>진입광장(#0)부터 순서대로 마우스로 콕콕</strong> 찍어주세요!
+            </div>
+            <div style="background:rgba(0,230,118,0.1); border:1px solid #00e676; padding:8px; border-radius:6px; margin-bottom:8px; font-size:13px; font-weight:800; color:#00e676; text-align:center;">
+              현재 등록된 점: ${drawPoints.length} / 24개
+            </div>
+            <div class="form-btn-row" style="margin-bottom:6px;">
+              <button class="btn-tool" id="btnUndoDrawPoint" style="flex:1;">↩️ 마지막 점 취소</button>
+              <button class="btn-tool" id="btnResetDrawPoints" style="flex:1; color:#ef4444; border-color:#ef4444;">🗑️ 전체 지우기</button>
+            </div>
+            <button class="btn-action btn-export" id="btnApplyCustomRoads" style="width:100%; font-weight:800; background:linear-gradient(135deg,#00e676,#059669); color:#0f172a;">
+              ✅ 찍은 ${drawPoints.length}개 도로로 확정 & 적용
+            </button>
+          `;
+          document.getElementById('btnUndoDrawPoint').onclick = () => {
+            if (drawPoints.length > 0) {
+              drawPoints.pop();
+              renderDrawLayer();
+              renderHudForMode();
+              showToast('↩️ 마지막 점 취소됨');
+            }
+          };
+          document.getElementById('btnResetDrawPoints').onclick = () => {
+            drawPoints = [];
+            renderDrawLayer();
+            renderHudForMode();
+            showToast('🗑️ 모든 점 초기화됨. 새로 콕콕 찍으세요!');
+          };
+          document.getElementById('btnApplyCustomRoads').onclick = () => {
+            if (drawPoints.length < 2) return showToast('⚠️ 최소 2개 이상의 점을 찍어야 합니다!');
+            // 새로운 마스터 도로망으로 확정
+            MASTER_DATA.nodes = [...drawPoints];
+            MASTER_DATA.polylines = [ [...drawPoints] ];
+            MASTER_DATA.adj = {};
+            for (let i = 0; i < drawPoints.length; i++) {
+              MASTER_DATA.adj[i] = [];
+              if (i > 0) {
+                const dist = Math.hypot(drawPoints[i][0] - drawPoints[i-1][0], drawPoints[i][1] - drawPoints[i-1][1]);
+                MASTER_DATA.adj[i].push([i - 1, parseFloat(dist.toFixed(2))]);
+              }
+              if (i < drawPoints.length - 1) {
+                const dist = Math.hypot(drawPoints[i][0] - drawPoints[i+1][0], drawPoints[i][1] - drawPoints[i+1][1]);
+                MASTER_DATA.adj[i].push([i + 1, parseFloat(dist.toFixed(2))]);
+              }
+            }
+            showToast(`🎉 총 ${drawPoints.length}개 점으로 새로운 마스터 도로망 적용 완료!`);
+            currentMode = 'dual';
+            resetToolbarActive();
+            toolDualMapper.classList.add('active');
+            studioBody.classList.add('dual-mode');
+            renderMasterRoads();
+            renderGpsAnchors();
+            renderHudForMode();
+          };
         } else if (currentMode === 'dual' || currentMode === 'anchors') {
           hudModeName.textContent = '🗺️ 위성 1:1 듀얼 매퍼';
           hudModeStatus.textContent = `● 총 ${gpsAnchors.length}개 앵커`;
@@ -1411,19 +1517,6 @@
               </div>
             </div>
 
-            <!-- 🧲 뭉탱이 탄성 이동 토글 버튼 -->
-            <div style="background:rgba(255,255,255,0.06); padding:8px; border-radius:8px; margin-top:8px; border:1px solid rgba(255,255,255,0.1);">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                <span style="font-size:12px; font-weight:800; color:#00e676;">🧲 뭉탱이 탄성 당기기</span>
-                <button id="btnToggleGroupDrag" class="btn-tool" style="padding:2px 8px; font-size:11px; background:${isGroupDragEnabled ? '#00e676' : '#64748b'}; color:#0f172a; font-weight:800;">
-                  ${isGroupDragEnabled ? '● 켜짐 (ON)' : '○ 꺼짐 (OFF)'}
-                </button>
-              </div>
-              <div style="font-size:11px; color:#94a3b8; line-height:1.3;">
-                핀 하나를 잡고 당기면 주변 도로/앵커들도 거리에 맞게 부드럽게 함께 딸려옵니다!
-              </div>
-            </div>
-
             <!-- 24개 GPS 앵커 JSON 복사 버튼 (눈에 확 띄게 주황색) -->
             <button class="btn-action btn-export" id="btnCopyAnchorsJson" style="width:100%; margin-top:8px; background:linear-gradient(135deg,#ff9500,#ea580c); color:#ffffff; font-weight:800; box-shadow:0 4px 14px rgba(255,149,0,0.4);">
               📋 24개 GPS 앵커 JSON 복사 (QR적용용)
@@ -1434,11 +1527,6 @@
               🚀 170개 도로 핀 전체 GPS 자동 매핑
             </button>
           `;
-          document.getElementById('btnToggleGroupDrag').onclick = () => {
-            isGroupDragEnabled = !isGroupDragEnabled;
-            renderHudForMode();
-            showToast(isGroupDragEnabled ? '🧲 뭉탱이 탄성 이동 모드 [켜짐]' : '🎯 단독 개별 이동 모드 [켜짐]');
-          };
           document.getElementById('btnSaveAnchor').onclick = () => {
             const name = document.getElementById('ancNameInput').value;
             const lat = parseFloat(document.getElementById('ancLatInput').value);
@@ -1478,12 +1566,26 @@
         }
       }
       function resetToolbarActive() {
-        [toolViewMaster, toolTestNav, toolDualMapper, toolTrackFitter].forEach(btn => {
+        const toolDrawRoads = document.getElementById('toolDrawRoads');
+        [toolViewMaster, toolDrawRoads, toolTestNav, toolDualMapper, toolTrackFitter].forEach(btn => {
           if (btn) btn.classList.remove('active');
         });
         if (testRouteLayer) testRouteLayer.innerHTML = '';
         if (testPinsLayer) testPinsLayer.innerHTML = '';
         if (studioBody) studioBody.classList.remove('dual-mode');
+      }
+
+      const toolDrawRoads = document.getElementById('toolDrawRoads');
+      if (toolDrawRoads) {
+        toolDrawRoads.onclick = () => {
+          currentMode = 'draw';
+          resetToolbarActive();
+          toolDrawRoads.classList.add('active');
+          drawPoints = [];
+          renderDrawLayer();
+          renderHudForMode();
+          showToast('✏️ [24개 도로 직접 콕콕 그리기 모드] 조감도를 클릭하여 점을 찍으세요!');
+        };
       }
 
       toolViewMaster.onclick = () => {
