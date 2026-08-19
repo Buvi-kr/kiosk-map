@@ -410,6 +410,46 @@
       white-space: nowrap;
     }
 
+    .route-tabs {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      width: 100%;
+    }
+
+    .route-tab-btn {
+      flex: 1;
+      padding: 5px 8px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      cursor: pointer;
+      white-space: nowrap;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+
+    .route-tab-btn.active {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      border-color: #60a5fa;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(37, 99, 235, 0.6);
+    }
+
+    .alt-route-path {
+      fill: none;
+      stroke: #00d4ff;
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 10 8;
+      opacity: 0.7;
+      cursor: pointer;
+    }
+
 
     /* ── 하단 조작 시트 (큼직한 2열 그리드) ── */
     .bottom-sheet {
@@ -762,6 +802,7 @@
           <button class="nav-close-btn" id="closeNavBtn" title="안내 종료">✕</button>
         </div>
         <div class="nav-meta" id="navMeta">약 150m · 도보 2분</div>
+        <div class="route-tabs" id="routeTabs" style="display: none;"></div>
       </div>
 
       <!-- SVG 지도 본체 -->
@@ -1195,8 +1236,8 @@
         { id: 'gate', cat: 'transit', label: '검표소', icon: '🚧', color: 'amber', pos: [2100, 1516] }
       ];
 
-      // ── 사장님이 완성하신 47개 1:1 정밀 도로망 최종 마스터 그래프 (모노레일 하행 직통 연결 완료) ──
-      const MASTER_ROAD_DATA = {"nodes": [[2174, 1944], [2950, 1804], [3250, 1528], [2178, 1904], [2262, 1784], [2100, 1516], [2418, 1756], [2834, 1754], [3172, 1506], [3190, 1622], [2524, 1790], [2614, 1868], [2188, 1616], [2296, 1580], [2520, 1064], [2592, 890], [2538, 708], [2168, 790], [2160, 650], [2416, 600], [2344, 444], [2220, 950], [1936, 814], [1216, 864], [1560, 1278], [2076, 1474], [1068, 914], [832, 768], [1036, 730], [1036, 730], [1073, 806], [1109, 786], [1245, 670], [1148, 625], [1083, 569], [849, 638], [596, 623], [662, 657], [453, 626], [592, 618], [433, 550], [506, 485], [283, 403], [104, 451], [238, 625], [1589, 645], [2109, 515]], "adj": {"0": [[1, 788.53], [3, 40.2]], "1": [[2, 407.65], [0, 788.53], [7, 126.32], [11, 342.04]], "2": [[8, 81.04], [1, 407.65]], "3": [[0, 40.2], [4, 146.48]], "4": [[3, 146.48], [6, 158.49], [13, 206.81], [5, 313.16]], "5": [[12, 133.21], [4, 313.16], [25, 48.37], [14, 617.01]], "6": [[4, 158.49], [10, 111.32]], "7": [[1, 126.32], [10, 312.08]], "8": [[2, 81.04], [9, 117.39]], "9": [[8, 117.39]], "10": [[7, 312.08], [11, 119.1], [6, 111.32]], "11": [[10, 119.1], [1, 342.04]], "12": [[13, 113.84], [5, 133.21]], "13": [[4, 206.81], [12, 113.84]], "14": [[5, 617.01], [15, 188.31]], "15": [[14, 188.31], [16, 189.84]], "16": [[15, 189.84], [17, 378.98]], "17": [[16, 378.98], [21, 168.24], [18, 140.23], [22, 233.24]], "18": [[17, 140.23], [19, 260.84]], "19": [[18, 260.84], [20, 171.81]], "20": [[19, 171.81]], "21": [[17, 168.24]], "22": [[17, 233.24], [23, 721.73]], "23": [[22, 721.73], [26, 156.22], [28, 224.4], [31, 132.41], [45, 432.54]], "24": [[25, 551.97], [26, 612.01]], "25": [[5, 48.37], [24, 551.97]], "26": [[24, 612.01], [23, 156.22], [27, 277.51]], "27": [[26, 277.51], [28, 207.51], [38, 404.73]], "28": [[27, 207.51], [32, 217.44], [23, 224.4], [30, 84.53]], "29": [], "30": [[28, 84.53], [31, 41.18]], "31": [[30, 41.18], [23, 132.41]], "32": [[28, 217.44], [33, 106.93]], "33": [[32, 106.93], [34, 85.8]], "34": [[33, 85.8], [35, 243.96]], "35": [[34, 243.96], [36, 253.44]], "36": [[35, 253.44], [37, 74.24], [39, 6.4]], "37": [[36, 74.24]], "38": [[39, 139.23], [27, 404.73], [44, 215.0], [40, 78.59]], "39": [[36, 6.4], [38, 139.23]], "40": [[38, 78.59], [41, 97.74]], "41": [[40, 97.74], [42, 237.6]], "42": [[43, 185.32], [41, 237.6]], "43": [[44, 219.62], [42, 185.32]], "44": [[38, 215.0], [43, 219.62]], "45": [[23, 432.54], [46, 536.0]], "46": [[45, 536.0]]}, "polylines": [[[3250, 1528], [3172, 1506], [3190, 1622]], [[3250, 1528], [2950, 1804], [2174, 1944]], [[2950, 1804], [2834, 1754]], [[2834, 1754], [2524, 1790]], [[2524, 1790], [2614, 1868], [2950, 1804]], [[2174, 1944], [2178, 1904]], [[2178, 1904], [2262, 1784]], [[2262, 1784], [2418, 1756], [2524, 1790]], [[2262, 1784], [2296, 1580], [2188, 1616], [2100, 1516]], [[2262, 1784], [2100, 1516]], [[2100, 1516], [2076, 1474]], [[2076, 1474], [1560, 1278], [1068, 914]], [[2100, 1516], [2520, 1064], [2592, 890], [2538, 708]], [[2538, 708], [2168, 790]], [[2168, 790], [2220, 950]], [[2168, 790], [2160, 650], [2416, 600], [2344, 444]], [[2168, 790], [1936, 814], [1216, 864]], [[1068, 914], [1216, 864]], [[1068, 914], [832, 768]], [[832, 768], [1036, 730], [1245, 670]], [[1216, 864], [1036, 730]], [[1036, 730], [1073, 806], [1109, 786], [1216, 864]], [[1245, 670], [1148, 625], [1083, 569], [849, 638], [596, 623], [662, 657]], [[596, 623], [592, 618], [453, 626]], [[453, 626], [832, 768]], [[453, 626], [238, 625], [104, 451], [283, 403]], [[453, 626], [433, 550], [506, 485], [283, 403]], [[1216, 864], [1589, 645], [2109, 515]]]};
+      // ── 사장님이 완성하신 47개 1:1 정밀 도로망 최종 마스터 그래프 (39번 36번 통합 완료) ──
+      const MASTER_ROAD_DATA = {"nodes": [[2174, 1944], [2950, 1804], [3250, 1528], [2178, 1904], [2262, 1784], [2100, 1516], [2418, 1756], [2834, 1754], [3172, 1506], [3190, 1622], [2524, 1790], [2614, 1868], [2188, 1616], [2296, 1580], [2520, 1064], [2592, 890], [2538, 708], [2168, 790], [2160, 650], [2416, 600], [2344, 444], [2220, 950], [1936, 814], [1216, 864], [1560, 1278], [2076, 1474], [1068, 914], [832, 768], [1036, 730], [1036, 730], [1073, 806], [1109, 786], [1245, 670], [1148, 625], [1083, 569], [849, 638], [596, 623], [662, 657], [453, 626], [592, 618], [433, 550], [506, 485], [283, 403], [104, 451], [238, 625], [1589, 645], [2109, 515]], "adj": {"0": [[1, 788.53], [3, 40.2]], "1": [[2, 407.65], [0, 788.53], [7, 126.32], [11, 342.04]], "2": [[8, 81.04], [1, 407.65]], "3": [[0, 40.2], [4, 146.48]], "4": [[3, 146.48], [6, 158.49], [13, 206.81], [5, 313.16]], "5": [[12, 133.21], [4, 313.16], [25, 48.37], [14, 617.01]], "6": [[4, 158.49], [10, 111.32]], "7": [[1, 126.32], [10, 312.08]], "8": [[2, 81.04], [9, 117.39]], "9": [[8, 117.39]], "10": [[7, 312.08], [11, 119.1], [6, 111.32]], "11": [[10, 119.1], [1, 342.04]], "12": [[13, 113.84], [5, 133.21]], "13": [[4, 206.81], [12, 113.84]], "14": [[5, 617.01], [15, 188.31]], "15": [[14, 188.31], [16, 189.84]], "16": [[15, 189.84], [17, 378.98]], "17": [[16, 378.98], [21, 168.24], [18, 140.23], [22, 233.24]], "18": [[17, 140.23], [19, 260.84]], "19": [[18, 260.84], [20, 171.81]], "20": [[19, 171.81]], "21": [[17, 168.24]], "22": [[17, 233.24], [23, 721.73]], "23": [[22, 721.73], [26, 156.22], [28, 224.4], [31, 132.41], [45, 432.54]], "24": [[25, 551.97], [26, 612.01]], "25": [[5, 48.37], [24, 551.97]], "26": [[24, 612.01], [23, 156.22], [27, 277.51]], "27": [[26, 277.51], [28, 207.51], [38, 404.73]], "28": [[27, 207.51], [32, 217.44], [23, 224.4], [30, 84.53]], "29": [], "30": [[28, 84.53], [31, 41.18]], "31": [[30, 41.18], [23, 132.41]], "32": [[28, 217.44], [33, 106.93]], "33": [[32, 106.93], [34, 85.8]], "34": [[33, 85.8], [35, 243.96]], "35": [[34, 243.96], [36, 253.44]], "36": [[35, 253.44], [37, 74.24], [38, 143.03]], "37": [[36, 74.24]], "38": [[36, 143.03], [27, 404.73], [44, 215.0], [40, 78.59]], "39": [], "40": [[38, 78.59], [41, 97.74]], "41": [[40, 97.74], [42, 237.6]], "42": [[43, 185.32], [41, 237.6]], "43": [[44, 219.62], [42, 185.32]], "44": [[38, 215.0], [43, 219.62]], "45": [[23, 432.54], [46, 536.0]], "46": [[45, 536.0]]}, "polylines": [[[3250, 1528], [3172, 1506], [3190, 1622]], [[3250, 1528], [2950, 1804], [2174, 1944]], [[2950, 1804], [2834, 1754]], [[2834, 1754], [2524, 1790]], [[2524, 1790], [2614, 1868], [2950, 1804]], [[2174, 1944], [2178, 1904]], [[2178, 1904], [2262, 1784]], [[2262, 1784], [2418, 1756], [2524, 1790]], [[2262, 1784], [2296, 1580], [2188, 1616], [2100, 1516]], [[2262, 1784], [2100, 1516]], [[2100, 1516], [2076, 1474]], [[2076, 1474], [1560, 1278], [1068, 914]], [[2100, 1516], [2520, 1064], [2592, 890], [2538, 708]], [[2538, 708], [2168, 790]], [[2168, 790], [2220, 950]], [[2168, 790], [2160, 650], [2416, 600], [2344, 444]], [[2168, 790], [1936, 814], [1216, 864]], [[1068, 914], [1216, 864]], [[1068, 914], [832, 768]], [[832, 768], [1036, 730], [1245, 670]], [[1216, 864], [1036, 730]], [[1036, 730], [1073, 806], [1109, 786], [1216, 864]], [[1245, 670], [1148, 625], [1083, 569], [849, 638], [596, 623], [662, 657]], [[596, 623], [453, 626]], [[453, 626], [832, 768]], [[453, 626], [238, 625], [104, 451], [283, 403]], [[453, 626], [433, 550], [506, 485], [283, 403]], [[1216, 864], [1589, 645], [2109, 515]]]};
 
       // ── 초고속 도로망 최단 경로 엔진 (Master Road Graph Engine) ──
       const RoadGraph = (function () {
@@ -1216,7 +1257,7 @@
           return bestIdx;
         }
 
-        function getShortestPath(startPt, endPt) {
+        function getShortestPath(startPt, endPt, excludeEdge = null) {
           if (!nodes.length) return [startPt, endPt];
           const startU = findNearestNode(startPt);
           const endU = findNearestNode(endPt);
@@ -1241,6 +1282,10 @@
 
             const neighbors = adj.get(u) || [];
             for (const { to: v, dist: w } of neighbors) {
+              // 특정 엣지 제외 조건 (대안 경로 탐색용)
+              if (excludeEdge && ((u === excludeEdge[0] && v === excludeEdge[1]) || (u === excludeEdge[1] && v === excludeEdge[0]))) {
+                continue;
+              }
               if (!visited.has(v)) {
                 const newD = minD + w;
                 if (newD < (dist.get(v) ?? Infinity)) {
@@ -1252,7 +1297,6 @@
           }
 
           if (startU !== endU && !parent.has(endU)) {
-            // 100% 통합 그래프이므로 절대 도달 불가할 수 없으나, 안전한 fallback
             return [startPt, nodes[startU]];
           }
 
@@ -1266,7 +1310,7 @@
           return [startPt, ...nodePath, endPt];
         }
 
-        return { findPath: getShortestPath, nodes, polylines: MASTER_ROAD_DATA.polylines };
+        return { findPath: getShortestPath, findNearestNode, nodes, polylines: MASTER_ROAD_DATA.polylines };
       })();
 
       function smoothPath(pts) {
@@ -1282,6 +1326,7 @@
 
       // ── 동적 경로 렌더링 (단일/복수 코스 & 힐링숲 2색 구간 완벽 지원) ──
       let userInteractedWithMap = false;
+      let selectedLakeRouteMode = 'flat'; // 'flat' (호수광장길) | 'deck' (전망데크길)
 
       function renderDynamicRoute(destObj, shouldFocus = false) {
         activeDestObj = destObj;
@@ -1303,18 +1348,57 @@
         }
 
         let routeSegments = [];
+        let altSegments = [];
         let allFocusPoints = [currentPos, targetPos];
         let destPinsToDraw = [];
+        const routeTabsEl = document.getElementById('routeTabs');
 
-        // 1) 천주호: 천주호 호수 전망대 (32번 노드 [1245, 670])
+        // 1) 천주호: 천문대/산마루 방면에서 출발할 경우 2대 경로(호수광장길 vs 전망데크길) 스마트 활성화
         if (destObj.id === 'lake') {
-          const pts = RoadGraph.findPath(currentPos, [1245, 670]);
-          routeSegments.push({ color: 'path-blue', pts });
+          const startNearNode = RoadGraph.findNearestNode(currentPos);
+          const isFromUpperZone = [38, 40, 41, 42, 43, 44].includes(startNearNode);
+
+          if (isFromUpperZone) {
+            routeTabsEl.style.display = 'flex';
+            routeTabsEl.innerHTML = `
+              <button class="route-tab-btn ${selectedLakeRouteMode === 'flat' ? 'active' : ''}" id="btnRouteFlat">● 추천: 호수광장길</button>
+              <button class="route-tab-btn ${selectedLakeRouteMode === 'deck' ? 'active' : ''}" id="btnRouteDeck">🌿 전망: 윗길데크</button>
+            `;
+            document.getElementById('btnRouteFlat').onclick = (e) => {
+              e.stopPropagation();
+              selectedLakeRouteMode = 'flat';
+              renderDynamicRoute(destObj, true);
+            };
+            document.getElementById('btnRouteDeck').onclick = (e) => {
+              e.stopPropagation();
+              selectedLakeRouteMode = 'deck';
+              renderDynamicRoute(destObj, true);
+            };
+
+            // 평지 호수광장길 (38-27 제외 안함 / 36-38 제외)
+            const flatPts = RoadGraph.findPath(currentPos, [1245, 670], [36, 38]);
+            // 윗길 전망데크길 (38-27 아랫길 제외)
+            const deckPts = RoadGraph.findPath(currentPos, [1245, 670], [38, 27]);
+
+            if (selectedLakeRouteMode === 'flat') {
+              routeSegments.push({ color: 'path-blue', pts: flatPts });
+              altSegments.push({ color: 'alt-route-path', pts: deckPts });
+            } else {
+              routeSegments.push({ color: 'path-green', pts: deckPts });
+              altSegments.push({ color: 'alt-route-path', pts: flatPts });
+            }
+          } else {
+            routeTabsEl.style.display = 'none';
+            const pts = RoadGraph.findPath(currentPos, [1245, 670]);
+            routeSegments.push({ color: 'path-blue', pts });
+          }
+
           allFocusPoints = [currentPos, [1245, 670]];
           destPinsToDraw.push({ pos: [1245, 670], label: '🚩 천주호', color: '' });
         }
         // 2) 전망카페: 직행 단일 경로 (16번 노드 [2538, 708])
         else if (destObj.id === 'cafe' || destObj.id === 's_cafe') {
+          routeTabsEl.style.display = 'none';
           const pts = RoadGraph.findPath(currentPos, [2538, 708]);
           routeSegments.push({ color: 'path-red', pts });
           allFocusPoints = [currentPos, [2538, 708]];
@@ -1322,6 +1406,7 @@
         }
         // 3) 힐링숲 산책로: 전망카페(16번)까지 진입(빨강) ➔ 16-15-14-5 능선 숲길(초록) 완벽 분할
         else if (destObj.id === 'forest') {
+          routeTabsEl.style.display = 'none';
           const entryPts = RoadGraph.findPath(currentPos, [2538, 708]);
           const forestPts = [[2538, 708], [2592, 890], [2520, 1064], [2100, 1516]];
           routeSegments.push({ color: 'path-red', pts: entryPts });
@@ -1333,6 +1418,7 @@
         }
         // 4) 하늘정원: 반드시 산마루능선길(45번)을 거쳐 소원의 하늘정원(46번 [2109, 515])으로 가는 코스!
         else if (destObj.id === 'skyGarden') {
+          routeTabsEl.style.display = 'none';
           const pts = RoadGraph.findPath(currentPos, [2109, 515]);
           routeSegments.push({ color: 'path-green', pts });
           allFocusPoints = [currentPos, [2109, 515]];
@@ -1340,6 +1426,7 @@
         }
         // 5) 기타 모든 목적지 (매표소, 관광정보센터, 화장실, 매점, 모노레일 등): 마스터 도로망 최단 경로
         else {
+          routeTabsEl.style.display = 'none';
           const pts = RoadGraph.findPath(currentPos, targetPos);
           const colorClass = (destObj.color === 'green') ? 'path-green' : (destObj.color === 'cyan' ? 'path-blue' : 'path-red');
           routeSegments.push({ color: colorClass, pts });
@@ -1364,10 +1451,21 @@
 
         // ── 네이버/구글 스타일: 깜빡임 없는 매끄러운 경로 갱신 ──
         if (shouldFocus) {
-          // 최초 목적지 선택 시: 전체 레이어 초기화 후 부드러운 시작 애니메이션 1회 실행
           routesLayer.innerHTML = '';
           overlayLayer.innerHTML = '';
           destPinsLayer.innerHTML = '';
+
+          // 대안 경로 점선 렌더링 (클릭 시 활성화)
+          altSegments.forEach((seg, idx) => {
+            if (seg.pts.length < 2) return;
+            const d = smoothPath(seg.pts);
+            const altEl = createSvg('path', { id: `alt-path-${idx}`, class: 'alt-route-path', d: d });
+            altEl.onclick = () => {
+              selectedLakeRouteMode = (selectedLakeRouteMode === 'flat') ? 'deck' : 'flat';
+              renderDynamicRoute(destObj, true);
+            };
+            routesLayer.appendChild(altEl);
+          });
 
           routeSegments.forEach((seg, idx) => {
             if (seg.pts.length < 2) return;
