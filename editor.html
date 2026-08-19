@@ -713,24 +713,30 @@
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // ── 도로 곡선 완벽 보존 알고리즘 (곡선 커브길을 뚫지 않고 칠한 대로 부드럽게 유지) ──
-      function smoothAndSampleCurve(pts, maxSegmentLen = 40) {
+      // ── 핵심 시작점/끝점 앵커 추출기 (획 1개당 시작점과 끝점 딱 2개만 깔끔하게 핀으로 생성) ──
+      function extractKeyEndpoints(pts) {
         if (pts.length < 2) return pts;
-        let result = [pts[0]];
-        let lastPt = pts[0];
+        const pStart = pts[0];
+        const pEnd = pts[pts.length - 1];
+        const lineLen = Math.hypot(pEnd[0] - pStart[0], pEnd[1] - pStart[1]);
 
-        for (let i = 1; i < pts.length; i++) {
-          const pt = pts[i];
-          const dist = Math.hypot(pt[0] - lastPt[0], pt[1] - lastPt[1]);
-          if (dist >= maxSegmentLen || i === pts.length - 1) {
-            result.push(pt);
-            lastPt = pt;
+        // 곡선이 매우 심하게 휜 경우에만 중간 변곡점 1개 추가, 그 외에는 무조건 [시작점, 끝점] 2개만!
+        let maxDev = 0, midIdx = -1;
+        for (let i = 1; i < pts.length - 1; i++) {
+          const d = Math.abs((pEnd[1] - pStart[1]) * pts[i][0] - (pEnd[0] - pStart[0]) * pts[i][1] + pEnd[0] * pStart[1] - pEnd[1] * pStart[0]) / (lineLen + 1e-6);
+          if (d > maxDev) {
+            maxDev = d;
+            midIdx = i;
           }
         }
-        return result;
+
+        if (maxDev > 120 && midIdx > 0) {
+          return [pStart, pts[midIdx], pEnd];
+        }
+        return [pStart, pEnd];
       }
 
-      // ── 6. 칠해진 형광 브러시로부터 곡선 궤적 100% 완벽 보존 도로망 생성 ──
+      // ── 6. 칠해진 형광 브러시로부터 [시작점, 끝점] 앵커 핀만 깔끔하게 생성 ──
       function generateRoadNetworkFromBrush() {
         const positiveStrokes = brushStrokes.filter(s => !s.isEraser && s.points.length >= 2);
         if (positiveStrokes.length === 0) {
@@ -742,13 +748,13 @@
         generatedRoads.polylines = [];
 
         positiveStrokes.forEach((stroke) => {
-          // 칠하신 곡선 궤적 그대로 부드럽게 보존
-          const smoothed = smoothAndSampleCurve(stroke.points, 45);
+          // 획당 시작점/끝점 위주로 2~3개만 핀으로 생성
+          const keyNodes = extractKeyEndpoints(stroke.points);
 
-          if (smoothed.length >= 2) {
-            generatedRoads.polylines.push(smoothed);
-            smoothed.forEach(pt => {
-              const existing = generatedRoads.nodes.find(n => Math.hypot(n[0] - pt[0], n[1] - pt[1]) < 25);
+          if (keyNodes.length >= 2) {
+            generatedRoads.polylines.push(keyNodes);
+            keyNodes.forEach(pt => {
+              const existing = generatedRoads.nodes.find(n => Math.hypot(n[0] - pt[0], n[1] - pt[1]) < 35);
               if (!existing) {
                 generatedRoads.nodes.push(pt);
               }
@@ -757,7 +763,7 @@
         });
 
         renderExtractedRoads();
-        showToast(`🎉 칠하신 곡선 그대로 총 ${generatedRoads.nodes.length}개 도로 핀 생성 완료!`);
+        showToast(`🎯 획당 시작/끝점만 깔끔하게 총 ${generatedRoads.nodes.length}개 핀 생성 완료!`);
       }
 
       // ── 7. 자동 생성된 도로망 좌측 SVG 및 우측 위성 렌더링 (단일하고 깔끔한 형광선) ──
