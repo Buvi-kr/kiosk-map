@@ -884,21 +884,43 @@
         return [parseFloat(lat.toFixed(6)), parseFloat(lng.toFixed(6))];
       }
 
-      let isGroupDragEnabled = true; // 뭉탱이 탄성 드래그 모드 기본 ON
-      let groupDragRadiusMeters = 100; // 영향 반경 100미터
+      // ── 실제 위성 GPS [lat, lng] ➔ 조감도 SVG [X, Y] 1:1 순방향 변환기 ──
+      function gpsToSvg(lat, lng) {
+        if (!gpsAnchors || gpsAnchors.length === 0) return [1668, 1050];
+        let sorted = gpsAnchors.map(a => ({
+          a,
+          dist: Math.hypot((a.lat - lat) * 111000, (a.lng - lng) * 88000)
+        })).sort((a, b) => a.dist - b.dist);
 
-      // ── 우측 위성 지도 위에 1:1 도로망 & DFS 노선 오버레이 렌더링 ──
-      function renderSatelliteRoadNetwork() {
+        if (sorted[0].dist < 0.5) return [sorted[0].a.svg[0], sorted[0].a.svg[1]];
+
+        const top3 = sorted.slice(0, 3);
+        const w0 = 1 / (Math.pow(top3[0].dist, 2.0) + 1e-4);
+        const w1 = 1 / (Math.pow(top3[1].dist, 2.0) + 1e-4);
+        const w2 = 1 / (Math.pow(top3[2].dist, 2.0) + 1e-4);
+        const totalW = w0 + w1 + w2;
+
+        const sx = (top3[0].a.svg[0] * w0 + top3[1].a.svg[0] * w1 + top3[2].a.svg[0] * w2) / totalW;
+        const sy = (top3[0].a.svg[1] * w0 + top3[1].a.svg[1] * w1 + top3[2].a.svg[1] * w2) / totalW;
+        return [Math.round(sx), Math.round(sy)];
+      }
+
+      let isGroupDragEnabled = true; // 뭉탱이 탄성 드래그 모드 기본 ON
+      let groupDragRadiusMeters = 80; // 영향 반경 80미터
+      let roadDragStartState = null;
+
+      // ── 우측 위성 지도 위에 1:1 도로망 & 170개 초록색 도로 핀 직접 드래그 렌더링 ──
+      function renderSatelliteRoadNetwork(skipNodes = false) {
         if (!satRoadsLayerGroup || !leafletMap) return;
         satRoadsLayerGroup.clearLayers();
 
-        // 1. 위성 지도 위에 초록색 도로 폴리라인 렌더링 (마우스 간섭 차단: interactive: false)
-        MASTER_DATA.polylines.forEach((line, lIdx) => {
+        // 1. 위성 지도 위에 초록색 도로 폴리라인 렌더링
+        MASTER_DATA.polylines.forEach((line) => {
           const latlngs = line.map(pt => svgToGps(pt));
           const polyline = L.polyline(latlngs, {
             color: '#00e676',
             weight: 5,
-            opacity: 0.8,
+            opacity: 0.85,
             lineCap: 'round',
             lineJoin: 'round',
             interactive: false
@@ -906,18 +928,81 @@
           satRoadsLayerGroup.addLayer(polyline);
         });
 
-        // 2. 위성 지도 위에 170개 도로 노드 핀 렌더링 (마우스 간섭 차단: interactive: false)
+        if (skipNodes) return;
+
+        // 2. 위성 지도 위에 170개 '초록색 도로 핀'을 직접 드래그 가능한 마커로 렌더링!
         MASTER_DATA.nodes.forEach((pos, nIdx) => {
           const gps = svgToGps(pos);
-          const marker = L.circleMarker(gps, {
-            radius: 3.5,
-            fillColor: '#00e676',
-            color: '#ffffff',
-            weight: 1.2,
-            fillOpacity: 0.9,
-            interactive: false
+
+          const roadIcon = L.divIcon({
+            className: 'custom-sat-road-node-pin',
+            html: `
+              <div style="display:flex; flex-direction:column; align-items:center; cursor:grab; pointer-events:auto;">
+                <div style="background:#00e676; width:14px; height:14px; border-radius:50%; border:2px solid #ffffff; box-shadow:0 0 8px #00e676;"></div>
+                <div style="background:rgba(15,23,42,0.85); color:#00e676; font-size:9px; font-weight:800; padding:1px 4px; border-radius:3px; border:1px solid #00e676; white-space:nowrap; margin-top:1px; pointer-events:none;">
+                  #${nIdx}
+                </div>
+              </div>
+            `,
+            iconSize: [40, 28],
+            iconAnchor: [20, 7]
           });
-          satRoadsLayerGroup.addLayer(marker);
+
+          const roadMarker = L.marker(gps, {
+            icon: roadIcon,
+            draggable: true,
+            zIndexOffset: 500,
+            autoPan: true
+          });
+
+          roadMarker.on('dragstart', (e) => {
+            L.DomEvent.stopPropagation(e);
+            // 드래그 시작 시점의 170개 도로 노드 GPS 스냅샷
+            roadDragStartState = MASTER_DATA.nodes.map(n => svgToGps(n));
+          });
+
+          roadMarker.on('drag', (e) => {
+            const newPos = e.target.getLatLng();
+            const startOrigin = roadDragStartState[nIdx];
+            const dLat = newPos.lat - startOrigin[0];
+            const dLng = newPos.lng - startOrigin[1];
+
+            if (isGroupDragEnabled) {
+              // 🧲 뭉탱이 탄성 드래그: 주변 초록 도로 핀들도 거리에 맞게 함께 쓱쓱 딸려옴!
+              MASTER_DATA.nodes.forEach((nPos, idx) => {
+                if (idx === nIdx) {
+                  const newSvg = gpsToSvg(newPos.lat, newPos.lng);
+                  MASTER_DATA.nodes[idx] = newSvg;
+                } else {
+                  const initGps = roadDragStartState[idx];
+                  const distMeters = Math.hypot((initGps[0] - startOrigin[0]) * 111000, (initGps[1] - startOrigin[1]) * 88000);
+                  if (distMeters < groupDragRadiusMeters) {
+                    const factor = Math.pow(1 - distMeters / groupDragRadiusMeters, 2.0);
+                    const shiftedLat = initGps[0] + dLat * factor;
+                    const shiftedLng = initGps[1] + dLng * factor;
+                    const newSvg = gpsToSvg(shiftedLat, shiftedLng);
+                    MASTER_DATA.nodes[idx] = newSvg;
+                  }
+                }
+              });
+            } else {
+              const newSvg = gpsToSvg(newPos.lat, newPos.lng);
+              MASTER_DATA.nodes[nIdx] = newSvg;
+            }
+
+            // 좌측 조감도 마스터 도로망 실시간 재렌더링
+            renderMasterRoads();
+            // 우측 위성 폴리라인만 실시간 갱신 (마커 재생성 방지)
+            renderSatelliteRoadNetwork(true);
+          });
+
+          roadMarker.on('dragend', () => {
+            showToast(`🎯 초록 도로 핀 #${nIdx} 및 주변 도로 뭉탱이 이동 완료!`);
+            renderMasterRoads();
+            renderSatelliteRoadNetwork(false);
+          });
+
+          satRoadsLayerGroup.addLayer(roadMarker);
         });
       }
 
