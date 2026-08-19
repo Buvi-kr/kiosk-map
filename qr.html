@@ -608,10 +608,19 @@
       }
     }
 
-    /* 내 위치 마커 (과녁 파동 제거 ➔ 세련된 스마트 블루 닷) */
+    /* 내 위치 마커 & 실시간 오차 반경 원 */
     .my-pos-group {
       cursor: pointer;
       transition: transform 0.2s ease-out;
+    }
+
+    .my-pos-accuracy {
+      fill: rgba(0, 136, 255, 0.12);
+      stroke: rgba(0, 136, 255, 0.45);
+      stroke-width: 2;
+      stroke-dasharray: 6 4;
+      pointer-events: none;
+      transition: r 0.3s ease-out;
     }
 
     .my-pos-halo {
@@ -774,8 +783,9 @@
         <!-- 목적지 마커 레이어 -->
         <g id="destPins"></g>
 
-        <!-- 내 위치 마커 (스마트 블루 닷) -->
+        <!-- 내 위치 마커 (스마트 블루 닷 & 오차 반경) -->
         <g id="myPosPin" class="my-pos-group" transform="translate(189, 296)">
+          <circle class="my-pos-accuracy" id="myPosAccuracyCircle" r="28" />
           <circle class="my-pos-halo" r="22" />
           <circle class="my-pos-core" r="10" />
         </g>
@@ -896,34 +906,149 @@
         { name: '관광정보센터/주차장', svg: [3171, 1493], lat: 37.9223, lng: 127.2370 }
       ];
 
-      // ── 18개 실측 GPS 전량 종합 국소 역거리 가중치(IDW) 변환 엔진 ──
-      function gpsToSvg(lat, lng) {
-        let exactAnchor = null;
-        const distances = ALL_GPS_ANCHORS.map(a => {
-          const dy = (lat - a.lat) * 111000;
-          const dx = (lng - a.lng) * 88000;
-          const dist = Math.hypot(dx, dy);
-          if (dist < 1.0) exactAnchor = a;
-          return { anchor: a, dist };
-        });
+      // ── 18개 실측 GPS 앵커 기반 들로네 삼각분할(Delaunay Triangulation) & 바리센트릭(Barycentric) 국소 아핀 변환 엔진 ──
+      const DelaunayEngine = (function () {
+        // 2D 들로네 삼각분할 (Bowyer-Watson 알고리즘)
+        function buildDelaunay(pts) {
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          pts.forEach(p => {
+            if (p.lng < minX) minX = p.lng; if (p.lng > maxX) maxX = p.lng;
+            if (p.lat < minY) minY = p.lat; if (p.lat > maxY) maxY = p.lat;
+          });
+          const dx = (maxX - minX) || 0.01, dy = (maxY - minY) || 0.01;
+          const deltaMax = Math.max(dx, dy) * 50;
+          const midX = (minX + maxX) / 2, midY = (minY + maxY) / 2;
 
-        if (exactAnchor) return exactAnchor.svg.slice();
+          const stA = { lng: midX - deltaMax, lat: midY - deltaMax, idx: -1 };
+          const stB = { lng: midX, lat: midY + deltaMax, idx: -2 };
+          const stC = { lng: midX + deltaMax, lat: midY - deltaMax, idx: -3 };
 
-        distances.sort((a, b) => a.dist - b.dist);
-        const kNearest = distances.slice(0, 4); // 가장 가까운 4대 거점 가중 결합
+          let triangles = [{ a: stA, b: stB, c: stC }];
 
-        let totalWeight = 0;
-        let weightedX = 0, weightedY = 0;
-        const p = 2.5;
+          function circumcircle(a, b, c) {
+            const ax = a.lng * 88000, ay = a.lat * 111000;
+            const bx = b.lng * 88000, by = b.lat * 111000;
+            const cx = c.lng * 88000, cy = c.lat * 111000;
+            const d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
+            if (Math.abs(d) < 1e-9) return { x: ax, y: ay, rSq: Infinity };
+            const ax2 = ax * ax + ay * ay;
+            const bx2 = bx * bx + by * by;
+            const cx2 = cx * cx + cy * cy;
+            const ox = (ax2 * (by - cy) + bx2 * (cy - ay) + cx2 * (ay - by)) / d;
+            const oy = (ax2 * (cx - bx) + bx2 * (ax - cx) + cx2 * (bx - ax)) / d;
+            const rSq = (ax - ox) * (ax - ox) + (ay - oy) * (ay - oy);
+            return { x: ox, y: oy, rSq };
+          }
 
-        for (const item of kNearest) {
-          const w = 1 / Math.pow(Math.max(item.dist, 0.1), p);
-          totalWeight += w;
-          weightedX += item.anchor.svg[0] * w;
-          weightedY += item.anchor.svg[1] * w;
+          pts.forEach((p, pIdx) => {
+            const node = { lng: p.lng, lat: p.lat, idx: pIdx };
+            const px = p.lng * 88000, py = p.lat * 111000;
+            let badTriangles = [];
+
+            triangles.forEach(t => {
+              const cc = circumcircle(t.a, t.b, t.c);
+              const distSq = (px - cc.x) * (px - cc.x) + (py - cc.y) * (py - cc.y);
+              if (distSq <= cc.rSq + 1e-4) badTriangles.push(t);
+            });
+
+            let polygon = [];
+            badTriangles.forEach(t => {
+              const edges = [
+                { p1: t.a, p2: t.b },
+                { p1: t.b, p2: t.c },
+                { p1: t.c, p2: t.a }
+              ];
+              edges.forEach(edge => {
+                let isShared = false;
+                badTriangles.forEach(other => {
+                  if (other === t) return;
+                  const oEdges = [
+                    { p1: other.a, p2: other.b },
+                    { p1: other.b, p2: other.c },
+                    { p1: other.c, p2: other.a }
+                  ];
+                  if (oEdges.some(oe =>
+                    (oe.p1.idx === edge.p1.idx && oe.p2.idx === edge.p2.idx) ||
+                    (oe.p1.idx === edge.p2.idx && oe.p2.idx === edge.p1.idx)
+                  )) isShared = true;
+                });
+                if (!isShared) polygon.push(edge);
+              });
+            });
+
+            triangles = triangles.filter(t => !badTriangles.includes(t));
+            polygon.forEach(edge => {
+              triangles.push({ a: edge.p1, b: edge.p2, c: node });
+            });
+          });
+
+          return triangles
+            .filter(t => t.a.idx >= 0 && t.b.idx >= 0 && t.c.idx >= 0)
+            .map(t => [t.a.idx, t.b.idx, t.c.idx]);
         }
 
-        return [Math.round(weightedX / totalWeight), Math.round(weightedY / totalWeight)];
+        const triangles = buildDelaunay(ALL_GPS_ANCHORS);
+
+        // 2D 바리센트릭(Barycentric) 가중치 계산
+        function getBarycentric(px, py, ax, ay, bx, by, cx, cy) {
+          const dX = bx - ax, dY = by - ay;
+          const eX = cx - ax, eY = cy - ay;
+          const pX = px - ax, pY = py - ay;
+          const denom = dX * eY - dY * eX;
+          if (Math.abs(denom) < 1e-18) return { u: -1, v: -1, w: -1 };
+          const v = (pX * eY - pY * eX) / denom;
+          const w = (dX * pY - dY * pX) / denom;
+          const u = 1.0 - v - w;
+          return { u, v, w };
+        }
+
+        return { triangles, getBarycentric };
+      })();
+
+      // ── GPS ➔ SVG 좌표 변환 (들로네 바리센트릭 국소 아핀 보간) ──
+      function gpsToSvg(lat, lng) {
+        // 1. 실측 앵커와 0.8m 이내로 일치하면 100% 앵커 좌표 즉시 반환
+        for (const a of ALL_GPS_ANCHORS) {
+          const dy = (lat - a.lat) * 111000;
+          const dx = (lng - a.lng) * 88000;
+          if (Math.hypot(dx, dy) < 0.8) return a.svg.slice();
+        }
+
+        // 2. 현재 GPS 좌표가 속한 들로네 삼각형 탐색
+        let bestTriangle = null;
+        let bestBary = null;
+        let minOutsidePenalty = Infinity;
+
+        for (const [i0, i1, i2] of DelaunayEngine.triangles) {
+          const a = ALL_GPS_ANCHORS[i0], b = ALL_GPS_ANCHORS[i1], c = ALL_GPS_ANCHORS[i2];
+          const bary = DelaunayEngine.getBarycentric(lng, lat, a.lng, a.lat, b.lng, b.lat, c.lng, c.lat);
+
+          // 삼각형 내부 판정 (부동소수점 오차 허용 -0.0001)
+          if (bary.u >= -0.0001 && bary.v >= -0.0001 && bary.w >= -0.0001) {
+            bestTriangle = [a, b, c];
+            bestBary = bary;
+            break;
+          }
+
+          // 외곽(Convex Hull 바깥)일 때 가장 가까운 삼각형 추적 (안전장치 Fallback)
+          const penalty = Math.max(0, -bary.u) + Math.max(0, -bary.v) + Math.max(0, -bary.w);
+          if (penalty < minOutsidePenalty) {
+            minOutsidePenalty = penalty;
+            bestTriangle = [a, b, c];
+            const cu = Math.max(0, bary.u), cv = Math.max(0, bary.v), cw = Math.max(0, bary.w);
+            const sum = (cu + cv + cw) || 1;
+            bestBary = { u: cu / sum, v: cv / sum, w: cw / sum };
+          }
+        }
+
+        if (bestTriangle && bestBary) {
+          const [a, b, c] = bestTriangle;
+          const sx = bestBary.u * a.svg[0] + bestBary.v * b.svg[0] + bestBary.w * c.svg[0];
+          const sy = bestBary.u * a.svg[1] + bestBary.v * b.svg[1] + bestBary.w * c.svg[1];
+          return [Math.round(sx), Math.round(sy)];
+        }
+
+        return ALL_GPS_ANCHORS[0].svg.slice();
       }
 
       // ── 초록색 도로망 자석 스냅 & 도로 이탈 방지 관성(Stickiness) 엔진 ──
@@ -1584,6 +1709,10 @@
         });
       });
 
+      // ── 지수이동평균(EMA) 필터 상태 ──
+      let smoothedGps = { lat: null, lng: null };
+      const EMA_ALPHA = 0.4; // 0.4: 신규 40% + 이전 60% (급격한 튐 노이즈 제거)
+
       function handleGpsSuccess(pos, isManual = false) {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
@@ -1592,16 +1721,39 @@
         lastGpsRaw = { lat, lng, acc: accuracy };
         updateInspectorModal();
 
+        // 1. 지수이동평균(EMA) 필터링 (다중경로 노이즈 및 순간 튐 방지)
+        if (smoothedGps.lat === null || isManual) {
+          smoothedGps.lat = lat;
+          smoothedGps.lng = lng;
+        } else {
+          // 40m 이상 순간 급변(텔레포트) 시 즉시 동기화
+          const jumpDist = Math.hypot((lat - smoothedGps.lat) * 111000, (lng - smoothedGps.lng) * 88000);
+          if (jumpDist > 40) {
+            smoothedGps.lat = lat;
+            smoothedGps.lng = lng;
+          } else {
+            smoothedGps.lat = smoothedGps.lat + EMA_ALPHA * (lat - smoothedGps.lat);
+            smoothedGps.lng = smoothedGps.lng + EMA_ALPHA * (lng - smoothedGps.lng);
+          }
+        }
+
         gpsBadge.classList.remove('error');
         gpsBadge.classList.add('active');
         gpsStatusText.textContent = `GPS 정상 (±${accuracy}m)`;
 
-        // 18개 실측 GPS 앵커 기반 국소 정밀 역거리 가중 변환
-        const rawPos = gpsToSvg(lat, lng);
+        // 2. 18개 실측 앵커 들로네 삼각분할(Delaunay) 기반 국소 아핀(Barycentric) 변환
+        const rawPos = gpsToSvg(smoothedGps.lat, smoothedGps.lng);
 
-        // 초록색 도로망 자석 스냅 + 주행 관성 보정
+        // 3. 초록색 도로망 자석 스냅 + 주행 관성 보정
         currentPos = snapToRoadNetwork(rawPos);
         updateMyPosPin();
+
+        // 4. 실시간 정확도 반경 원(Accuracy Circle) 렌더링 (1m = 약 4.54px)
+        const accuracyCircle = document.getElementById('myPosAccuracyCircle');
+        if (accuracyCircle) {
+          const radiusPx = Math.min(220, Math.max(20, Math.round(accuracy * 4.54)));
+          accuracyCircle.setAttribute('r', radiusPx);
+        }
 
         if (isManual) {
           showToast(`📍 내 위치 갱신 완료 (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
