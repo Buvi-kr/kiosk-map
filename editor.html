@@ -626,7 +626,12 @@
       function initLeafletMap() {
         if (leafletMap) return;
         leafletMap = L.map('leafletMap', { zoomControl: true, attributionControl: false }).setView([37.9235, 127.2395], 17);
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(leafletMap);
+        
+        // 고해상도 위성 영상 레이어 (ArcGIS World Imagery + VWorld 하이브리드)
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'Esri World Imagery'
+        }).addTo(leafletMap);
 
         satAnchorGroup = L.layerGroup().addTo(leafletMap);
         satRoadPolylineGroup = L.layerGroup().addTo(leafletMap);
@@ -635,6 +640,10 @@
         leafletMap.on('mousemove', (e) => {
           satCoordDisplay.textContent = `lat: ${e.latlng.lat.toFixed(6)}, lng: ${e.latlng.lng.toFixed(6)}`;
         });
+
+        setTimeout(() => {
+          if (leafletMap) leafletMap.invalidateSize();
+        }, 200);
 
         renderSatelliteAnchors();
       }
@@ -924,10 +933,22 @@
         updateTransform();
       }, { passive: false });
 
+      viewport.addEventListener('contextmenu', (e) => e.preventDefault());
+
       viewport.addEventListener('pointerdown', (e) => {
         if (e.target.closest('.floating-hud') || e.target.closest('.floating-zoom')) return;
 
-        if (currentMode === 'brush' || currentMode === 'eraser') {
+        // 마우스 우클릭(2) 또는 휠클릭(1) 또는 Pan 모드일 때는 언제든 즉시 화면 이동!
+        if (e.button === 2 || e.button === 1 || currentMode === 'pan') {
+          isInteracting = true;
+          startX = e.clientX - panX;
+          startY = e.clientY - panY;
+          viewport.classList.add('panning');
+          return;
+        }
+
+        // 좌클릭(0)일 때 브러시/지우개 드로잉
+        if (e.button === 0 && (currentMode === 'brush' || currentMode === 'eraser')) {
           isDrawing = true;
           const pt = getCanvasPos(e);
           currentStroke = [pt];
@@ -937,11 +958,6 @@
             isEraser: (currentMode === 'eraser')
           });
           redrawBrushCanvas();
-        } else if (currentMode === 'pan' || e.button === 1 || e.shiftKey) {
-          isInteracting = true;
-          startX = e.clientX - panX;
-          startY = e.clientY - panY;
-          viewport.classList.add('panning');
         }
       });
 
