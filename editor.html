@@ -736,44 +736,68 @@
         return [pStart, pEnd];
       }
 
-      // ── 6. 칠해진 형광 브러시로부터 [시작점, 끝점] 앵커 핀 생성 ──
+      // ── 6. 칠해진 형광 브러시로부터 도로망 점진적 누적 생성 (기존 조율된 핀 100% 영구 보존!) ──
       function generateRoadNetworkFromBrush() {
         const positiveStrokes = brushStrokes.filter(s => !s.isEraser && s.points.length >= 2);
         if (positiveStrokes.length === 0) {
+          generatedRoads.nodes = [];
+          generatedRoads.polylines = [];
+          renderExtractedRoads();
           showToast('⚠️ 먼저 조감도 위에 초록색 브러시로 길을 칠해 주세요!');
           return;
         }
 
-        generatedRoads.nodes = [];
-        generatedRoads.polylines = [];
+        // 기존에 이미 조율된 노드 맵 유지 (ID 기준)
+        const oldNodesMap = new Map();
+        generatedRoads.nodes.forEach(n => {
+          oldNodesMap.set(n.id, n);
+        });
 
-        let nodeCounter = 0;
+        const newPolylines = [];
+        const activeNodes = [];
+        let maxNodeId = generatedRoads.nodes.reduce((max, n) => Math.max(max, n.id), -1) + 1;
+
         positiveStrokes.forEach((stroke) => {
-          const keyPts = extractKeyEndpoints(stroke.points);
+          // 이미 이 획에 생성된 노드들이 있다면 기존 조율 상태 그대로 유지
+          if (stroke.nodes && stroke.nodes.length >= 2) {
+            stroke.nodes.forEach(n => {
+              if (!activeNodes.find(an => an.id === n.id)) {
+                activeNodes.push(n);
+              }
+            });
+            newPolylines.push(stroke.nodes);
+            return;
+          }
 
+          // 새로 그은 획에 대해서만 노드 생성
+          const keyPts = extractKeyEndpoints(stroke.points);
           if (keyPts.length >= 2) {
             let strokeNodes = [];
             keyPts.forEach(pt => {
-              // 기존 노드와 30px 이내면 동일 노드로 병합
-              let existing = generatedRoads.nodes.find(n => Math.hypot(n.svg[0] - pt[0], n.svg[1] - pt[1]) < 30);
+              // 이미 존재하는 활성 노드(조율된 노드)와 40px 이내면 그 노드를 그대로 연결!
+              let existing = activeNodes.find(n => Math.hypot(n.svg[0] - pt[0], n.svg[1] - pt[1]) < 40);
               if (!existing) {
                 const gps = svgToGps(pt);
                 existing = {
-                  id: nodeCounter++,
+                  id: maxNodeId++,
                   svg: [pt[0], pt[1]],
                   lat: gps[0],
                   lng: gps[1]
                 };
-                generatedRoads.nodes.push(existing);
+                activeNodes.push(existing);
               }
               strokeNodes.push(existing);
             });
-            generatedRoads.polylines.push(strokeNodes);
+            stroke.nodes = strokeNodes; // 획에 영구 바인딩
+            newPolylines.push(strokeNodes);
           }
         });
 
+        generatedRoads.nodes = activeNodes;
+        generatedRoads.polylines = newPolylines;
+
         renderExtractedRoads();
-        showToast(`🎯 총 ${generatedRoads.nodes.length}개 핀 생성 완료! 이제 위성 지도에서 핀을 옮기세요!`);
+        showToast(`🎯 총 ${generatedRoads.nodes.length}개 핀 유지 및 갱신 완료! (기존 조율된 위치 100% 보존)`);
       }
 
       // ── 7. 자동 생성된 도로망 좌측 SVG 및 우측 위성 렌더링 (영구 고정 드래그) ──
