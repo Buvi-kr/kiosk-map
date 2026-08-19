@@ -942,17 +942,50 @@
         scale = newScale;
         updateTransform();
       }, { passive: false });
+      let isCanvasDragging = false;
+      let canvasDragStartX = 0, canvasDragStartY = 0;
+      let hasCanvasMoved = false;
+
       viewport.addEventListener('pointerdown', (e) => {
         if (e.target.closest('.floating-hud') || e.target.closest('.floating-zoom')) return;
-        if (e.button === 0 && (e.altKey || e.shiftKey || e.button === 1 || currentMode === 'view')) {
-          isPanning = true; startX = e.clientX - panX; startY = e.clientY - panY; viewport.classList.add('panning');
-        } else if (e.button === 0) {
-          const pt = getCanvasPos(e);
-          if (currentMode === 'test') { handleTestClick(pt); } else if (currentMode === 'anchors' || currentMode === 'dual') { handleAnchorCanvasClick(pt); }
+
+        if (e.button === 0) {
+          isPanning = true;
+          hasCanvasMoved = false;
+          startX = e.clientX - panX;
+          startY = e.clientY - panY;
+          canvasDragStartX = e.clientX;
+          canvasDragStartY = e.clientY;
+          viewport.classList.add('panning');
         }
       });
-      window.addEventListener('pointermove', (e) => { if (!isPanning) return; panX = e.clientX - startX; panY = e.clientY - startY; updateTransform(); });
-      window.addEventListener('pointerup', () => { isPanning = false; viewport.classList.remove('panning'); });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isPanning) return;
+        if (Math.hypot(e.clientX - canvasDragStartX, e.clientY - canvasDragStartY) > 4) {
+          hasCanvasMoved = true;
+        }
+        panX = e.clientX - startX;
+        panY = e.clientY - startY;
+        updateTransform();
+      });
+
+      window.addEventListener('pointerup', (e) => {
+        if (isPanning) {
+          isPanning = false;
+          viewport.classList.remove('panning');
+
+          // 드래그가 아닌 단순 제자리 클릭이었을 때만 좌표 선택 이벤트 발동
+          if (!hasCanvasMoved && e.target && (e.target.id === 'bgImg' || e.target.id === 'mainSvg' || e.target.closest('#mainSvg'))) {
+            const pt = getCanvasPos(e);
+            if (currentMode === 'test') {
+              handleTestClick(pt);
+            } else if (currentMode === 'anchors' || currentMode === 'dual') {
+              handleAnchorCanvasClick(pt);
+            }
+          }
+        }
+      });
       document.getElementById('zoomInBtn').onclick = () => { scale = Math.min(3.5, scale * 1.25); updateTransform(); };
       document.getElementById('zoomOutBtn').onclick = () => { scale = Math.max(0.15, scale * 0.8); updateTransform(); };
       document.getElementById('zoomResetBtn').onclick = () => {
