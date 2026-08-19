@@ -1165,7 +1165,7 @@
       // ── 목적지 목록 정의 (카테고리별 전체 스팟) ──
       const DESTINATIONS = [
         // 🌟 주요 명소 (spot)
-        { id: 'lake', cat: 'spot', label: '천주호', icon: '🏞️', color: 'cyan', pos: [1216, 864] },
+        { id: 'lake', cat: 'spot', label: '천주호', icon: '🏞️', color: 'cyan', pos: [1245, 670] },
         { id: 'astro', cat: 'spot', label: '천문과학관', icon: '🔭', color: 'cyan', pos: [2100, 1516] },
         { id: 'cafe', cat: 'spot', label: '전망카페', icon: '☕', color: 'amber', pos: [2538, 708] },
         { id: 'forest', cat: 'spot', label: '힐링숲 산책로', icon: '🌲', color: 'green', pos: [2076, 1474], isForest: true },
@@ -1305,14 +1305,14 @@
         let allFocusPoints = [currentPos, targetPos];
         let destPinsToDraw = [];
 
-        // 1) 천주호: 천주호 호숫가 전망대 단일 코스
+        // 1) 천주호: 천주호 호수 전망대 (32번 노드 [1245, 670])
         if (destObj.id === 'lake') {
-          const pts = RoadGraph.findPath(currentPos, [1216, 864]);
+          const pts = RoadGraph.findPath(currentPos, [1245, 670]);
           routeSegments.push({ color: 'path-blue', pts });
-          allFocusPoints = [currentPos, [1216, 864]];
-          destPinsToDraw.push({ pos: [1216, 864], label: '🚩 천주호', color: '' });
+          allFocusPoints = [currentPos, [1245, 670]];
+          destPinsToDraw.push({ pos: [1245, 670], label: '🚩 천주호', color: '' });
         }
-        // 2) 전망카페: 직행 단일 경로
+        // 2) 전망카페: 직행 단일 경로 (16번 노드 [2538, 708])
         else if (destObj.id === 'cafe' || destObj.id === 's_cafe') {
           const pts = RoadGraph.findPath(currentPos, [2538, 708]);
           routeSegments.push({ color: 'path-red', pts });
@@ -1331,14 +1331,11 @@
           destPinsToDraw.push({ pos: junctionPos, label: '🌲 숲길 입구', color: 'dest-green' });
           destPinsToDraw.push({ pos: [2076, 1474], label: '🚩 힐링숲 종점', color: 'dest-green' });
         }
-        // 4) 하늘정원: 반드시 [천주호 23 ➔ 산마루능선길 45 ➔ 소원의 하늘정원 46] 산마루 능선을 타는 코스!
+        // 4) 하늘정원: 반드시 산마루능선길(45번)을 거쳐 소원의 하늘정원(46번 [2109, 515])으로 가는 코스!
         else if (destObj.id === 'skyGarden') {
-          const legToLake = RoadGraph.findPath(currentPos, [1216, 864]);
-          const legRidge = RoadGraph.findPath([1216, 864], [1589, 645]);
-          const legPeak = RoadGraph.findPath([1589, 645], [2109, 515]);
-          const pts = [...legToLake, ...legRidge.slice(1), ...legPeak.slice(1)];
+          const pts = RoadGraph.findPath(currentPos, [2109, 515]);
           routeSegments.push({ color: 'path-green', pts });
-          allFocusPoints = [currentPos, [1216, 864], [1589, 645], [2109, 515]];
+          allFocusPoints = [currentPos, [2109, 515]];
           destPinsToDraw.push({ pos: [2109, 515], label: '🚩 하늘정원', color: 'dest-green' });
         }
         // 5) 기타 모든 목적지 (매표소, 관광정보센터, 화장실, 매점, 모노레일 등): 마스터 도로망 최단 경로
