@@ -195,13 +195,11 @@ function smoothPath(pts) {
 
 ---
 
-## 👥 기여 및 크레딧 (Credits)
+## 👤 기여 및 크레딧 (Credits)
 
-* **기획 & 디렉팅**: 포천아트밸리 프로젝트 팀
-* **1:1 도로망 정밀 실측 & 검수**: 현장 도로망 TF팀
-* **시스템 개발 & 최적화**: Google DeepMind Antigravity Advanced Agentic AI
+* **기획 · 설계 · 개발 & 총괄 디렉팅**: **최주언** (Choi Ju-eon)
 
 <div align="center">
   <br>
-  <sub>Copyright © 2026 Pocheon Art Valley. All Rights Reserved.</sub>
+  <sub>Copyright © 2026 Pocheon Art Valley Project by Choi Ju-eon. All Rights Reserved.</sub>
 </div>
