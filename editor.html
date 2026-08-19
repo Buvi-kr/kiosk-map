@@ -449,9 +449,10 @@
           </div>
 
           <div class="form-btn-row">
-            <button class="btn-tool" id="btnClearBrush" style="flex:1; color:#ef4444; border-color:#ef4444;">🗑️ 칠한 길 전체 지우기</button>
-            <button class="btn-action btn-export" id="btnQuickGenerate" style="flex:1.4; font-weight:800;">⚡ 도로망 1초 생성</button>
+            <button class="btn-tool" id="btnUndoStroke" style="flex:1; border-color:#38bdf8; color:#38bdf8; font-weight:bold;">↩️ 마지막 획 취소 (Ctrl+Z)</button>
+            <button class="btn-tool" id="btnClearBrush" style="flex:1; color:#ef4444; border-color:#ef4444;">🗑️ 전체 지우기</button>
           </div>
+          <button class="btn-action btn-export" id="btnQuickGenerate" style="width:100%; margin-top:8px; font-weight:800; background:linear-gradient(135deg,#00e676,#059669); color:#0f172a;">⚡ 도로망 즉시 생성 & 동기화</button>
         </div>
 
         <div class="map-canvas-container" id="mapContainer">
@@ -1054,6 +1055,31 @@
         e.target.classList.add('active');
         showToast('🖌️ 브러시 굵기: 광장 (48px)');
       };
+
+      function undoLastStroke() {
+        if (brushStrokes.length > 0) {
+          brushStrokes.pop();
+          redrawBrushCanvas();
+          if (brushStrokes.length > 0) {
+            generateRoadNetworkFromBrush();
+          } else {
+            generatedRoads = { nodes: [], polylines: [] };
+            renderExtractedRoads();
+          }
+          showToast(`↩️ 마지막 1개 획 취소 완료! (남은 획: ${brushStrokes.length}개)`);
+        } else {
+          showToast('⚠️ 취소할 브러시 획이 없습니다.');
+        }
+      }
+
+      document.getElementById('btnUndoStroke').onclick = undoLastStroke;
+
+      window.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+          e.preventDefault();
+          undoLastStroke();
+        }
+      });
 
       document.getElementById('btnClearBrush').onclick = () => {
         brushStrokes = [];
