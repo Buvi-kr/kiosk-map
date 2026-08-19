@@ -651,7 +651,12 @@
         <button class="btn-tool active" id="toolViewMaster">🌐 통합 도로망</button>
         <button class="btn-tool test" id="toolTestNav">🧪 길찾기 테스트</button>
         <button class="btn-tool" id="toolDualMapper" style="border-color:#00d2ff; color:#7dd3fc; background:rgba(0,210,255,0.15); font-weight:800;">🗺️ 위성 1:1 듀얼 매퍼</button>
-        <button class="btn-tool" id="toolTrackFitter" style="border-color:#a855f7; color:#e9d5ff;">🚶 걷기 트랙 정합기</button>
+        
+        <!-- 🧲 상단 툴바 전면 배치 뭉탱이 탄성 이동 버튼 -->
+        <button class="btn-tool" id="topBtnGroupDrag" style="border-color:#00e676; color:#00e676; background:rgba(0,230,118,0.15); font-weight:800;" title="핀 하나를 잡고 당기면 주변 도로/앵커들도 거리에 맞게 부드럽게 함께 딸려옵니다!">
+          🧲 뭉탱이 탄성 이동: ON
+        </button>
+
         <button class="btn-tool active" id="toolToggleNodes">📍 도로 핀 표시</button>
         <button class="btn-action btn-export" id="btnExport">💾 데이터 내보내기</button>
       </div>
@@ -711,9 +716,17 @@
 
       <!-- 우측: 실제 위성 지도 (Leaflet) -->
       <section class="right-satellite-pane" id="rightSatellitePane">
-        <div class="satellite-hud-banner">
-          <div>🛰️ <strong>실제 위성 지도</strong> — 원하는 지형/건물을 클릭하면 정밀 GPS(위도/경도)가 자동 입력됩니다.</div>
-          <div id="satCoordDisplay" style="font-family:monospace; font-weight:bold; color:#38bdf8;">lat: --, lng: --</div>
+        <div class="satellite-hud-banner" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>🛰️ <strong>위성 지도 매퍼</strong> — 핀을 마우스로 잡고 당기면 <strong>주변 일대 도로가 뭉탱이로 함께 이동</strong>합니다!</div>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <!-- 미세이동 조그 버튼 -->
+            <span style="font-size:11px; color:#94a3b8;">위성도로 전체 미세이동:</span>
+            <button class="btn-tool" id="btnNudgeUp" style="padding:2px 6px; font-size:11px;" title="북쪽으로 1m 이동">⬆️</button>
+            <button class="btn-tool" id="btnNudgeDown" style="padding:2px 6px; font-size:11px;" title="남쪽으로 1m 이동">⬇️</button>
+            <button class="btn-tool" id="btnNudgeLeft" style="padding:2px 6px; font-size:11px;" title="서쪽으로 1m 이동">⬅️</button>
+            <button class="btn-tool" id="btnNudgeRight" style="padding:2px 6px; font-size:11px;" title="동쪽으로 1m 이동">➡️</button>
+          </div>
+          <div id="satCoordDisplay" style="font-family:monospace; font-weight:bold; color:#38bdf8; font-size:12px;">lat: --, lng: --</div>
         </div>
         <div id="leafletMap"></div>
       </section>
@@ -1445,6 +1458,41 @@
       document.getElementById('btnCopyJson').onclick = () => {
         navigator.clipboard.writeText(jsonArea.value).then(() => showToast('📋 클립보드 복사 완료!'));
       };
+
+      // 🧲 상단 툴바 뭉탱이 탄성 이동 토글
+      const topBtnGroupDrag = document.getElementById('topBtnGroupDrag');
+      if (topBtnGroupDrag) {
+        topBtnGroupDrag.onclick = () => {
+          isGroupDragEnabled = !isGroupDragEnabled;
+          topBtnGroupDrag.style.color = isGroupDragEnabled ? '#00e676' : '#94a3b8';
+          topBtnGroupDrag.style.borderColor = isGroupDragEnabled ? '#00e676' : '#64748b';
+          topBtnGroupDrag.style.background = isGroupDragEnabled ? 'rgba(0,230,118,0.15)' : 'transparent';
+          topBtnGroupDrag.textContent = isGroupDragEnabled ? '🧲 뭉탱이 탄성 이동: ON' : '🎯 단독 개별 이동: OFF';
+          renderHudForMode();
+          showToast(isGroupDragEnabled ? '🧲 뭉탱이 탄성 이동 [켜짐] (주변 도로 함께 당김)' : '🎯 단독 개별 이동 [켜짐]');
+        };
+      }
+
+      // 🕹️ 위성 전체 도로 미세이동 조그 셔틀 (1.5미터 단위 이동)
+      function nudgeSatelliteAnchors(dLatMeters, dLngMeters) {
+        const dLat = dLatMeters / 111000;
+        const dLng = dLngMeters / 88000;
+        gpsAnchors.forEach(anc => {
+          anc.lat = parseFloat((anc.lat + dLat).toFixed(6));
+          anc.lng = parseFloat((anc.lng + dLng).toFixed(6));
+        });
+        renderGpsAnchors();
+        showToast(`🕹️ 위성 도로망 전체 미세 이동 완료!`);
+      }
+
+      const btnNudgeUp = document.getElementById('btnNudgeUp');
+      const btnNudgeDown = document.getElementById('btnNudgeDown');
+      const btnNudgeLeft = document.getElementById('btnNudgeLeft');
+      const btnNudgeRight = document.getElementById('btnNudgeRight');
+      if (btnNudgeUp) btnNudgeUp.onclick = () => nudgeSatelliteAnchors(1.5, 0);
+      if (btnNudgeDown) btnNudgeDown.onclick = () => nudgeSatelliteAnchors(-1.5, 0);
+      if (btnNudgeLeft) btnNudgeLeft.onclick = () => nudgeSatelliteAnchors(0, -1.5);
+      if (btnNudgeRight) btnNudgeRight.onclick = () => nudgeSatelliteAnchors(0, 1.5);
       document.getElementById('btnDownloadJson').onclick = () => {
         const blob = new Blob([jsonArea.value], { type: 'application/json' });
         const a = document.createElement('a');
