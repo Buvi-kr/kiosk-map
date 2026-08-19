@@ -378,13 +378,14 @@
     <!-- 상단 툴바 -->
     <header class="top-header">
       <div class="app-title">
-        <span>🛣️ 1:1 도로 매핑 스튜디오</span> | 포천아트밸리
+        <span>📍 24개 앵커 조율 & 1:1 도로 스튜디오</span>
       </div>
 
       <div class="tool-group">
-        <button class="btn-tool active" id="btnToggleDrawMode">✏️ [1:1 도로 콕콕 찍기 모드]</button>
-        <button class="btn-tool" id="btnToggleAnchors">📍 24대 핵심 앵커 (보존됨)</button>
-        <button class="btn-action btn-export" id="btnExportJson">💾 신규 도로망 JSON 내보내기</button>
+        <button class="btn-tool active" id="btnModeAnchors" style="border-color:#ff9500; color:#ff9500; background:rgba(255,149,0,0.15); font-weight:800;">📍 24개 앵커 정밀 조율</button>
+        <button class="btn-tool" id="btnModeRoads" style="border-color:#00e676; color:#00e676;">🛣️ 1:1 도로 콕콕 찍기</button>
+        <button class="btn-action btn-export" id="btnCopyAnchorsJson" style="background:linear-gradient(135deg,#ff9500,#ea580c); color:#ffffff; font-weight:800;">📋 24개 앵커 JSON 복사 (QR용)</button>
+        <button class="btn-action btn-export" id="btnExportJson">💾 도로망 JSON 내보내기</button>
       </div>
     </header>
 
@@ -401,23 +402,25 @@
         <!-- 플로팅 컨트롤러 패널 -->
         <div class="floating-hud" id="floatingHud">
           <div class="hud-title">
-            <span id="hudStepTitle">👉 [1단계] 좌측 조감도에서 도로 클릭</span>
-            <span id="hudPointCount" style="color:#00e676; font-size:13px;">● 0개 구간</span>
+            <span id="hudStepTitle">📍 24대 핵심 GPS 앵커 조율</span>
+            <span id="hudPointCount" style="color:#ff9500; font-size:13px;">● 24개 앵커</span>
           </div>
 
-          <div id="hudBodyText" style="font-size:12px; color:#94a3b8; line-height:1.4; margin-bottom:10px;">
-            1. <strong>좌측 조감도</strong>에서 도로의 <strong>시작점 ➔ 끝점</strong>을 클릭하세요.<br>
-            2. 그 다음 <strong>우측 위성 지도</strong>에서도 동일한 실제 위치를 <strong>시작점 ➔ 끝점</strong> 클릭하세요!
+          <div id="hudBodyText" style="font-size:12px; color:#cbd5e1; line-height:1.4; margin-bottom:10px;">
+            • <strong>좌측 조감도 주황색 핀</strong> 또는 <strong>우측 위성 지도 핀</strong>을 마우스로 잡고 끌어 원하는 위치로 이동하세요!
           </div>
 
-          <div style="background:rgba(0,230,118,0.08); border:1px solid rgba(0,230,118,0.3); padding:10px; border-radius:8px; margin-bottom:8px;">
-            <div style="font-size:11px; color:#94a3b8;">현재 작업 중인 점:</div>
-            <div id="hudCurrentCoord" style="font-size:13px; font-weight:bold; color:#00e676; margin-top:2px;">
-              조감도: 대기 중... / 위성: 대기 중...
+          <div id="anchorDetailCard" style="background:rgba(255,149,0,0.1); border:1px solid rgba(255,149,0,0.3); padding:10px; border-radius:8px; margin-bottom:8px;">
+            <div style="font-size:11px; color:#94a3b8;">선택된 앵커:</div>
+            <div id="hudSelectedAnchorName" style="font-size:14px; font-weight:bold; color:#ff9500; margin-top:2px;">
+              핀을 클릭하세요
+            </div>
+            <div id="hudCurrentCoord" style="font-size:11px; color:#cbd5e1; margin-top:4px; font-family:monospace;">
+              SVG: -- / GPS: --
             </div>
           </div>
 
-          <div class="form-btn-row">
+          <div id="roadControlRow" style="display:none;" class="form-btn-row">
             <button class="btn-tool" id="btnUndoLastPoint" style="flex:1;">↩️ 마지막 점 취소</button>
             <button class="btn-tool" id="btnResetAll" style="flex:1; color:#ef4444; border-color:#ef4444;">🗑️ 전체 초기화</button>
           </div>
@@ -540,6 +543,9 @@
         return el;
       }
 
+      let currentEditorMode = 'anchors'; // 'anchors' (24개 앵커 조율) | 'roads' (도로 콕콕 찍기)
+      let selectedAnchorIdx = -1;
+
       // ── 3. 우측 Leaflet 위성 지도 초기화 ──
       function initLeafletMap() {
         if (leafletMap) return;
@@ -550,73 +556,204 @@
         satRoadPolylineGroup = L.layerGroup().addTo(leafletMap);
         satRoadMarkersGroup = L.layerGroup().addTo(leafletMap);
 
-        // 위성 지도 클릭 시 1:1 GPS 점 등록!
+        // 위성 지도 클릭 이벤트
         leafletMap.on('click', (e) => {
           const lat = parseFloat(e.latlng.lat.toFixed(6));
           const lng = parseFloat(e.latlng.lng.toFixed(6));
           satCoordDisplay.textContent = `lat: ${lat}, lng: ${lng}`;
 
-          if (!pendingSvgPoint) {
-            showToast('⚠️ 먼저 좌측 조감도에서 대응하는 도로 위치를 클릭해 주세요!');
-            return;
+          if (currentEditorMode === 'roads') {
+            if (!pendingSvgPoint) {
+              showToast('⚠️ 먼저 좌측 조감도에서 대응하는 도로 위치를 클릭해 주세요!');
+              return;
+            }
+            const nodeIdx = customRoadNodes.length;
+            customRoadNodes.push({
+              id: nodeIdx,
+              svg: pendingSvgPoint,
+              lat: lat,
+              lng: lng
+            });
+            showToast(`🎉 #${nodeIdx}번 도로 1:1 매칭 완료!`);
+            pendingSvgPoint = null;
+            updateHudUI();
+            renderNewRoads();
           }
-
-          // 1:1 매핑 완료!
-          const nodeIdx = customRoadNodes.length;
-          customRoadNodes.push({
-            id: nodeIdx,
-            svg: pendingSvgPoint,
-            lat: lat,
-            lng: lng
-          });
-
-          showToast(`🎉 #${nodeIdx}번 도로 1:1 매칭 완료! [SVG: ${pendingSvgPoint[0]},${pendingSvgPoint[1]}] ➔ [GPS: ${lat}, ${lng}]`);
-          pendingSvgPoint = null;
-          updateHudUI();
-          renderNewRoads();
         });
 
         renderSatelliteAnchors();
       }
 
-      // 24대 핵심 앵커 렌더링
+      // 들로네 삼각망 계산기
+      function buildDelaunayTriangles(pts) {
+        if (pts.length < 3) return [];
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        pts.forEach(p => { if (p.lng < minX) minX = p.lng; if (p.lng > maxX) maxX = p.lng; if (p.lat < minY) minY = p.lat; if (p.lat > maxY) maxY = p.lat; });
+        const dx = (maxX - minX) || 0.01, dy = (maxY - minY) || 0.01;
+        const deltaMax = Math.max(dx, dy) * 50;
+        const midX = (minX + maxX) / 2, midY = (minY + maxY) / 2;
+        const stA = { lng: midX - deltaMax, lat: midY - deltaMax, idx: -1 };
+        const stB = { lng: midX, lat: midY + deltaMax, idx: -2 };
+        const stC = { lng: midX + deltaMax, lat: midY - deltaMax, idx: -3 };
+        let triangles = [{ a: stA, b: stB, c: stC }];
+        function circumcircle(a, b, c) {
+          const ax = a.lng * 88000, ay = a.lat * 111000;
+          const bx = b.lng * 88000, by = b.lat * 111000;
+          const cx = c.lng * 88000, cy = c.lat * 111000;
+          const d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
+          if (Math.abs(d) < 1e-9) return { x: ax, y: ay, rSq: Infinity };
+          const ax2 = ax * ax + ay * ay;
+          const bx2 = bx * bx + by * by;
+          const cx2 = cx * cx + cy * cy;
+          const ox = (ax2 * (by - cy) + bx2 * (cy - ay) + cx2 * (ay - by)) / d;
+          const oy = (ax2 * (cx - bx) + bx2 * (ax - cx) + cx2 * (bx - ax)) / d;
+          const rSq = (ax - ox) * (ax - ox) + (ay - oy) * (ay - oy);
+          return { x: ox, y: oy, rSq };
+        }
+        pts.forEach((p, pIdx) => {
+          const node = { lng: p.lng, lat: p.lat, idx: pIdx };
+          const px = p.lng * 88000, py = p.lat * 111000;
+          let badTriangles = [];
+          triangles.forEach(t => {
+            const cc = circumcircle(t.a, t.b, t.c);
+            const distSq = (px - cc.x) * (px - cc.x) + (py - cc.y) * (py - cc.y);
+            if (distSq <= cc.rSq + 1e-4) badTriangles.push(t);
+          });
+          let polygon = [];
+          badTriangles.forEach(t => {
+            const edges = [{ p1: t.a, p2: t.b }, { p1: t.b, p2: t.c }, { p1: t.c, p2: t.a }];
+            edges.forEach(edge => {
+              let isShared = false;
+              badTriangles.forEach(other => {
+                if (other === t) return;
+                const oEdges = [{ p1: other.a, p2: other.b }, { p1: other.b, p2: other.c }, { p1: other.c, p2: other.a }];
+                if (oEdges.some(oe => (oe.p1.idx === edge.p1.idx && oe.p2.idx === edge.p2.idx) || (oe.p1.idx === edge.p2.idx && oe.p2.idx === edge.p1.idx))) isShared = true;
+              });
+              if (!isShared) polygon.push(edge);
+            });
+          });
+          triangles = triangles.filter(t => !badTriangles.includes(t));
+          polygon.forEach(edge => { triangles.push({ a: edge.p1, b: edge.p2, c: node }); });
+        });
+        return triangles.filter(t => t.a.idx >= 0 && t.b.idx >= 0 && t.c.idx >= 0).map(t => [t.a.idx, t.b.idx, t.c.idx]);
+      }
+
+      // ── 24대 핵심 앵커 우측 위성 렌더링 (드래그 조율 가능!) ──
       function renderSatelliteAnchors() {
         if (!satAnchorGroup) return;
         satAnchorGroup.clearLayers();
         if (!showAnchors) return;
 
-        gpsAnchors.forEach((a) => {
+        gpsAnchors.forEach((a, idx) => {
+          const isSelected = (idx === selectedAnchorIdx);
+          const pinColor = isSelected ? '#ff3b30' : '#ff9500';
+
           const customIcon = L.divIcon({
             className: 'custom-sat-anchor',
             html: `
-              <div style="display:flex; flex-direction:column; align-items:center; pointer-events:none;">
-                <div style="background:#ff9500; width:16px; height:16px; border-radius:50%; border:2px solid #ffffff; box-shadow:0 0 10px #ff9500;"></div>
-                <div style="background:rgba(15,23,42,0.9); color:#ffffff; font-size:10px; font-weight:800; padding:1px 5px; border-radius:3px; border:1px solid #ff9500; white-space:nowrap; margin-top:2px;">
+              <div style="display:flex; flex-direction:column; align-items:center; cursor:grab; pointer-events:auto;">
+                <div style="background:${pinColor}; width:20px; height:20px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 0 12px ${pinColor};"></div>
+                <div style="background:rgba(15,23,42,0.95); color:#ffffff; font-size:11px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid ${pinColor}; white-space:nowrap; margin-top:2px; pointer-events:none;">
                   ${a.name}
                 </div>
               </div>
             `,
-            iconSize: [80, 36],
-            iconAnchor: [40, 8]
+            iconSize: [80, 44],
+            iconAnchor: [40, 10]
           });
-          L.marker([a.lat, a.lng], { icon: customIcon, interactive: false }).addTo(satAnchorGroup);
+
+          const marker = L.marker([a.lat, a.lng], {
+            icon: customIcon,
+            draggable: true,
+            zIndexOffset: isSelected ? 2000 : 1000,
+            autoPan: true
+          });
+
+          marker.on('click', (e) => {
+            L.DomEvent.stopPropagation(e);
+            selectAnchor(idx);
+          });
+
+          marker.on('drag', (e) => {
+            const newPos = e.target.getLatLng();
+            gpsAnchors[idx].lat = parseFloat(newPos.lat.toFixed(6));
+            gpsAnchors[idx].lng = parseFloat(newPos.lng.toFixed(6));
+            if (satCoordDisplay) satCoordDisplay.textContent = `lat: ${gpsAnchors[idx].lat}, lng: ${gpsAnchors[idx].lng}`;
+            renderLeftAnchors();
+            updateHudUI();
+          });
+
+          marker.on('dragend', () => {
+            showToast(`🎯 '${a.name}' 위성 위치 조율 완료! [${gpsAnchors[idx].lat}, ${gpsAnchors[idx].lng}]`);
+            renderLeftAnchors();
+            renderSatelliteAnchors();
+          });
+
+          satAnchorGroup.addLayer(marker);
         });
       }
 
-      // ── 4. 좌측 조감도 앵커 & 들로네 렌더링 ──
+      // ── 4. 좌측 조감도 앵커 & 들로네 렌더링 (드래그 조율 가능!) ──
       function renderLeftAnchors() {
         gpsAnchorsLayer.innerHTML = '';
         delaunayLayer.innerHTML = '';
         if (!showAnchors) return;
 
-        gpsAnchors.forEach((a) => {
+        const triangles = buildDelaunayTriangles(gpsAnchors);
+        triangles.forEach(([i1, i2, i3]) => {
+          const p1 = gpsAnchors[i1].svg, p2 = gpsAnchors[i2].svg, p3 = gpsAnchors[i3].svg;
+          const d = `M ${p1[0]},${p1[1]} L ${p2[0]},${p2[1]} L ${p3[0]},${p3[1]} Z`;
+          delaunayLayer.appendChild(createSvg('path', { class: 'delaunay-edge', d }));
+        });
+
+        gpsAnchors.forEach((a, idx) => {
+          const isSelected = (idx === selectedAnchorIdx);
           const pin = createSvg('g', { class: 'gps-anchor-pin', transform: `translate(${a.svg[0]},${a.svg[1]})` }, `
-            <circle class="outer" r="11"></circle>
+            <circle class="outer" r="${isSelected ? 15 : 11}" style="fill:${isSelected ? '#ff3b30' : '#ff9500'}"></circle>
             <circle r="4" fill="#ffffff"></circle>
             <text y="-16">${a.name}</text>
           `);
+
+          let isDragging = false;
+          pin.addEventListener('pointerdown', (e) => {
+            e.stopPropagation();
+            isDragging = true;
+            selectAnchor(idx);
+
+            const onDrag = (ev) => {
+              if (!isDragging) return;
+              const pos = getCanvasPos(ev);
+              gpsAnchors[idx].svg = pos;
+              pin.setAttribute('transform', `translate(${pos[0]},${pos[1]})`);
+              renderLeftAnchors();
+              updateHudUI();
+            };
+
+            const onUp = () => {
+              isDragging = false;
+              window.removeEventListener('pointermove', onDrag);
+              window.removeEventListener('pointerup', onUp);
+              showToast(`🎯 '${a.name}' 조감도 위치 조율 완료! [${gpsAnchors[idx].svg[0]}, ${gpsAnchors[idx].svg[1]}]`);
+              renderLeftAnchors();
+            };
+
+            window.addEventListener('pointermove', onDrag);
+            window.addEventListener('pointerup', onUp);
+          });
+
           gpsAnchorsLayer.appendChild(pin);
         });
+      }
+
+      function selectAnchor(idx) {
+        selectedAnchorIdx = idx;
+        const a = gpsAnchors[idx];
+        if (satCoordDisplay) satCoordDisplay.textContent = `lat: ${a.lat}, lng: ${a.lng}`;
+        if (leafletMap) { leafletMap.flyTo([a.lat, a.lng], 18, { duration: 0.6 }); }
+        showToast(`📍 앵커 선택: ${a.name}`);
+        renderLeftAnchors();
+        renderSatelliteAnchors();
+        updateHudUI();
       }
 
       // ── 5. 신규 도로 렌더링 (좌측 조감도 & 우측 위성 실시간 동기화) ──
@@ -679,15 +816,42 @@
       }
 
       function updateHudUI() {
-        hudPointCount.textContent = `● 총 ${customRoadNodes.length}개 구간`;
-        if (pendingSvgPoint) {
-          hudStepTitle.textContent = '👉 [2단계] 우측 위성 지도에서 동일 위치 클릭!';
-          hudStepTitle.style.color = '#38bdf8';
-          hudCurrentCoord.textContent = `조감도: [${pendingSvgPoint[0]}, ${pendingSvgPoint[1]}] ➔ 위성: 대기 중...`;
+        const anchorDetailCard = document.getElementById('anchorDetailCard');
+        const roadControlRow = document.getElementById('roadControlRow');
+        const hudSelectedAnchorName = document.getElementById('hudSelectedAnchorName');
+
+        if (currentEditorMode === 'anchors') {
+          hudStepTitle.textContent = '📍 24대 핵심 GPS 앵커 조율';
+          hudStepTitle.style.color = '#ff9500';
+          hudPointCount.textContent = `● 24개 앵커`;
+          hudPointCount.style.color = '#ff9500';
+          if (anchorDetailCard) anchorDetailCard.style.display = 'block';
+          if (roadControlRow) roadControlRow.style.display = 'none';
+
+          if (selectedAnchorIdx >= 0) {
+            const a = gpsAnchors[selectedAnchorIdx];
+            hudSelectedAnchorName.textContent = `#${selectedAnchorIdx + 1}. ${a.name}`;
+            hudCurrentCoord.textContent = `SVG: [${a.svg[0]}, ${a.svg[1]}] | GPS: [${a.lat}, ${a.lng}]`;
+          } else {
+            hudSelectedAnchorName.textContent = '핀을 클릭하거나 드래그하세요';
+            hudCurrentCoord.textContent = 'SVG: -- | GPS: --';
+          }
         } else {
-          hudStepTitle.textContent = '👉 [1단계] 좌측 조감도에서 다음 도로 클릭';
-          hudStepTitle.style.color = '#00e676';
-          hudCurrentCoord.textContent = `조감도: 다음 점 대기 중...`;
+          // 'roads' 모드
+          if (anchorDetailCard) anchorDetailCard.style.display = 'none';
+          if (roadControlRow) roadControlRow.style.display = 'flex';
+          hudPointCount.textContent = `● 총 ${customRoadNodes.length}개 구간`;
+          hudPointCount.style.color = '#00e676';
+
+          if (pendingSvgPoint) {
+            hudStepTitle.textContent = '👉 [2단계] 우측 위성 지도에서 동일 위치 클릭!';
+            hudStepTitle.style.color = '#38bdf8';
+            hudCurrentCoord.textContent = `조감도: [${pendingSvgPoint[0]}, ${pendingSvgPoint[1]}] ➔ 위성: 대기 중...`;
+          } else {
+            hudStepTitle.textContent = '👉 [1단계] 좌측 조감도에서 다음 도로 클릭';
+            hudStepTitle.style.color = '#00e676';
+            hudCurrentCoord.textContent = `조감도: 다음 점 대기 중...`;
+          }
         }
       }
 
@@ -724,6 +888,8 @@
 
       viewport.addEventListener('pointerdown', (e) => {
         if (e.target.closest('.floating-hud') || e.target.closest('.floating-zoom')) return;
+        if (e.target.closest('.gps-anchor-pin')) return; // 앵커 핀 드래그 방해 방지
+
         if (e.button === 0) {
           isPanning = true;
           hasCanvasMoved = false;
@@ -750,8 +916,8 @@
           isPanning = false;
           viewport.classList.remove('panning');
 
-          // 제자리 클릭 시 조감도 도로 점 찍기!
-          if (!hasCanvasMoved && (e.target.id === 'bgImg' || e.target.id === 'mainSvg' || e.target.closest('#mainSvg'))) {
+          // 도로 모드일 때 제자리 클릭 시 조감도 도로 점 찍기!
+          if (currentEditorMode === 'roads' && !hasCanvasMoved && (e.target.id === 'bgImg' || e.target.id === 'mainSvg' || e.target.closest('#mainSvg'))) {
             const pt = getCanvasPos(e);
             pendingSvgPoint = pt;
             showToast(`🎯 조감도 #${customRoadNodes.length}번 도로 점 선택 [${pt[0]}, ${pt[1]}] ➔ 이제 우측 위성 지도를 클릭하세요!`);
@@ -784,7 +950,39 @@
         }
       });
 
-      // ── 8. 버튼 이벤트 ──
+      // ── 8. 모드 전환 및 버튼 이벤트 ──
+      const btnModeAnchors = document.getElementById('btnModeAnchors');
+      const btnModeRoads = document.getElementById('btnModeRoads');
+
+      btnModeAnchors.onclick = () => {
+        currentEditorMode = 'anchors';
+        btnModeAnchors.classList.add('active');
+        btnModeRoads.classList.remove('active');
+        btnModeAnchors.style.background = 'rgba(255,149,0,0.15)';
+        btnModeRoads.style.background = 'transparent';
+        updateHudUI();
+        showToast('📍 [24개 앵커 정밀 조율 모드] 좌/우 지도의 핀을 드래그하세요!');
+      };
+
+      btnModeRoads.onclick = () => {
+        currentEditorMode = 'roads';
+        btnModeRoads.classList.add('active');
+        btnModeAnchors.classList.remove('active');
+        btnModeRoads.style.background = 'rgba(0,230,118,0.15)';
+        btnModeAnchors.style.background = 'transparent';
+        updateHudUI();
+        showToast('🛣️ [1:1 도로 콕콕 찍기 모드] 조감도를 먼저 클릭하세요!');
+      };
+
+      document.getElementById('btnCopyAnchorsJson').onclick = () => {
+        const code = JSON.stringify(gpsAnchors, null, 2);
+        navigator.clipboard.writeText(code).then(() => {
+          showToast(`📋 총 ${gpsAnchors.length}개 GPS 앵커 JSON 복사 완료! (QR에 즉시 적용 가능)`);
+        });
+        document.getElementById('jsonArea').value = code;
+        document.getElementById('jsonModal').style.display = 'flex';
+      };
+
       document.getElementById('btnUndoLastPoint').onclick = () => {
         if (pendingSvgPoint) {
           pendingSvgPoint = null;
@@ -803,14 +1001,6 @@
         updateHudUI();
         renderNewRoads();
         showToast('🗑️ 모든 도로 점이 초기화되었습니다. 새로 찍으세요!');
-      };
-
-      document.getElementById('btnToggleAnchors').onclick = () => {
-        showAnchors = !showAnchors;
-        document.getElementById('btnToggleAnchors').classList.toggle('active', showAnchors);
-        renderLeftAnchors();
-        renderSatelliteAnchors();
-        showToast(showAnchors ? '📍 24대 핵심 앵커 표시 ON' : '📍 24대 핵심 앵커 숨김 OFF');
       };
 
       document.getElementById('btnExportJson').onclick = () => {
