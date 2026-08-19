@@ -1355,6 +1355,7 @@
       }
 
       function renderGpsAnchors() {
+        renderMasterRoads();
         renderSvgOnlyGpsAnchors();
         renderLeafletAnchorMarkers();
         renderSatelliteRoadNetwork();
@@ -1511,6 +1512,7 @@
         studioBody.classList.add('dual-mode');
         selectedAnchorIdx = -1;
         initLeafletMap();
+        renderMasterRoads();
         renderGpsAnchors();
         renderHudForMode();
         showToast('🗺️ [좌: 조감도 | 우: 실제 위성] 1:1 듀얼 매퍼 활성화!');
