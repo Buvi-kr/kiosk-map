@@ -1092,55 +1092,80 @@
         }
       });
 
-      document.getElementById('btnClearBrush').onclick = () => {
-        brushStrokes = [];
-        redrawBrushCanvas();
-        generatedRoads = { nodes: [], polylines: [] };
-        renderExtractedRoads();
-        showToast('🗑️ 칠한 도로가 전체 초기화되었습니다.');
-      };
-
-      document.getElementById('btnGenerateRoads').onclick = generateRoadNetworkFromBrush;
-      document.getElementById('btnQuickGenerate').onclick = generateRoadNetworkFromBrush;
-
-      document.getElementById('btnToggleAnchors').onclick = () => {
-        showAnchors = !showAnchors;
-        document.getElementById('btnToggleAnchors').classList.toggle('active', showAnchors);
-        renderLeftAnchors();
-        renderSatelliteAnchors();
-        showToast(showAnchors ? '📍 24개 앵커 표시 ON' : '📍 24개 앵커 숨김 OFF');
-      };
-
-      document.getElementById('btnExportJson').onclick = () => {
-        const exportData = {
-          total_nodes: generatedRoads.nodes.length,
-          nodes: generatedRoads.nodes,
-          polylines: generatedRoads.polylines,
-          gps_nodes: generatedRoads.nodes.map((pos, idx) => {
-            const gps = svgToGps(pos);
-            return { id: idx, svg: pos, lat: gps[0], lng: gps[1] };
-          })
+      const btnClearBrush = document.getElementById('btnClearBrush');
+      if (btnClearBrush) {
+        btnClearBrush.onclick = () => {
+          brushStrokes = [];
+          redrawBrushCanvas();
+          generatedRoads = { nodes: [], polylines: [] };
+          renderExtractedRoads();
+          showToast('🗑️ 칠한 도로가 전체 초기화되었습니다.');
         };
-        document.getElementById('jsonArea').value = JSON.stringify(exportData, null, 2);
-        document.getElementById('jsonModal').style.display = 'flex';
-      };
+      }
 
-      document.getElementById('closeModalBtn').onclick = () => { document.getElementById('jsonModal').style.display = 'none'; };
-      document.getElementById('btnCopyJson').onclick = () => {
-        navigator.clipboard.writeText(document.getElementById('jsonArea').value).then(() => {
-          showToast('📋 1:1 완제품 도로 데이터가 클립보드에 복사되었습니다!');
-        });
-      };
+      const btnGenerateRoads = document.getElementById('btnGenerateRoads');
+      if (btnGenerateRoads) btnGenerateRoads.onclick = generateRoadNetworkFromBrush;
 
-      document.getElementById('zoomInBtn').onclick = () => { scale = Math.min(3.5, scale * 1.25); updateTransform(); };
-      document.getElementById('zoomOutBtn').onclick = () => { scale = Math.max(0.15, scale * 0.8); updateTransform(); };
-      document.getElementById('zoomResetBtn').onclick = () => {
-        const vw = viewport.clientWidth, vh = viewport.clientHeight;
-        scale = Math.min(vw / CANVAS_W, vh / CANVAS_H) * 0.95;
-        panX = (vw - CANVAS_W * scale) / 2;
-        panY = (vh - CANVAS_H * scale) / 2;
-        updateTransform();
-      };
+      const btnQuickGenerate = document.getElementById('btnQuickGenerate');
+      if (btnQuickGenerate) btnQuickGenerate.onclick = generateRoadNetworkFromBrush;
+
+      const btnToggleAnchors = document.getElementById('btnToggleAnchors');
+      if (btnToggleAnchors) {
+        btnToggleAnchors.onclick = () => {
+          showAnchors = !showAnchors;
+          btnToggleAnchors.classList.toggle('active', showAnchors);
+          btnToggleAnchors.textContent = showAnchors ? '📍 24개 앵커 숨김' : '📍 24개 앵커 표시';
+          renderLeftAnchors();
+          renderSatelliteAnchors();
+          showToast(showAnchors ? '📍 24개 앵커 표시 ON' : '📍 24개 앵커 숨김 OFF');
+        };
+      }
+
+      const btnExportJson = document.getElementById('btnExportJson');
+      if (btnExportJson) {
+        btnExportJson.onclick = () => {
+          const exportData = {
+            total_nodes: generatedRoads.nodes.length,
+            nodes: generatedRoads.nodes,
+            polylines: generatedRoads.polylines,
+            gps_nodes: generatedRoads.nodes.map((pos, idx) => {
+              const gps = svgToGps(pos);
+              return { id: idx, svg: pos, lat: gps[0], lng: gps[1] };
+            })
+          };
+          document.getElementById('jsonArea').value = JSON.stringify(exportData, null, 2);
+          document.getElementById('jsonModal').style.display = 'flex';
+        };
+      }
+
+      const closeModalBtn = document.getElementById('closeModalBtn');
+      if (closeModalBtn) closeModalBtn.onclick = () => { document.getElementById('jsonModal').style.display = 'none'; };
+
+      const btnCopyJson = document.getElementById('btnCopyJson');
+      if (btnCopyJson) {
+        btnCopyJson.onclick = () => {
+          navigator.clipboard.writeText(document.getElementById('jsonArea').value).then(() => {
+            showToast('📋 1:1 완제품 도로 데이터가 클립보드에 복사되었습니다!');
+          });
+        };
+      }
+
+      const zoomInBtn = document.getElementById('zoomInBtn');
+      if (zoomInBtn) zoomInBtn.onclick = () => { scale = Math.min(3.5, scale * 1.25); updateTransform(); };
+
+      const zoomOutBtn = document.getElementById('zoomOutBtn');
+      if (zoomOutBtn) zoomOutBtn.onclick = () => { scale = Math.max(0.15, scale * 0.8); updateTransform(); };
+
+      const zoomResetBtn = document.getElementById('zoomResetBtn');
+      if (zoomResetBtn) {
+        zoomResetBtn.onclick = () => {
+          const vw = viewport.clientWidth, vh = viewport.clientHeight;
+          scale = Math.min(vw / CANVAS_W, vh / CANVAS_H) * 0.95;
+          panX = (vw - CANVAS_W * scale) / 2;
+          panY = (vh - CANVAS_H * scale) / 2;
+          updateTransform();
+        };
+      }
 
       // ── 초기화 실행 ──
       initLeafletMap();
