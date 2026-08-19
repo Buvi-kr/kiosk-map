@@ -1247,12 +1247,13 @@
         btnExportJson.onclick = () => {
           const exportData = {
             total_nodes: generatedRoads.nodes.length,
-            nodes: generatedRoads.nodes,
-            polylines: generatedRoads.polylines,
-            gps_nodes: generatedRoads.nodes.map((pos, idx) => {
-              const gps = svgToGps(pos);
-              return { id: idx, svg: pos, lat: gps[0], lng: gps[1] };
-            })
+            nodes: generatedRoads.nodes.map(n => ({
+              id: n.id,
+              svg: [n.svg[0], n.svg[1]],
+              lat: n.lat,
+              lng: n.lng
+            })),
+            polylines: generatedRoads.polylines.map(line => line.map(n => n.id))
           };
           document.getElementById('jsonArea').value = JSON.stringify(exportData, null, 2);
           document.getElementById('jsonModal').style.display = 'flex';
