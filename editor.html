@@ -595,9 +595,10 @@
         [29, 27]
       ];
 
+      const initialNodeObjects = INITIAL_MASTER_NODES.map(n => ({ ...n }));
       let generatedRoads = {
-        nodes: INITIAL_MASTER_NODES.map(n => ({ ...n })),
-        polylines: INITIAL_MASTER_POLYLINES.map(line => line.map(idx => INITIAL_MASTER_NODES[idx]))
+        nodes: initialNodeObjects,
+        polylines: INITIAL_MASTER_POLYLINES.map(line => line.map(idx => initialNodeObjects[idx]))
       };
 
       let brushStrokes = []; // 칠해진 브러시 스트로크 목록 [ [ [x,y], ... ], ... ]
