@@ -241,6 +241,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      touch-action: none;
     }
 
     .map-large-render {
@@ -253,6 +254,7 @@
       pointer-events: none;
       will-change: transform;
       display: block;
+      touch-action: none;
     }
 
     /* 지도 플로팅 줌 컨트롤 */
@@ -506,7 +508,6 @@
       }
     });
 
-    // ── 3. 전경 지도 드래그 앤 드롭 & 자유 줌 (화면 가득) ──
     // ── 3. 전경 지도 드래그 앤 드롭 & 초자연스러운 연속 핀치 줌 (화면 가득) ──
     const mapContainer = document.getElementById('viewMap');
     const mapImg = document.getElementById('mapRenderEl');
@@ -522,18 +523,10 @@
     let pinchStartCenter = { x: 0, y: 0 };
     let pinchStartMapX = 0;
     let pinchStartMapY = 0;
-    let lastPinchEndTime = 0;
 
     // 1손가락 드래그 상태 변수
     let isMapDragging = false;
     let dragStartX = 0, dragStartY = 0;
-    let dragTouchStartX = 0, dragTouchStartY = 0;
-    let hasMoved = false;
-
-    // 더블탭 즉시 줌 상태 변수 (핀치 오동작 원천 차단)
-    let lastTapTime = 0;
-    let lastTapPos = { x: 0, y: 0 };
-    let touchFingerCount = 0;
 
     function renderMap(smooth = false) {
       mapImg.style.transition = smooth ? 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
@@ -564,16 +557,11 @@
       resetMapPosition();
     });
 
-    // ── 터치 이벤트: 1손가락 드래그 & 2손가락 연속 초정밀 핀치 줌 ──
+    // ── 터치 이벤트: 1손가락 드래그 & 2손가락 연속 초정밀 핀치 줌 (더블탭 줌 풀림 원천 제거) ──
     mapContainer.addEventListener('touchstart', (e) => {
-      touchFingerCount = Math.max(touchFingerCount, e.touches.length);
-
       if (e.touches.length === 1) {
         if (!isPinching) {
           isMapDragging = true;
-          hasMoved = false;
-          dragTouchStartX = e.touches[0].clientX;
-          dragTouchStartY = e.touches[0].clientY;
           dragStartX = e.touches[0].clientX - mapX;
           dragStartY = e.touches[0].clientY - mapY;
         }
@@ -596,10 +584,10 @@
     }, { passive: false });
 
     mapContainer.addEventListener('touchmove', (e) => {
-      e.preventDefault(); // 브라우저 기본 제스처 간섭 방지
+      e.preventDefault(); // 브라우저 기본 스크롤 및 줌 간섭 방지
 
       if (isPinching && e.touches.length >= 2) {
-        // 2손가락: 부드럽고 자연스러운 연속 핀치 줌 (손가락 중심점 기준 확대)
+        // 2손가락: 연속 핀치 줌 (두 손가락 중심점 기준 실시간 확대)
         const t1 = e.touches[0];
         const t2 = e.touches[1];
         const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
@@ -635,86 +623,34 @@
         }
       } else if (isMapDragging && e.touches.length === 1 && !isPinching) {
         // 1손가락: 부드러운 패닝 드래그
-        const currentX = e.touches[0].clientX;
-        const currentY = e.touches[0].clientY;
-
-        if (Math.hypot(currentX - dragTouchStartX, currentY - dragTouchStartY) > 5) {
-          hasMoved = true;
-        }
-
-        mapX = currentX - dragStartX;
-        mapY = currentY - dragStartY;
+        mapX = e.touches[0].clientX - dragStartX;
+        mapY = e.touches[0].clientY - dragStartY;
         renderMap(false);
       }
     }, { passive: false });
 
-    mapContainer.addEventListener('touchend', (e) => {
+    function handleTouchEnd(e) {
       if (isPinching) {
-        if (e.touches.length < 2) {
+        if (e.touches.length === 1) {
+          // 손가락 하나가 남아있는 경우 튐 없이 단일 드래그로 자연스럽게 전환
           isPinching = false;
-          lastPinchEndTime = Date.now();
-
-          // 손가락 하나가 남아있는 경우 위치 튐 없이 단일 드래그로 자연스럽게 전환
-          if (e.touches.length === 1) {
-            isMapDragging = true;
-            dragStartX = e.touches[0].clientX - mapX;
-            dragStartY = e.touches[0].clientY - mapY;
-          } else {
-            isMapDragging = false;
-          }
+          isMapDragging = true;
+          dragStartX = e.touches[0].clientX - mapX;
+          dragStartY = e.touches[0].clientY - mapY;
+        } else if (e.touches.length === 0) {
+          isPinching = false;
+          isMapDragging = false;
         }
-        return; // 핀치 직후에는 더블탭이 절대 실행되지 않도록 차단
-      }
-
-      if (isMapDragging) {
-        isMapDragging = false;
-      }
-
-      // 순수 1손가락 정지 상태 더블탭만 판별
-      const now = Date.now();
-      const touch = e.changedTouches[0];
-
-      if (
-        touch &&
-        !hasMoved &&
-        touchFingerCount === 1 &&
-        now - lastPinchEndTime > 500
-      ) {
-        const distFromLastTap = Math.hypot(
-          touch.clientX - lastTapPos.x,
-          touch.clientY - lastTapPos.y
-        );
-
-        if (now - lastTapTime < 320 && distFromLastTap < 40) {
-          // 온전한 더블탭인 경우: 부드러운 애니메이션 줌 토글
-          const rect = mapContainer.getBoundingClientRect();
-          const focalX = touch.clientX - rect.left - rect.width / 2;
-          const focalY = touch.clientY - rect.top - rect.height / 2;
-
-          if (mapScale > 2.0) {
-            mapScale = 1.35;
-            mapX = 0;
-            mapY = 0;
-          } else {
-            const targetScale = 2.8;
-            const imgX = (focalX - mapX) / mapScale;
-            const imgY = (focalY - mapY) / mapScale;
-            mapScale = targetScale;
-            mapX = focalX - imgX * mapScale;
-            mapY = focalY - imgY * mapScale;
-          }
-          renderMap(true);
-          lastTapTime = 0;
-        } else {
-          lastTapTime = now;
-          lastTapPos = { x: touch.clientX, y: touch.clientY };
+      } else if (isMapDragging) {
+        if (e.touches.length === 0) {
+          isMapDragging = false;
         }
       }
+      // 중요: 손을 떼었을 때 배율(mapScale)과 위치(mapX, mapY)를 절대 리셋하거나 변경하지 않음!
+    }
 
-      if (e.touches.length === 0) {
-        touchFingerCount = 0;
-      }
-    });
+    mapContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
+    mapContainer.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
     // ── PC 마우스 드래그 & 휠 연속 줌 지원 ──
     let isMouseDown = false;
