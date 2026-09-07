@@ -130,6 +130,28 @@
       transform: scale(0.94);
     }
 
+    .header-leaflet-btn {
+      font-size: clamp(11px, 1.4vh, 12px);
+      padding: 4px clamp(8px, 1.4vw, 11px);
+      border-radius: 14px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(6, 182, 212, 0.15);
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      color: #38bdf8;
+      text-decoration: none;
+      user-select: none;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .header-leaflet-btn:active {
+      transform: scale(0.94);
+      background: rgba(6, 182, 212, 0.28);
+    }
+
     /* ── 현장 실사 GPS 인스펙터 모달 ── */
     .gps-inspector-modal {
       display: none;
@@ -788,9 +810,12 @@
           <div class="app-title">포천아트밸리 <span>스마트 가이드</span></div>
         </div>
       </div>
-      <div class="gps-badge" id="gpsBadge">
-        <span class="dot"></span>
-        <span id="gpsStatusText">GPS 탐색 중...</span>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <a href="leaflet.html" class="header-leaflet-btn" title="포천아트밸리 종합 리플렛·요금표 보기">📖 리플렛</a>
+        <div class="gps-badge" id="gpsBadge">
+          <span class="dot"></span>
+          <span id="gpsStatusText">GPS 탐색 중...</span>
+        </div>
       </div>
     </header>
 

@@ -1,5 +1,17 @@
+# 이전버전 및 대용량 백업 아카이브
+이전버전/
+*.zip
 *.pdf
-*.png
+*.psd
+*.ai
+
+# 파이썬 스크립트 및 임시/테스트 폴더
 scratch/
 __pycache__/
 *.py
+
+# 시스템 및 OS 임시 파일
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log

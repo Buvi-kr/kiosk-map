@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>포천아트밸리 공식 모바일 리플렛</title>
+  <meta name="description" content="포천아트밸리 공식 모바일 팜플렛 & 전경도">
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background-color: #000000;
+      color: #ffffff;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow: hidden;
+      position: fixed;
+      inset: 0;
+    }
+
+    /* ── 최상단 미니멀 플로팅 바 (화면을 가리지 않는 컴팩트 알약 디자인) ── */
+    .minimal-nav {
+      position: absolute;
+      top: max(10px, env(safe-area-inset-top));
+      left: 12px;
+      right: 12px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .glass-switch {
+      pointer-events: auto;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 24px;
+      padding: 3px;
+      display: flex;
+      gap: 3px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    }
+
+    .switch-btn {
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .switch-btn.active {
+      background: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 2px 8px rgba(255, 255, 255, 0.3);
+    }
+
+    .gps-link-btn {
+      pointer-events: auto;
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 8px 13px;
+      border-radius: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .gps-link-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* ── 뷰어 본체 ── */
+    .view-wrapper {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      position: absolute;
+      inset: 0;
+      display: none;
+    }
+
+    .view-wrapper.active {
+      display: block;
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       [뷰 1] 팜플렛 1·2·3단 초고속 네이티브 터치 슬라이더 (획 획 넘기기)
+       ══════════════════════════════════════════════════════════ */
+    #viewLeaflet {
+      background: #000000;
+      touch-action: pan-y pinch-zoom;
+    }
+
+    .touch-track-container {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .touch-slider-track {
+      width: 300vw;
+      height: 100%;
+      display: flex;
+      will-change: transform;
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .leaflet-slide {
+      width: 100vw;
+      height: 100%;
+      flex: 0 0 100vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      background: #000000;
+      padding: 50px 0 36px 0;
+    }
+
+    /* 화면을 95% 이상 꽉 채우는 원본 팜플렛 이미지 */
+    .leaflet-full-img {
+      width: 100%;
+      height: 100%;
+      max-width: 480px;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+      pointer-events: none;
+    }
+
+    /* 화면 좌우 터치 탭 영역 (터치 한 번으로도 이전/다음 넘김) */
+    .tap-nav-zone {
+      position: absolute;
+      top: 60px;
+      bottom: 50px;
+      width: 18%;
+      z-index: 40;
+      cursor: pointer;
+    }
+    .tap-nav-zone.left { left: 0; }
+    .tap-nav-zone.right { right: 0; }
+
+    /* 하단 미니멀 인디케이터 (현재 단 표시) */
+    .bottom-indicator-dock {
+      position: absolute;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      left: 0;
+      right: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .dots-pill {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      padding: 5px 12px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.35);
+      transition: all 0.25s ease;
+    }
+
+    .dot.active {
+      width: 18px;
+      border-radius: 9px;
+      background: #10b981;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.9);
+    }
+
+    .panel-name-text {
+      font-size: 11px;
+      font-weight: 800;
+      color: rgba(255, 255, 255, 0.85);
+      letter-spacing: -0.02em;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       [뷰 2] 전경 지도 (화면 가득 드래그 앤 드롭 & 자유 줌)
+       ══════════════════════════════════════════════════════════ */
+    #viewMap {
+      background: #020408;
+      overflow: hidden;
+      touch-action: none;
+      cursor: grab;
+    }
+
+    #viewMap:active {
+      cursor: grabbing;
+    }
+
+    .map-canvas-layer {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .map-large-render {
+      width: 100%;
+      height: auto;
+      max-width: none;
+      max-height: none;
+      transform-origin: center center;
+      user-select: none;
+      pointer-events: none;
+      will-change: transform;
+      display: block;
+    }
+
+    /* 지도 플로팅 줌 컨트롤 */
+    .map-fab-column {
+      position: absolute;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      right: 16px;
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .fab-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
+
+    .fab-btn:active {
+      transform: scale(0.92);
+      background: #1e293b;
+    }
+
+    .map-drag-hint {
+      position: absolute;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      left: 16px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 7px 12px;
+      border-radius: 20px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ① 최상단 플로팅 바 (리플렛 ↔ 지도 원터치 전환 & GPS 길안내) -->
+  <header class="minimal-nav">
+    <div class="glass-switch">
+      <button class="switch-btn active" id="btnSwitchLeaflet">
+        <span>📖 리플렛 (3단)</span>
+      </button>
+      <button class="switch-btn" id="btnSwitchMap">
+        <span>🗺️ 전경 지도</span>
+      </button>
+    </div>
+
+    <a href="qr.html" class="gps-link-btn" title="실시간 모바일 길안내">
+      <span>🧭 GPS 길안내</span>
+    </a>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════════════
+       [기능 1] 팜플렛 1·2·3단 획 획 터치 슬라이더
+       ══════════════════════════════════════════════════════════ -->
+  <section class="view-wrapper active" id="viewLeaflet">
+    <div class="touch-track-container" id="touchTrackBox">
+      
+      <!-- 탭으로도 넘길 수 있는 터치 영역 -->
+      <div class="tap-nav-zone left" id="tapLeftZone"></div>
+      <div class="tap-nav-zone right" id="tapRightZone"></div>
+
+      <!-- 3개 단 슬라이더 트랙 -->
+      <div class="touch-slider-track" id="sliderTrack">
+        
+        <!-- 1단: 표지 · 소개 · 주의사항 -->
+        <div class="leaflet-slide">
+          <img src="leaflet_assets/panel_1_cover.webp" alt="포천아트밸리 팜플렛 1단: 표지 및 관람수칙" class="leaflet-full-img">
+        </div>
+
+        <!-- 2단: 요금표 · 모노레일 · 운영시간 (핵심 요약) -->
+        <div class="leaflet-slide">
+          <img src="leaflet_assets/panel_2_fares.webp" alt="포천아트밸리 팜플렛 2단: 입장료 및 모노레일 운임표" class="leaflet-full-img">
+        </div>
+
+        <!-- 3단: 천문과학관 · 관광정보센터 -->
+        <div class="leaflet-slide">
+          <img src="leaflet_assets/panel_3_museum.webp" alt="포천아트밸리 팜플렛 3단: 천문과학관 및 관광정보센터" class="leaflet-full-img">
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 하단 미니멀 인디케이터 (1/3단 안내) -->
+    <div class="bottom-indicator-dock">
+      <div class="dots-pill">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <div class="panel-name-text" id="panelNameLabel">1 / 3단 (표지·주의사항) — 좌우로 획 획 넘겨보세요</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       [기능 2] 전경 지도 (화면 가득 드래그 앤 드롭 & 자유 줌)
+       ══════════════════════════════════════════════════════════ -->
+  <section class="view-wrapper" id="viewMap">
+    <div class="map-canvas-layer" id="mapCanvasLayer">
+      <img src="leaflet_assets/page_2_full_map.webp" alt="포천아트밸리 전경 안내도" class="map-large-render" id="mapRenderEl">
+    </div>
+
+    <div class="map-drag-hint">✋ 손가락으로 자유롭게 드래그 & 확대</div>
+
+    <div class="map-fab-column">
+      <button class="fab-btn" id="btnZoomIn" title="확대">➕</button>
+      <button class="fab-btn" id="btnZoomOut" title="축소">➖</button>
+      <button class="fab-btn" id="btnZoomReset" title="원본 크기" style="font-size:14px;">⟲</button>
+    </div>
+  </section>
+
+  <script>
+    // ── 1. 리플렛 vs 전경 지도 뷰 전환 ──
+    const btnSwitchLeaflet = document.getElementById('btnSwitchLeaflet');
+    const btnSwitchMap = document.getElementById('btnSwitchMap');
+    const viewLeaflet = document.getElementById('viewLeaflet');
+    const viewMap = document.getElementById('viewMap');
+
+    btnSwitchLeaflet.addEventListener('click', () => {
+      btnSwitchLeaflet.classList.add('active');
+      btnSwitchMap.classList.remove('active');
+      viewLeaflet.classList.add('active');
+      viewMap.classList.remove('active');
+    });
+
+    btnSwitchMap.addEventListener('click', () => {
+      btnSwitchMap.classList.add('active');
+      btnSwitchLeaflet.classList.remove('active');
+      viewMap.classList.add('active');
+      viewLeaflet.classList.remove('active');
+      resetMapPosition();
+    });
+
+    // ── 2. 리플렛 1·2·3단 터치 스와이프 ("획 획" 넘기기 엔진) ──
+    const track = document.getElementById('sliderTrack');
+    const dots = document.querySelectorAll('.dots-pill .dot');
+    const panelNameLabel = document.getElementById('panelNameLabel');
+
+    const panelNames = [
+      '1 / 3단 (표지·주의사항) — 좌우로 획 획 넘겨보세요',
+      '2 / 3단 (입장료·모노레일·운영시간)',
+      '3 / 3단 (천문과학관·관광정보센터)'
+    ];
+
+    let currentIndex = 0;
+    const totalPanels = 3;
+
+    function updateSlidePosition(smooth = true) {
+      track.style.transition = smooth ? 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)' : 'none';
+      track.style.transform = `translateX(-${currentIndex * 100}vw)`;
+
+      dots.forEach((d, i) => d.classList.toggle('active', i === currentIndex));
+      panelNameLabel.textContent = panelNames[currentIndex];
+    }
+
+    // 터치 스와이프 제스처
+    let startTouchX = 0;
+    let startTouchY = 0;
+    let currentDiffX = 0;
+    let isSwiping = false;
+    let isHorizontalGesture = null;
+    let touchStartTime = 0;
+
+    const trackContainer = document.getElementById('touchTrackBox');
+
+    trackContainer.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+      startTouchX = e.touches[0].clientX;
+      startTouchY = e.touches[0].clientY;
+      currentDiffX = 0;
+      isSwiping = true;
+      isHorizontalGesture = null;
+      touchStartTime = Date.now();
+      track.style.transition = 'none';
+    }, { passive: true });
+
+    trackContainer.addEventListener('touchmove', (e) => {
+      if (!isSwiping || e.touches.length !== 1) return;
+
+      const diffX = e.touches[0].clientX - startTouchX;
+      const diffY = e.touches[0].clientY - startTouchY;
+
+      if (isHorizontalGesture === null) {
+        if (Math.abs(diffX) > 6 || Math.abs(diffY) > 6) {
+          isHorizontalGesture = Math.abs(diffX) >= Math.abs(diffY);
+        }
+      }
+
+      if (isHorizontalGesture) {
+        currentDiffX = diffX;
+        // 가장자리 저항(Rubber-band) 효과
+        if ((currentIndex === 0 && diffX > 0) || (currentIndex === totalPanels - 1 && diffX < 0)) {
+          currentDiffX = diffX * 0.35;
+        }
+        const offset = -currentIndex * window.innerWidth + currentDiffX;
+        track.style.transform = `translateX(${offset}px)`;
+      }
+    }, { passive: false });
+
+    trackContainer.addEventListener('touchend', (e) => {
+      if (!isSwiping) return;
+      isSwiping = false;
+
+      if (isHorizontalGesture) {
+        const elapsed = Date.now() - touchStartTime;
+        const velocity = Math.abs(currentDiffX) / elapsed;
+
+        // 40px 이상 밀거나 빠른 속도로 획 튕기면(Flick) 전환
+        if ((Math.abs(currentDiffX) > window.innerWidth * 0.16 || velocity > 0.3) && Math.abs(currentDiffX) > 20) {
+          if (currentDiffX < 0 && currentIndex < totalPanels - 1) {
+            currentIndex++;
+          } else if (currentDiffX > 0 && currentIndex > 0) {
+            currentIndex--;
+          }
+        }
+      }
+
+      updateSlidePosition(true);
+    });
+
+    // 화면 좌우 18% 가장자리 탭으로도 이전/다음 단 바로 넘김
+    document.getElementById('tapLeftZone').addEventListener('click', () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        updateSlidePosition(true);
+      }
+    });
+
+    document.getElementById('tapRightZone').addEventListener('click', () => {
+      if (currentIndex < totalPanels - 1) {
+        currentIndex++;
+        updateSlidePosition(true);
+      }
+    });
+
+    // ── 3. 전경 지도 드래그 앤 드롭 & 자유 줌 (화면 가득) ──
+    const mapContainer = document.getElementById('viewMap');
+    const mapImg = document.getElementById('mapRenderEl');
+
+    let mapScale = 1.35;
+    let mapX = 0;
+    let mapY = 0;
+    let isMapDragging = false;
+    let dragStartX = 0, dragStartY = 0;
+    let pinchStartDist = 0;
+
+    function renderMap() {
+      mapImg.style.transform = `translate(${mapX}px, ${mapY}px) scale(${mapScale})`;
+    }
+
+    function resetMapPosition() {
+      mapScale = 1.35;
+      mapX = 0;
+      mapY = 0;
+      renderMap();
+    }
+
+    document.getElementById('btnZoomIn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      mapScale = Math.min(5.0, mapScale + 0.45);
+      renderMap();
+    });
+
+    document.getElementById('btnZoomOut').addEventListener('click', (e) => {
+      e.stopPropagation();
+      mapScale = Math.max(0.75, mapScale - 0.45);
+      renderMap();
+    });
+
+    document.getElementById('btnZoomReset').addEventListener('click', (e) => {
+      e.stopPropagation();
+      resetMapPosition();
+    });
+
+    // 터치 드래그 & 핀치 줌
+    mapContainer.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        isMapDragging = true;
+        dragStartX = e.touches[0].clientX - mapX;
+        dragStartY = e.touches[0].clientY - mapY;
+      } else if (e.touches.length === 2) {
+        isMapDragging = false;
+        pinchStartDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
+    }, { passive: true });
+
+    mapContainer.addEventListener('touchmove', (e) => {
+      if (isMapDragging && e.touches.length === 1) {
+        mapX = e.touches[0].clientX - dragStartX;
+        mapY = e.touches[0].clientY - dragStartY;
+        renderMap();
+      } else if (e.touches.length === 2) {
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const factor = dist / pinchStartDist;
+        mapScale = Math.min(5.0, Math.max(0.75, mapScale * factor));
+        pinchStartDist = dist;
+        renderMap();
+      }
+    }, { passive: true });
+
+    mapContainer.addEventListener('touchend', () => {
+      isMapDragging = false;
+    });
+
+    // 더블탭 즉시 줌
+    let lastTap = 0;
+    mapContainer.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - lastTap < 300 && now - lastTap > 0) {
+        mapScale = mapScale > 2.2 ? 1.35 : 2.8;
+        renderMap();
+      }
+      lastTap = now;
+    });
+
+    // 초기 지도 렌더
+    renderMap();
+  </script>
+</body>
+
+</html>
