@@ -8,6 +8,8 @@
   <!-- Leaflet GIS Map CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- 9/11 실측 트랙 (804개 GPS) 데이터 -->
+  <script src="data/포천아트밸리_실측트랙_2026-09-11.js"></script>
   <style>
     :root {
       --bg: #070a0f;
@@ -292,6 +294,56 @@
       stroke-dasharray: 4, 4;
     }
 
+    /* 9/11 실측 트랙 (Ghost Track) 및 오차 분석 스타일 */
+    .ghost-track-halo {
+      fill: none;
+      stroke: rgba(255, 45, 85, 0.38);
+      stroke-width: 15;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .ghost-track-core {
+      fill: none;
+      stroke: #ff2d55;
+      stroke-width: 4.5;
+      stroke-dasharray: 10, 6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 8px rgba(255, 45, 85, 0.95));
+      pointer-events: none;
+    }
+
+    .deviation-guide-line {
+      stroke: #ff9500;
+      stroke-width: 2.5;
+      stroke-dasharray: 5, 4;
+      pointer-events: none;
+      filter: drop-shadow(0 0 4px rgba(255, 149, 0, 0.8));
+    }
+
+    .deviation-badge text {
+      font-size: 11px;
+      font-weight: 800;
+      fill: #ff9500;
+      text-anchor: middle;
+      text-shadow: 0 1px 3px #000;
+      pointer-events: none;
+    }
+
+    .btn-tool.survey-active {
+      background: rgba(255, 45, 85, 0.22) !important;
+      border-color: #ff2d55 !important;
+      color: #ff2d55 !important;
+    }
+
+    .btn-tool.dev-active {
+      background: rgba(255, 149, 0, 0.22) !important;
+      border-color: #ff9500 !important;
+      color: #ff9500 !important;
+    }
+
     /* ── 플로팅 컨트롤러 HUD ── */
     .floating-hud {
       position: absolute;
@@ -410,7 +462,12 @@
         <button class="btn-tool" id="btnToolMovePin" style="border-color:#38bdf8; color:#38bdf8;">📍 핀 이동/미세조정</button>
         <button class="btn-tool" id="btnToolEraser">🧹 지우개</button>
         <button class="btn-tool" id="btnToolPan">✋ 지도 이동 (Pan)</button>
-        <button class="btn-tool" id="btnToggleAnchors">📍 24개 앵커 숨김</button>
+        <button class="btn-tool" id="btnToggleAnchors">📍 앵커 숨김</button>
+        <button class="btn-tool survey-active" id="btnToggleSurveyTrack" title="9/11 실측 트랙 (804점, 1.1km) 분홍색 가이드선 표시">🛰️ 실측트랙 ON</button>
+        <button class="btn-tool" id="btnToggleDeviation" title="기존 도로 핀과 9/11 실측 트랙 간의 오차(m) 점선 및 뱃지 표시">📐 오차분석</button>
+        <button class="btn-tool" id="btnSnapDeviated" style="border-color:#ff9500; color:#ff9500;" title="오차가 있는 호수전망대 구간(#32~#36 등) 핀들을 실측선 위로 자동 정렬">🎯 오차핀 정렬</button>
+        <input type="file" id="fileInputTrack" accept=".json" style="display:none;" />
+        <button class="btn-tool" id="btnLoadTrackFile" title="다른 GPS 실측 JSON 파일 열기">📂 트랙 파일</button>
         <button class="btn-action btn-export" id="btnExportJson">💾 JSON 추출</button>
       </div>
     </header>
@@ -430,6 +487,19 @@
           <div class="hud-title">
             <span id="hudToolTitle" style="color:#00e676;">🖌️ 형광펜 브러시 모드</span>
             <span id="hudStatus" style="font-size:12px; color:#cbd5e1;">● 드로잉 중</span>
+          </div>
+
+          <!-- 9/11 실측 트랙 연동 가이드 배너 -->
+          <div style="background:rgba(255,45,85,0.12); border:1px solid rgba(255,45,85,0.35); border-radius:10px; padding:8px 11px; margin-bottom:9px; font-size:11.5px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <strong style="color:#ff2d55;">🛰️ 9/11 실측 트랙 (804점, 1.1km) 연동됨</strong>
+              <span id="surveyTrackBadge" style="font-size:10px; background:#ff2d55; color:#fff; padding:1px 6px; border-radius:10px; font-weight:bold;">가이드 활성</span>
+            </div>
+            <div style="color:#cbd5e1; font-size:11px; line-height:1.4;">
+              • <strong>분홍색 점선</strong>: 천문과학관 ➔ 제3주차장 실제 보행 트랙<br>
+              • <strong>검표소/주차장/매표소</strong>는 1~3m 오차로 완벽 일치합니다.<br>
+              • 편차가 있는 <strong>호수전망대(#32~#36) 핀</strong>을 잡고 분홍선 위로 옮기시거나 <strong>[🎯 오차핀 정렬]</strong>을 누르세요!
+            </div>
           </div>
 
           <div style="font-size:12px; color:#cbd5e1; line-height:1.4; margin-bottom:8px;">
@@ -465,6 +535,10 @@
             <!-- 24대 핵심 앵커 들로네 레이어 -->
             <g id="delaunayLayer"></g>
             <g id="gpsAnchorsLayer"></g>
+
+            <!-- 9/11 실측 트랙 (Ghost Track) 및 오차 분석 가이드 레이어 -->
+            <g id="ghostTrackLayer"></g>
+            <g id="deviationLinesLayer"></g>
 
             <!-- 자동 추출된 도로망 SVG 레이어 -->
             <g id="extractedRoadLinesLayer"></g>
@@ -511,6 +585,8 @@
         { name: "천문과학관(본관)", svg: [283, 403], lat: 37.924769, lng: 127.243186 },
         { name: "산마루공연장(무대)", svg: [238, 625], lat: 37.925086, lng: 127.242402 },
         { name: "산마루매점/천문대진입로", svg: [104, 451], lat: 37.925015, lng: 127.243147 },
+        { name: "산마루 동쪽 산책로(#40)", svg: [433, 550], lat: 37.924824, lng: 127.24259 },
+        { name: "산마루/모노레일 합류점(#38)", svg: [453, 626], lat: 37.924725, lng: 127.24223 },
         { name: "모노레일 상부승강장(상행)", svg: [662, 657], lat: 37.924572, lng: 127.241796 },
         { name: "모노레일 상부승강장(하행)", svg: [1073, 806], lat: 37.924333, lng: 127.24096 },
         { name: "천주호 화장실", svg: [832, 768], lat: 37.924485, lng: 127.241383 },
@@ -525,6 +601,12 @@
         { name: "조각공원 능선산책로", svg: [2168, 790], lat: 37.923038, lng: 127.240198 },
         { name: "힐링숲 산책로", svg: [2520, 1064], lat: 37.92264, lng: 127.23896 },
         { name: "숲길 입구 분기점", svg: [2592, 890], lat: 37.922689, lng: 127.239861 },
+        { name: "호수산책로분기점(#26)", svg: [1068, 914], lat: 37.924371, lng: 127.240766 },
+        { name: "조각공원 갈림길(#23)", svg: [1216, 864], lat: 37.924219, lng: 127.240691 },
+        { name: "조각공원 입구(#22)", svg: [1936, 814], lat: 37.923721, lng: 127.240533 },
+        { name: "하행 보행로(급경사데크 상단)", svg: [1388, 1150], lat: 37.92417, lng: 127.23985 },
+        { name: "하행 보행로(폐석장길/#24)", svg: [1560, 1278], lat: 37.92399, lng: 127.239463 },
+        { name: "하행 보행로(중간쉼터)", svg: [1830, 1397], lat: 37.92372, lng: 127.23880 },
         { name: "검표소", svg: [2100, 1516], lat: 37.923398, lng: 127.238089 },
         { name: "모노레일 하부탑승장", svg: [2296, 1580], lat: 37.92316, lng: 127.237656 },
         { name: "매표소/돌문화전시관", svg: [2418, 1756], lat: 37.92317, lng: 127.23727 },
@@ -637,6 +719,8 @@
 
       const delaunayLayer = document.getElementById('delaunayLayer');
       const gpsAnchorsLayer = document.getElementById('gpsAnchorsLayer');
+      const ghostTrackLayer = document.getElementById('ghostTrackLayer');
+      const deviationLinesLayer = document.getElementById('deviationLinesLayer');
       const extractedRoadLinesLayer = document.getElementById('extractedRoadLinesLayer');
       const extractedRoadNodesLayer = document.getElementById('extractedRoadNodesLayer');
 
@@ -648,6 +732,11 @@
       let satRoadMarkersGroup = null;
       let satRoadPolylineGroup = null;
       let satAnchorGroup = null;
+      let satGhostTrackGroup = null;
+
+      let showSurveyTrack = true;
+      let showDeviationLines = false;
+      let currentSurveyTrack = (window.POCHEON_SURVEY_TRACK_2026_09_11 || []);
 
       function showToast(msg) {
         toastMsg.textContent = msg;
@@ -716,6 +805,7 @@
         }).addTo(leafletMap);
 
         satAnchorGroup = L.layerGroup().addTo(leafletMap);
+        satGhostTrackGroup = L.layerGroup().addTo(leafletMap);
         satRoadPolylineGroup = L.layerGroup().addTo(leafletMap);
         satRoadMarkersGroup = L.layerGroup().addTo(leafletMap);
 
@@ -728,6 +818,7 @@
         }, 200);
 
         renderSatelliteAnchors();
+        renderGhostTrack();
       }
 
       function renderSatelliteAnchors() {
@@ -768,6 +859,200 @@
         });
       }
 
+      // ── 4-1. 9/11 실측 트랙 (804점, 1.1km) 듀얼 가이드라인 및 오차 분석 엔진 ──
+      function distMeters(lat1, lon1, lat2, lon2) {
+        const R = 6371e3;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+
+      function renderGhostTrack() {
+        if (!ghostTrackLayer) return;
+        ghostTrackLayer.innerHTML = '';
+        if (satGhostTrackGroup) satGhostTrackGroup.clearLayers();
+
+        if (!showSurveyTrack || !currentSurveyTrack || currentSurveyTrack.length < 2) {
+          if (deviationLinesLayer) deviationLinesLayer.innerHTML = '';
+          return;
+        }
+
+        // 1. 좌측 조감도 SVG 렌더링 (28대 앵커 삼각망 역변환 gpsToSvg 적용)
+        const svgCoords = currentSurveyTrack.map(p => gpsToSvg(p.lat, p.lng));
+
+        // IDW top3 순위 뒤집힘으로 인한 SVG 급점프 스무딩
+        // GPS 이동이 작은데(< 10m) SVG 점프가 클 때(> 80px) 이전 점에서 부드럽게 보간
+        for (let i = 1; i < svgCoords.length; i++) {
+          const svgJump = Math.hypot(svgCoords[i][0] - svgCoords[i-1][0], svgCoords[i][1] - svgCoords[i-1][1]);
+          const gpsMove = Math.hypot(
+            (currentSurveyTrack[i].lat - currentSurveyTrack[i-1].lat) * 111000,
+            (currentSurveyTrack[i].lng - currentSurveyTrack[i-1].lng) * 88000
+          );
+          if (svgJump > 80 && gpsMove < 10) {
+            // 급점프 억제: 이전 점 방향으로 최대 80px만 이동
+            const ratio = 80 / svgJump;
+            svgCoords[i] = [
+              Math.round(svgCoords[i-1][0] + (svgCoords[i][0] - svgCoords[i-1][0]) * ratio),
+              Math.round(svgCoords[i-1][1] + (svgCoords[i][1] - svgCoords[i-1][1]) * ratio)
+            ];
+          }
+        }
+
+        let pathD = `M ${svgCoords[0][0]},${svgCoords[0][1]}`;
+        for (let i = 1; i < svgCoords.length; i++) {
+          pathD += ` L ${svgCoords[i][0]},${svgCoords[i][1]}`;
+        }
+
+        // 외곽 은은한 후광
+        ghostTrackLayer.appendChild(createSvg('path', { class: 'ghost-track-halo', d: pathD }));
+        // 중심 분홍 점선 코어
+        ghostTrackLayer.appendChild(createSvg('path', { class: 'ghost-track-core', d: pathD }));
+
+        // 주요 거점 마커 배지 (출발: 천문과학관, 중간: 천주호, 검표소, 도착: 제3주차장)
+        const milestones = [
+          { label: "🚀 [출발] 천문과학관", idx: 0 },
+          { label: "🏞️ 천주호 구간", idx: Math.floor(svgCoords.length * 0.28) },
+          { label: "🎫 검표소", idx: Math.floor(svgCoords.length * 0.70) },
+          { label: "🏁 [도착] 제3주차장", idx: svgCoords.length - 1 }
+        ];
+
+        milestones.forEach(m => {
+          const pt = svgCoords[m.idx];
+          const badgeWidth = m.label.length * 11 + 14;
+          const g = createSvg('g', { transform: `translate(${pt[0]},${pt[1]})`, style: 'pointer-events:none;' }, `
+            <circle r="7" fill="#ff2d55" stroke="#ffffff" stroke-width="2" />
+            <rect x="12" y="-12" width="${badgeWidth}" height="24" rx="6" fill="rgba(15,23,42,0.94)" stroke="#ff2d55" stroke-width="1.5" />
+            <text x="${12 + badgeWidth / 2}" y="4" fill="#ffffff" font-size="11" font-weight="800" text-anchor="middle">${m.label}</text>
+          `);
+          ghostTrackLayer.appendChild(g);
+        });
+
+        // 2. 우측 위성 지도 Leaflet 렌더링
+        if (satGhostTrackGroup && leafletMap) {
+          const latlngs = currentSurveyTrack.map(p => [p.lat, p.lng]);
+          const poly = L.polyline(latlngs, {
+            color: '#ff2d55',
+            weight: 5,
+            opacity: 0.9,
+            dashArray: '8, 6',
+            lineCap: 'round',
+            lineJoin: 'round'
+          });
+          satGhostTrackGroup.addLayer(poly);
+
+          const startPt = currentSurveyTrack[0];
+          const endPt = currentSurveyTrack[currentSurveyTrack.length - 1];
+
+          const makeSatIcon = (text, bg) => L.divIcon({
+            className: 'custom-sat-ghost-pin',
+            html: `<div style="background:${bg}; color:#fff; font-size:10.5px; font-weight:800; padding:2px 7px; border-radius:10px; border:1.5px solid #fff; box-shadow:0 0 8px ${bg}; white-space:nowrap;">${text}</div>`,
+            iconSize: [80, 24],
+            iconAnchor: [40, 12]
+          });
+
+          L.marker([startPt.lat, startPt.lng], { icon: makeSatIcon('🚀 실측 출발 (천문대)', '#ff2d55'), interactive: false }).addTo(satGhostTrackGroup);
+          L.marker([endPt.lat, endPt.lng], { icon: makeSatIcon('🏁 실측 도착 (주차장)', '#ff2d55'), interactive: false }).addTo(satGhostTrackGroup);
+        }
+
+        // 3. 오차 분석선 갱신
+        renderDeviationLines();
+      }
+
+      function renderDeviationLines() {
+        if (!deviationLinesLayer) return;
+        deviationLinesLayer.innerHTML = '';
+        if (!showSurveyTrack || !showDeviationLines || !currentSurveyTrack || currentSurveyTrack.length === 0) return;
+
+        generatedRoads.nodes.forEach(node => {
+          let minDist = Infinity;
+          let closestTrackPt = null;
+          currentSurveyTrack.forEach(p => {
+            const d = distMeters(node.lat, node.lng, p.lat, p.lng);
+            if (d < minDist) {
+              minDist = d;
+              closestTrackPt = p;
+            }
+          });
+
+          // 12m 이상 오차가 나는 핀에 주황색 점선 가이드 및 오차 뱃지 표시
+          if (minDist >= 12 && minDist <= 55) {
+            const trackSvg = gpsToSvg(closestTrackPt.lat, closestTrackPt.lng);
+            const line = createSvg('line', {
+              x1: node.svg[0], y1: node.svg[1],
+              x2: trackSvg[0], y2: trackSvg[1],
+              class: 'deviation-guide-line'
+            });
+            deviationLinesLayer.appendChild(line);
+
+            const midX = Math.round((node.svg[0] + trackSvg[0]) / 2);
+            const midY = Math.round((node.svg[1] + trackSvg[1]) / 2);
+            const badge = createSvg('g', {
+              class: 'deviation-badge',
+              transform: `translate(${midX},${midY})`
+            }, `
+              <rect x="-26" y="-10" width="52" height="20" rx="6" fill="rgba(15,23,42,0.92)" stroke="#ff9500" stroke-width="1.5" />
+              <text y="4">${minDist.toFixed(0)}m 오차</text>
+            `);
+            deviationLinesLayer.appendChild(badge);
+          }
+        });
+      }
+
+      // 오차 핀 일괄 정렬
+      function snapDeviatedNodes() {
+        if (!currentSurveyTrack || currentSurveyTrack.length === 0) {
+          showToast('⚠️ 실측 트랙 데이터가 없습니다.');
+          return;
+        }
+
+        let snappedCount = 0;
+        const targetIds = new Set([32, 33, 34, 35, 36]); // 호수전망대 구간
+
+        generatedRoads.nodes.forEach(node => {
+          let minDist = Infinity;
+          let bestPt = null;
+          currentSurveyTrack.forEach(p => {
+            const d = distMeters(node.lat, node.lng, p.lat, p.lng);
+            if (d < minDist) {
+              minDist = d;
+              bestPt = p;
+            }
+          });
+
+          if (targetIds.has(node.id) || (minDist >= 15 && minDist <= 40)) {
+            const newSvg = gpsToSvg(bestPt.lat, bestPt.lng);
+            node.svg = newSvg;
+            node.lat = parseFloat(bestPt.lat.toFixed(6));
+            node.lng = parseFloat(bestPt.lng.toFixed(6));
+            snappedCount++;
+          }
+        });
+
+        renderExtractedRoads();
+        renderDeviationLines();
+        showToast(`🎯 호수전망대 구간(#32~#36 등) 총 ${snappedCount}개 핀이 9/11 실측선으로 정밀 정렬되었습니다!`);
+      }
+
+      // 개별 핀 더블클릭 스냅
+      function snapSingleNodeToSurvey(node) {
+        if (!currentSurveyTrack || currentSurveyTrack.length === 0) return;
+        let minDist = Infinity, bestPt = null;
+        currentSurveyTrack.forEach(p => {
+          const d = distMeters(node.lat, node.lng, p.lat, p.lng);
+          if (d < minDist) { minDist = d; bestPt = p; }
+        });
+        if (bestPt) {
+          const newSvg = gpsToSvg(bestPt.lat, bestPt.lng);
+          node.svg = newSvg;
+          node.lat = parseFloat(bestPt.lat.toFixed(6));
+          node.lng = parseFloat(bestPt.lng.toFixed(6));
+          renderExtractedRoads();
+          renderDeviationLines();
+          showToast(`🎯 #${node.id}번 핀이 9/11 실측선으로 스냅되었습니다! (오차: ${minDist.toFixed(1)}m 보정)`);
+        }
+      }
+
       // ── 5. 캔버스 브러시 드로잉 엔진 ──
       function redrawBrushCanvas() {
         ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
@@ -795,27 +1080,38 @@
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // ── 핵심 시작점/끝점 앵커 추출기 (획 1개당 시작점과 끝점 딱 2개만 깔끔하게 핀으로 생성) ──
+      // ── 적응형 곡률/변곡점 앵커 추출기 (직선은 깔끔하게 2점, 커브는 형태 보존) ──
       function extractKeyEndpoints(pts) {
         if (pts.length < 2) return pts;
-        const pStart = pts[0];
-        const pEnd = pts[pts.length - 1];
-        const lineLen = Math.hypot(pEnd[0] - pStart[0], pEnd[1] - pStart[1]);
 
-        // 곡선이 매우 심하게 휜 경우에만 중간 변곡점 1개 추가, 그 외에는 무조건 [시작점, 끝점] 2개만!
-        let maxDev = 0, midIdx = -1;
-        for (let i = 1; i < pts.length - 1; i++) {
-          const d = Math.abs((pEnd[1] - pStart[1]) * pts[i][0] - (pEnd[0] - pStart[0]) * pts[i][1] + pEnd[0] * pStart[1] - pEnd[1] * pStart[0]) / (lineLen + 1e-6);
-          if (d > maxDev) {
-            maxDev = d;
-            midIdx = i;
+        function rdpPoints(points, epsilon) {
+          if (points.length <= 2) return points;
+          let dmax = 0, index = 0;
+          const end = points.length - 1;
+          const pStart = points[0], pEnd = points[end];
+          const lineLen = Math.hypot(pEnd[0] - pStart[0], pEnd[1] - pStart[1]);
+
+          for (let i = 1; i < end; i++) {
+            const d = lineLen > 1e-4
+              ? Math.abs((pEnd[1] - pStart[1]) * points[i][0] - (pEnd[0] - pStart[0]) * points[i][1] + pEnd[0] * pStart[1] - pEnd[1] * pStart[0]) / lineLen
+              : Math.hypot(points[i][0] - pStart[0], points[i][1] - pStart[1]);
+            if (d > dmax) {
+              index = i;
+              dmax = d;
+            }
+          }
+
+          if (dmax > epsilon) {
+            const left = rdpPoints(points.slice(0, index + 1), epsilon);
+            const right = rdpPoints(points.slice(index), epsilon);
+            return left.slice(0, -1).concat(right);
+          } else {
+            return [pStart, pEnd];
           }
         }
 
-        if (maxDev > 120 && midIdx > 0) {
-          return [pStart, pts[midIdx], pEnd];
-        }
-        return [pStart, pEnd];
+        // 45px 허용 오차: 짧거나 완만한 획은 [시작, 끝] 2점 유지, 긴 곡선/S자 코스는 변곡점 노드 자동 생성
+        return rdpPoints(pts, 45);
       }
 
       // ── 6. 칠해진 형광 브러시로부터 도로망 누적 생성 (기존 0~29번 마스터 노드 100% 영구 보존!) ──
@@ -918,11 +1214,18 @@
               window.removeEventListener('pointermove', onDrag);
               window.removeEventListener('pointerup', onUp);
               renderExtractedRoads(false);
+              renderDeviationLines();
               showToast(`🎯 #${node.id}번 도로 핀 조감도 위치 이동 완료!`);
             };
 
             window.addEventListener('pointermove', onDrag);
             window.addEventListener('pointerup', onUp);
+          });
+
+          // 더블클릭 시 가장 가까운 실측 트랙 점으로 원터치 스냅!
+          pin.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            snapSingleNodeToSurvey(node);
           });
 
           extractedRoadNodesLayer.appendChild(pin);
@@ -992,6 +1295,7 @@
                 node.lat = parseFloat(finalLatLng.lat.toFixed(6));
                 node.lng = parseFloat(finalLatLng.lng.toFixed(6));
 
+                renderDeviationLines();
                 showToast(`🎯 #${node.id}번 핀 위성 GPS 위치 [${node.lat}, ${node.lng}] 매핑 완료! (조감도 핀은 제자리 고정)`);
               });
 
@@ -1219,10 +1523,69 @@
         btnToggleAnchors.onclick = () => {
           showAnchors = !showAnchors;
           btnToggleAnchors.classList.toggle('active', showAnchors);
-          btnToggleAnchors.textContent = showAnchors ? '📍 24개 앵커 숨김' : '📍 24개 앵커 표시';
+          btnToggleAnchors.textContent = showAnchors ? '📍 앵커 숨김' : '📍 앵커 표시';
           renderLeftAnchors();
           renderSatelliteAnchors();
-          showToast(showAnchors ? '📍 24개 앵커 표시 ON' : '📍 24개 앵커 숨김 OFF');
+          showToast(showAnchors ? '📍 앵커 표시 ON' : '📍 앵커 숨김 OFF');
+        };
+      }
+
+      // ── 9/11 실측 트랙 툴바 이벤트 리스너 ──
+      const btnToggleSurveyTrack = document.getElementById('btnToggleSurveyTrack');
+      if (btnToggleSurveyTrack) {
+        btnToggleSurveyTrack.onclick = () => {
+          showSurveyTrack = !showSurveyTrack;
+          btnToggleSurveyTrack.classList.toggle('survey-active', showSurveyTrack);
+          btnToggleSurveyTrack.textContent = showSurveyTrack ? '🛰️ 실측트랙 ON' : '🛰️ 실측트랙 OFF';
+          renderGhostTrack();
+          showToast(showSurveyTrack ? '🛰️ 9/11 실측 트랙 (804점) 가이드 ON' : '🛰️ 실측 트랙 가이드 숨김 OFF');
+        };
+      }
+
+      const btnToggleDeviation = document.getElementById('btnToggleDeviation');
+      if (btnToggleDeviation) {
+        btnToggleDeviation.onclick = () => {
+          showDeviationLines = !showDeviationLines;
+          btnToggleDeviation.classList.toggle('dev-active', showDeviationLines);
+          btnToggleDeviation.textContent = showDeviationLines ? '📐 오차분석 ON' : '📐 오차분석';
+          renderDeviationLines();
+          showToast(showDeviationLines ? '📐 핀 오차(m) 분석 가이드 ON' : '📐 오차 분석선 숨김 OFF');
+        };
+      }
+
+      const btnSnapDeviated = document.getElementById('btnSnapDeviated');
+      if (btnSnapDeviated) {
+        btnSnapDeviated.onclick = snapDeviatedNodes;
+      }
+
+      const fileInputTrack = document.getElementById('fileInputTrack');
+      const btnLoadTrackFile = document.getElementById('btnLoadTrackFile');
+      if (btnLoadTrackFile && fileInputTrack) {
+        btnLoadTrackFile.onclick = () => fileInputTrack.click();
+        fileInputTrack.onchange = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            try {
+              const data = JSON.parse(ev.target.result);
+              if (Array.isArray(data) && data.length > 0 && data[0].lat && data[0].lng) {
+                currentSurveyTrack = data;
+                showSurveyTrack = true;
+                if (btnToggleSurveyTrack) {
+                  btnToggleSurveyTrack.classList.add('survey-active');
+                  btnToggleSurveyTrack.textContent = '🛰️ 실측트랙 ON';
+                }
+                renderGhostTrack();
+                showToast(`📂 새 실측 트랙 로드 완료! (${data.length}개 GPS 포인트)`);
+              } else {
+                showToast('⚠️ 유효한 GPS 트랙 JSON 형식이 아닙니다 ([{lat, lng}, ...])');
+              }
+            } catch (err) {
+              showToast('⚠️ JSON 파일 파싱 실패');
+            }
+          };
+          reader.readAsText(file);
         };
       }
 
@@ -1276,6 +1639,7 @@
       // ── 초기화 실행 ──
       initLeafletMap();
       renderLeftAnchors();
+      renderGhostTrack();
       redrawBrushCanvas();
       renderExtractedRoads();
     })();

@@ -3,7 +3,7 @@
 # 🏞️ 포천아트밸리 스마트 가이드 & 1:1 정밀 GIS 내비게이션
 ### Pocheon Art Valley Interactive Smart Guide & Spatial Routing Engine
 
-[![Version](https://img.shields.io/badge/version-2.5.0-blue.svg?style=for-the-badge&logo=git)](https://github.com/Buvi-kr/kiosk-map)
+[![Version](https://img.shields.io/badge/version-2.6.0-blue.svg?style=for-the-badge&logo=git)](https://github.com/Buvi-kr/kiosk-map)
 [![Engine](https://img.shields.io/badge/Engine-Dijkstra_Graph_v2-red.svg?style=for-the-badge&logo=google-maps)](https://github.com/Buvi-kr/kiosk-map)
 [![Platform](https://img.shields.io/badge/Platform-Mobile_%7C_Kiosk_%7C_Desktop-emerald.svg?style=for-the-badge)](https://github.com/Buvi-kr/kiosk-map)
 [![Performance](https://img.shields.io/badge/Performance-60FPS_Smooth_GPU-purple.svg?style=for-the-badge&logo=speedtest)](https://github.com/Buvi-kr/kiosk-map)
@@ -19,7 +19,7 @@
 [✨ 핵심 기능](#-핵심-기능-하이라이트) •
 [📱 HTML별 상세 소개](#-핵심-웹-애플리케이션-구성-html-상세-소개) •
 [🧠 기술적 아키텍처](#-핵심-엔진-아키텍처--알고리즘) •
-[📜 종합 패치노트](#-2026-08-19-종합-개발--트러블슈팅-패치노트)
+[📜 종합 패치노트](#-종합-개발--트러블슈팅-패치노트)
 
 ---
 
@@ -156,7 +156,35 @@ function smoothPath(pts) {
 
 ---
 
-## 📜 2026-08-19 종합 개발 & 트러블슈팅 패치노트
+## 📜 종합 개발 & 트러블슈팅 패치노트
+
+### 🛰️ 2026-09-14 [v2.6.0] 9/11 실측 트랙(804점, 1.1km) 정밀 캘리브레이션 & GIS 왜곡 해소
+
+* **📍 9/11 현장 실측 GPS 트랙(Ghost Track) 1:1 오버레이 시스템 구축**
+  * 천문과학관 출발부터 제3주차장 도착까지 실제 발로 뛴 804개 위경도 GPS 포인트(`data/포천아트밸리_실측트랙_2026-09-11.json`)를 조감도 SVG 위에 분홍색 발광 네온 점선으로 실시간 렌더링.
+  * 초록색 도로망과 실제 방문객 보행선 간의 오차를 1m 단위로 시각화하여 검증 가능.
+
+* **🏔️ [Troubleshooting 1] 2.5D 조감도 고도차 왜곡에 따른 돌산(폐석장) 이탈 버그 척결**
+  * **현상**: 하행 보행로(24번 핀 부근)를 지날 때 트랙이 펜스를 넘어 돌산(폐석장 사면)으로 네모나게 솟구쳤다가 검표소로 급강하하는 왜곡 발생.
+  * **원인**: 2D GPS 거리는 가깝지만 조감도 상에서는 높낮이가 다른 절벽 위 앵커(조각공원 #22 및 잔디광장, Y=800~950)가 하행로(Y=1300~1500)의 트랙을 강하게 끌어당김.
+  * **해결**: 하행 보행로에 `하행 보행로(급경사데크 상단) [1388, 1150]` 및 `하행 보행로(중간쉼터) [1830, 1397]` 정밀 앵커 2곳을 추가하여 도로 중앙으로 완벽 정렬.
+
+* **🎭 [Troubleshooting 2] 산마루공연장 관람석/무대 관통 왜곡 해소**
+  * **현상**: 천문과학관 출발 직후 트랙이 산마루공연장 동쪽 산책로를 따르지 않고 무대 한가운데를 'ㄱ'자로 가로지름.
+  * **원인**: 동쪽 길에 앵커가 없어 서쪽(매점 #43, 무대 #44) 앵커가 먼저 끌어당겼다가 모노레일(#37) 앵커가 다시 가로채는 역전 현상 발생.
+  * **해결**: `산마루 동쪽 산책로(#40) [433, 550]` 및 `산마루/모노레일 합류점(#38) [453, 626]` 앵커를 추가하여 실제 동쪽 보행로 위로 100% 일치시킴.
+
+* **⚡ IDW top-3 순위 역전 급점프 억제 스무딩 필터 & 30대 앵커 체계 확립**
+  * GPS 이동이 미세한데 앵커 순위 뒤집힘으로 인해 SVG 픽셀이 튈 경우 이를 이전 프레임 벡터로 연속 보간하는 적응형 스무딩 레이어 추가.
+  * 핵심 앵커를 기존 24개에서 **30대 정밀 앵커 삼각망**으로 격상.
+
+* **🎯 원터치 오차 분석 & 실측 트랙 자동 스냅 도구 탑재**
+  * 핀 더블클릭 시 가장 가까운 9/11 실측 트랙 점으로 0.1초 만에 자석처럼 스냅되는 `snapSingleNodeToSurvey()` 기능 구현.
+  * `[🎯 오차핀 정렬]` 버튼으로 편차 발생 핀 일괄 보정 지원.
+
+<br>
+
+### 🏛️ 2026-08-19 [v2.5.0] 단일망 통합 & 상하행 2대 코스 엔진
 
 ### 🛠️ [Bug 1] 6개 고립 서브그래프(Island) 분리 버그 규명 및 단일망 통합
 * **현상**: 매표소, 정보센터, 주차장 등 입구 쪽에서 출발 시 다익스트라가 실패하여 **절벽과 산을 뚫고 지나가는 직선 Fallback** 발생.
